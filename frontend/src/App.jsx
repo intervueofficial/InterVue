@@ -8,6 +8,7 @@ import ProblemPage from "./pages/ProblemPage";
 import ProblemsPage from "./pages/ProblemsPage";
 import SessionPage from "./pages/SessionPage";
 import QuizePage from './pages/QuizePage'; 
+import TerminatedPage from "./pages/TerminatedPage";
 function App() {
   const { isSignedIn, isLoaded } = useUser();
 
@@ -24,6 +25,8 @@ function App() {
         <Route path="/problem/:id" element={isSignedIn ? <ProblemPage /> : <Navigate to={"/"} />} />
         <Route path="/session/:id" element={isSignedIn ? <SessionPage /> : <Navigate to={"/"} />} />
         <Route path="/QuizePage" element={<QuizePage />} />
+        <Route path="/terminated" element={<TerminatedPage />}
+/>
       </Routes>
 
       <Toaster toastOptions={{ duration: 3000 }} />

@@ -459,6 +459,111 @@ export default function QuizPage() {
   const answeredCount = Object.keys(answers).length;
   const roleData = ROLES.find((r) => r.id === selectedRole);
 
+  useEffect(() => {
+  const terminateInterview = async (reason) => {
+    try {
+      await fetch(
+        `${import.meta.env.VITE_API_URL}/api/sessions/terminate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            reason,
+          }),
+        }
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    alert(`Interview terminated: ${reason}`);
+
+    window.location.href = "/terminated";
+  };
+
+  const handleVisibility = () => {
+    if (document.hidden) {
+      terminateInterview("Tab switching detected");
+    }
+  };
+
+  const handleBlur = () => {
+    terminateInterview("Window focus lost");
+  };
+
+  const handleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      terminateInterview("Fullscreen exited");
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (
+      e.key === "F12" ||
+      (e.ctrlKey && e.shiftKey && e.key === "I") ||
+      (e.ctrlKey && e.key === "u") ||
+      (e.ctrlKey && e.shiftKey && e.key === "J")
+    ) {
+      e.preventDefault();
+
+      terminateInterview("Developer tools detected");
+    }
+  };
+
+  document.addEventListener(
+    "visibilitychange",
+    handleVisibility
+  );
+
+  window.addEventListener("blur", handleBlur);
+
+  document.addEventListener(
+    "fullscreenchange",
+    handleFullscreen
+  );
+
+  document.addEventListener("keydown", handleKeyDown);
+
+  document.addEventListener("copy", (e) =>
+    e.preventDefault()
+  );
+
+  document.addEventListener("paste", (e) =>
+    e.preventDefault()
+  );
+
+  document.addEventListener("cut", (e) =>
+    e.preventDefault()
+  );
+
+  document.addEventListener("contextmenu", (e) =>
+    e.preventDefault()
+  );
+
+  document.documentElement.requestFullscreen();
+
+  return () => {
+    document.removeEventListener(
+      "visibilitychange",
+      handleVisibility
+    );
+
+    window.removeEventListener("blur", handleBlur);
+
+    document.removeEventListener(
+      "fullscreenchange",
+      handleFullscreen
+    );
+
+    document.removeEventListener(
+      "keydown",
+      handleKeyDown
+    );
+  };
+}, []);
   // ── LANDING PAGE ─────────────────────────────────────────────────────────────
   if (page === "landing") {
     return (

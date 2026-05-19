@@ -488,6 +488,26 @@ function SessionTopBar({
             </>
           )}
         </button>
+        <button
+  onClick={async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch (error) {
+      console.error(error);
+    }
+  }}
+  style={{
+    padding: "6px 14px",
+    borderRadius: 6,
+    border: "none",
+    background: "#1868DB",
+    color: "#fff",
+    fontWeight: 600,
+    cursor: "pointer",
+  }}
+>
+  Fullscreen
+</button>
 
         {/* Result chip */}
         <AnimatePresence>
@@ -1269,7 +1289,8 @@ function SessionPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useUser();
-
+const [isScreenSharing, setIsScreenSharing] =
+  useState(false);
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [lastResult, setLastResult] = useState(null);
@@ -1295,6 +1316,148 @@ function SessionPage() {
     ? Object.values(PROBLEMS).find((p) => p.title === session.problem)
     : null;
 
+useEffect(() => {
+  let isTerminated = false;
+
+  const terminateInterview = async (reason) => {
+    if (isTerminated) return;
+
+    isTerminated = true;
+
+    try {
+      await fetch(
+        `${import.meta.env.VITE_API_URL}/api/sessions/terminate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          keepalive: true,
+          body: JSON.stringify({
+            candidateId: user?.id,
+            sessionId: session?._id,
+            reason,
+          }),
+        }
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    document.body.innerHTML = `
+      <div
+        style="
+          height:100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          flex-direction:column;
+          background:#0F172A;
+          color:white;
+          font-family:sans-serif;
+        "
+      >
+        <h1 style="font-size:42px;margin-bottom:12px;">
+          Interview Terminated
+        </h1>
+
+        <p style="font-size:18px;color:#CBD5E1;">
+          Suspicious activity detected.
+        </p>
+
+        <p style="margin-top:20px;color:#94A3B8;">
+          Redirecting to dashboard...
+        </p>
+      </div>
+    `;
+
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 2500);
+  };
+
+  const handleKeyDown = (e) => {
+    if (
+      e.key === "F12" ||
+      (e.ctrlKey &&
+        e.shiftKey &&
+        e.key === "I") ||
+      (e.ctrlKey && e.key === "u") ||
+      (e.ctrlKey &&
+        e.shiftKey &&
+        e.key === "J")
+    ) {
+      e.preventDefault();
+
+      terminateInterview(
+        "Developer tools detected"
+      );
+    }
+  };
+
+  const enterFullscreen = async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+enterFullscreen();
+
+  const devtoolsInterval = setInterval(() => {
+    const threshold = 160;
+
+    if (
+      window.outerWidth -
+        window.innerWidth >
+        threshold ||
+      window.outerHeight -
+        window.innerHeight >
+        threshold
+    ) {
+      terminateInterview(
+        "Developer tools detected"
+      );
+    }
+  }, 1000);
+
+  document.addEventListener(
+    "keydown",
+    handleKeyDown
+  );
+
+  document.addEventListener(
+    "copy",
+    (e) => e.preventDefault()
+  );
+
+  document.addEventListener(
+    "paste",
+    (e) => e.preventDefault()
+  );
+
+  document.addEventListener(
+    "cut",
+    (e) => e.preventDefault()
+  );
+
+  document.addEventListener(
+    "contextmenu",
+    (e) => e.preventDefault()
+  );
+
+  return () => {
+    clearInterval(devtoolsInterval);
+
+    document.removeEventListener(
+      "keydown",
+      handleKeyDown
+    );
+  };
+}, [session, user]);
   /* Auto-join */
   useEffect(() => {
     if (!session || !user || loadingSession) return;
@@ -1315,6 +1478,7 @@ function SessionPage() {
     }
   }, [problemData, selectedLanguage]);
 
+  
   const handleLanguageChange = (e) => {
     const lang = e.target.value;
     setSelectedLanguage(lang);
