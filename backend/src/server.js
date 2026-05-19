@@ -23,7 +23,7 @@ app.use(express.json());
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://intervueofficial.vercel.app",
+  "https://intervue.site/",
 ];
 
 app.use(
