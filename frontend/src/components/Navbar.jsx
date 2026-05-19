@@ -220,8 +220,8 @@ function Navbar() {
           <div className="nav-links">
 
 <Link
-  to="/coming-soon"
-  className={`nav-link ${isActive("/coming-soon") ? "active" : ""}`}
+  to="/QuizePage"
+  className={`nav-link ${isActive("/QuizePage") ? "active" : ""}`}
 >
   <BookOpenIcon />
   <span>Quiz</span>
