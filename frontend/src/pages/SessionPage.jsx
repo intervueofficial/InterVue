@@ -31,7 +31,7 @@ import {
   WifiOffIcon,
 } from "lucide-react";
 import { useMemo } from "react";
-
+import AIProctorStream from "../components/AIProctorStream";
 /* ─── Design Tokens ────────────────────────────────────────────────────────── */
 const T = {
   blue: "#1868DB",
@@ -312,6 +312,7 @@ function SessionTopBar({
   }, [session?.problem]);
 
   return (
+    
     <div
       style={{
         height: 50,
@@ -330,6 +331,54 @@ function SessionTopBar({
         style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}
       >
         {/* Live / Completed badge */}
+        <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 12px",
+    borderRadius: 999,
+    background:
+      status === "Face Not Detected"
+        ? "rgba(239,68,68,0.12)"
+        : "rgba(34,197,94,0.12)",
+    border:
+      status === "Face Not Detected"
+        ? "1px solid rgba(239,68,68,0.25)"
+        : "1px solid rgba(34,197,94,0.25)",
+    backdropFilter: "blur(10px)",
+  }}
+>
+  <div
+    style={{
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      background:
+        status === "Face Not Detected"
+          ? "#EF4444"
+          : "#22C55E",
+      boxShadow:
+        status === "Face Not Detected"
+          ? "0 0 10px #EF4444"
+          : "0 0 10px #22C55E",
+    }}
+  />
+
+  <span
+    style={{
+      fontSize: 12,
+      fontWeight: 600,
+      color:
+        status === "Face Not Detected"
+          ? "#EF4444"
+          : "#22C55E",
+      letterSpacing: 0.3,
+    }}
+  >
+    {status}
+  </span>
+</div>
         <div
           style={{
             display: "flex",
@@ -1088,7 +1137,7 @@ function VideoPanel({
       >
         <div
           style={{
-            background: "rgba(255,255,255,0.04)",
+            background: "rgba(255,255,255,0.05)",
             border: "1px solid rgba(255,255,255,0.08)",
             borderRadius: 12,
             padding: "36px 32px",
@@ -1209,6 +1258,7 @@ function VideoPanel({
             <VideoCallUI chatClient={chatClient} channel={channel} />
           </StreamCall>
         </StreamVideo>
+         <AIProctorStream />
       </div>
     </div>
   );
@@ -1776,7 +1826,9 @@ enterFullscreen();
                 isInitializingCall={isInitializingCall}
               />
             </Panel>
+            
           </PanelGroup>
+         
         </div>
 
         {/* ── Status bar ── */}
