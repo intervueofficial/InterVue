@@ -1,7 +1,6 @@
 # InterVue
 
-![InterVue Homepage](./public/homepage.png)
-
+![InterVue Homepage](./frontend/public/homepage.png)
 
 InterVue is an AI-powered collaborative technical interview platform designed to help engineering teams conduct structured, scalable, and data-driven hiring processes.
 
