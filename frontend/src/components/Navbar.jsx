@@ -23,28 +23,33 @@ function Navbar() {
         }
 
         .navbar-inner {
-          background: rgba(255, 255, 255, 0.82);
-          backdrop-filter: blur(20px) saturate(1.8);
-          -webkit-backdrop-filter: blur(20px) saturate(1.8);
-          border: 1px solid rgba(99, 102, 241, 0.13);
-          border-radius: 20px;
-          box-shadow:
-            0 4px 24px rgba(99, 102, 241, 0.08),
-            0 1px 4px rgba(0, 0, 0, 0.04),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          transition: box-shadow 0.3s ease, background 0.3s ease;
-        }
+  background: rgba(255, 255, 255, 0.06);
 
-        .navbar-inner:hover {
-          box-shadow:
-            0 8px 32px rgba(99, 102, 241, 0.13),
-            0 2px 8px rgba(0, 0, 0, 0.05),
-            inset 0 1px 0 rgba(255, 255, 255, 0.95);
-        }
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 8px 32px rgba(31, 38, 135, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+  padding: 10px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  transition: all 0.3s ease;
+}
+
+       .navbar-inner:hover {
+  box-shadow:
+    0 12px 40px rgba(31, 38, 135, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
 
         /* LOGO */
         .nav-logo {
@@ -63,11 +68,11 @@ function Navbar() {
           width: 38px;
           height: 38px;
           border-radius: 12px;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+          background: linear-gradient(135deg, #6e88f0 0%, #5a84f0 50%, #6f7eed 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+          box-shadow: 0 4px 12px rgba(94, 138, 235, 0.35);
           flex-shrink: 0;
         }
 
@@ -87,7 +92,7 @@ function Navbar() {
           font-family: 'JetBrains Mono', monospace;
           font-weight: 700;
           font-size: 16px;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+          background: linear-gradient(135deg, #6366f1, #5c80f6, #7285e6);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -126,7 +131,7 @@ function Navbar() {
         }
 
         .nav-link:hover {
-          color: #6366f1;
+          color: #5c76ea;
           background: rgba(99, 102, 241, 0.07);
         }
 
@@ -143,7 +148,7 @@ function Navbar() {
 
         .nav-link.active {
           background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08));
-          color: #6366f1;
+          color: #4b6de7ee;
           font-weight: 600;
           box-shadow: 0 1px 6px rgba(99, 102, 241, 0.12);
         }
@@ -156,7 +161,7 @@ function Navbar() {
           width: 3px;
           height: 3px;
           border-radius: 50%;
-          background: #6366f1;
+          background: #5b7feb;
           opacity: 0;
           transition: opacity 0.18s ease;
         }
@@ -206,15 +211,58 @@ function Navbar() {
         <div className="navbar-inner">
 
           {/* LOGO */}
-          <Link to="/" className="nav-logo">
-            <div className="logo-icon">
-              <SparklesIcon />
-            </div>
-            <div className="logo-text">
-              <span className="logo-name">InterVue</span>
-              <span className="logo-tagline">Code Together</span>
-            </div>
-          </Link>
+          <Link
+  to="/"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    textDecoration: "none",
+  }}
+
+>
+  <img
+  src="/logo.png"
+  alt="InterVue"
+  style={{
+    width: "68px",
+    height: "68px",
+    objectFit: "contain",
+    transform: "scale(1.35)",
+    marginRight: "-10px",
+    display: "block",
+  }}
+/>
+
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      lineHeight: 1,
+    }}
+  >
+    <span
+      style={{
+        fontSize: "18px",
+        fontWeight: 800,
+        color: "#3a82ed",
+        letterSpacing: "-0.5px",
+      }}
+    >
+      InterVue
+    </span>
+
+    <span
+      style={{
+        fontSize: "10px",
+        color: "#94A3B8",
+        marginTop: "2px",
+      }}
+    >
+      Code Together
+    </span>
+  </div>
+</Link>
 
           {/* NAV LINKS + USER */}
           <div className="nav-links">

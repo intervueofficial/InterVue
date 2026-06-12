@@ -444,13 +444,52 @@ export default function InterVueLanding() {
         transition: "border-color 0.2s, background 0.2s",
       }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", height: 60, display: "flex", alignItems: "center", gap: 40 }}>
-          <a href="#" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, background: "#2563eb", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: "-0.5px" }}>IV</span>
-            </div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.3px" }}>InterVue</span>
-          </a>
+         <a
+  href="/"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 7,
+    textDecoration: "none",
+  }}
+>
+  <div
+    style={{
+      width: 36,
+      height: 36,
+      borderRadius: 8,
+      overflow: "hidden",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    }}
+  >
+    <img
+      src="/logo.png"
+      alt="InterVue"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: "block",
+      }}
+    />
+  </div>
 
+  <span
+    style={{
+      fontSize: 20,
+      fontWeight: 700,
+      color: "#0f172a",
+      letterSpacing: "-0.5px",
+      lineHeight: 1,
+    }}
+  >
+    InterVue
+  </span>
+</a>
+    
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
             {/* Clerk Sign In */}
             <SignInButton mode="modal">
