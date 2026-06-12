@@ -41,6 +41,8 @@ InterVue solves this problem by providing a centralized interview workspace wher
 * Interview integrity monitoring
 * Real-time visual indicators for interviewers
 
+* ![InterVue Ai](./frontend/public/face-detection-demo.mp4)
+
 ### AI Interview Evaluation
 
 * Automated candidate assessment
