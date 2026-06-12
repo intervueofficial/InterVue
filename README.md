@@ -40,6 +40,10 @@ InterVue solves this problem by providing a centralized interview workspace wher
 * Attention tracking system
 * Interview integrity monitoring
 * Real-time visual indicators for interviewers
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7b8b7da4259710acf57cd3bb0aa004b23c4ac54c
 ![TruthLens Demo](./frontend/public/demo.gif)
 
 ### AI Interview Evaluation
