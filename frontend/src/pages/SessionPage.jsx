@@ -34,9 +34,11 @@ import {
   EyeIcon,
   ShieldIcon,
   ActivityIcon,
+  FileTextIcon,
+  HelpCircleIcon,
 } from "lucide-react";
 import AIProctorStream from "../components/AIProctorStream";
-import Navbar from "../components/Navbar"
+
 
 /* ─── Design Tokens ────────────────────────────────────────────────────────── */
 const T = {
@@ -275,6 +277,117 @@ function RoleSwitcher({ role, onChange }) {
   );
 }
 
+/* ─── Page Switcher Dropdown ────────────────────────────────────────────────── */
+function PageSwitcher({ activePage, onChange, darkMode = false }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const pages = [
+    { id: "problem", label: "Problem", Icon: FileTextIcon, color: T.blue, desc: "View problem statement, examples & constraints" },
+    { id: "quiz", label: "Quiz", Icon: HelpCircleIcon, color: T.purple, desc: "Answer theory & concept questions" },
+  ];
+
+  const current = pages.find(p => p.id === activePage) || pages[0];
+
+  const borderColor = darkMode
+    ? activePage === "quiz" ? "rgba(101,84,192,0.4)" : "rgba(255,255,255,0.12)"
+    : activePage === "quiz" ? "rgba(101,84,192,0.3)" : T.border;
+
+  const bgColor = darkMode
+    ? activePage === "quiz" ? "rgba(101,84,192,0.12)" : "rgba(255,255,255,0.06)"
+    : activePage === "quiz" ? T.purpleTint : T.surface;
+
+  const textColor = darkMode
+    ? activePage === "quiz" ? "#A78BFA" : "rgba(255,255,255,0.6)"
+    : activePage === "quiz" ? T.purple : T.body;
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "5px 10px", borderRadius: 4,
+          border: `1px solid ${borderColor}`,
+          background: bgColor,
+          fontSize: 11, fontWeight: 600, color: textColor,
+          cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+          transition: "all 0.15s",
+        }}
+      >
+        <current.Icon size={11} />
+        {current.label}
+        <ChevronDownIcon size={10} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "absolute", top: "calc(100% + 6px)", left: 0,
+              background: darkMode ? "#1A2435" : T.bg,
+              border: `1px solid ${darkMode ? "rgba(255,255,255,0.1)" : T.border}`,
+              borderRadius: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+              overflow: "hidden", zIndex: 200, minWidth: 200,
+            }}
+          >
+            {pages.map(p => {
+              const isActive = activePage === p.id;
+              const itemBg = darkMode
+                ? isActive ? (p.id === "quiz" ? "rgba(101,84,192,0.15)" : "rgba(24,104,219,0.15)") : "transparent"
+                : isActive ? (p.id === "quiz" ? T.purpleTint : T.blueTint) : "transparent";
+              const itemColor = isActive ? p.color : darkMode ? "rgba(255,255,255,0.7)" : T.body;
+
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => { onChange(p.id); setOpen(false); }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 8,
+                    padding: "9px 14px", border: "none", cursor: "pointer",
+                    background: itemBg, color: itemColor,
+                    fontSize: 12, fontWeight: isActive ? 700 : 500,
+                    fontFamily: "'DM Sans', sans-serif", textAlign: "left",
+                    transition: "background 0.12s",
+                  }}
+                >
+                  <p.Icon size={12} />
+                  {p.label}
+                  {isActive && (
+                    <span style={{
+                      marginLeft: "auto", width: 6, height: 6,
+                      borderRadius: "50%", background: p.color,
+                    }} />
+                  )}
+                </button>
+              );
+            })}
+
+            <div style={{
+              padding: "8px 14px 10px",
+              borderTop: `1px solid ${darkMode ? "rgba(255,255,255,0.07)" : T.border2}`,
+            }}>
+              <p style={{ margin: 0, fontSize: 10, color: darkMode ? "rgba(255,255,255,0.3)" : T.muted, lineHeight: 1.5 }}>
+                {current.desc}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ─── Screen Recorder Hook ──────────────────────────────────────────────────── */
 function useScreenRecorder() {
   const [recording, setRecording] = useState(false);
@@ -290,13 +403,11 @@ function useScreenRecorder() {
     try {
       setError(null);
       setBlob(null);
-      // Request display media (entire screen or window)
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { mediaSource: "screen", cursor: "always" },
         audio: true,
       });
 
-      // Also capture mic audio if possible
       let audioStream = null;
       try {
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -326,11 +437,9 @@ function useScreenRecorder() {
         setRecording(false);
         clearInterval(timerRef.current);
         setDuration(0);
-        // Stop all tracks
         combinedStream.getTracks().forEach(t => t.stop());
       };
 
-      // Handle user stopping via browser native UI
       displayStream.getVideoTracks()[0].onended = () => {
         if (recorder.state !== "inactive") recorder.stop();
       };
@@ -394,6 +503,7 @@ function useSessionTimer(active) {
 function CandidateTopBar({
   session, isRunning, lastResult, selectedLanguage,
   onLanguageChange, onRunCode, role, onRoleChange,
+  activePage, onPageChange,
 }) {
   const isLive = session?.status === "active";
   const diff = DIFF[session?.difficulty] || DIFF.medium;
@@ -460,6 +570,11 @@ function CandidateTopBar({
 
       {/* Right */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {/* Page switcher */}
+        <PageSwitcher activePage={activePage} onChange={onPageChange} darkMode={false} />
+
+        <div style={{ width: 1, height: 18, background: T.border }} />
+
         {/* Role switcher */}
         <RoleSwitcher role={role} onChange={onRoleChange} />
 
@@ -535,7 +650,7 @@ function CandidateTopBar({
 /* ─── Interviewer Top Bar ───────────────────────────────────────────────────── */
 function InterviewerTopBar({
   session, role, onRoleChange, onEndSession, isEnding,
-  recorder,
+  recorder, activePage, onPageChange,
 }) {
   const isLive = session?.status === "active";
   const diff = DIFF[session?.difficulty] || DIFF.medium;
@@ -597,6 +712,11 @@ function InterviewerTopBar({
 
       {/* Right — interviewer actions */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {/* Page switcher */}
+        <PageSwitcher activePage={activePage} onChange={onPageChange} darkMode={true} />
+
+        <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }} />
+
         {/* Role switcher */}
         <RoleSwitcher role={role} onChange={onRoleChange} />
 
@@ -833,6 +953,224 @@ function ProblemPanel({ problemData, session, loading }) {
   );
 }
 
+/* ─── Quiz Panel ─────────────────────────────────────────────────────────────── */
+function QuizPanel({ problemData, session, loading }) {
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const questions = problemData?.quiz || [];
+
+  const handleSelect = (qIdx, optIdx) => {
+    if (submitted) return;
+    setAnswers(prev => ({ ...prev, [qIdx]: optIdx }));
+  };
+
+  const handleSubmit = () => {
+    if (Object.keys(answers).length < questions.length) return;
+    setSubmitted(true);
+  };
+
+  const handleReset = () => {
+    setAnswers({});
+    setSubmitted(false);
+  };
+
+  const score = submitted
+    ? questions.filter((q, i) => answers[i] === q.answer).length
+    : 0;
+
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: T.bg, overflow: "hidden" }}>
+      <PanelHeader>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700,
+            color: T.purple, background: T.purpleTint, outline: `1px solid rgba(101,84,192,0.2)`,
+          }}>
+            <HelpCircleIcon size={10} />
+            Quiz
+          </div>
+          {questions.length > 0 && (
+            <span style={{ fontSize: 11, color: T.muted, fontWeight: 500 }}>
+              {questions.length} question{questions.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        {submitted && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Badge
+              color={score === questions.length ? T.green : score >= questions.length / 2 ? T.yellow : T.red}
+              bg={score === questions.length ? T.greenTint : score >= questions.length / 2 ? T.yellowTint : T.redTint}
+              border={score === questions.length ? T.greenBorder : score >= questions.length / 2 ? T.yellowBorder : T.redBorder}
+            >
+              {score}/{questions.length} Correct
+            </Badge>
+            <button onClick={handleReset} style={{
+              fontSize: 11, fontWeight: 600, color: T.muted,
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif", padding: "2px 6px",
+              borderRadius: 4, transition: "color 0.15s",
+            }}>
+              Retry
+            </button>
+          </div>
+        )}
+      </PanelHeader>
+
+      <div style={{ flex: 1, overflowY: "auto" }} className="sp-scroll">
+        {loading ? (
+          <div style={{ padding: "24px 22px", display: "flex", flexDirection: "column", gap: 20 }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <SkeletonBlock h={16} w="80%" />
+                <SkeletonBlock h={36} radius={6} />
+                <SkeletonBlock h={36} radius={6} />
+                <SkeletonBlock h={36} radius={6} w="70%" />
+              </div>
+            ))}
+          </div>
+        ) : questions.length === 0 ? (
+          <EmptyPane
+            icon={HelpCircleIcon}
+            title="No quiz questions"
+            subtitle="No quiz questions are available for this problem yet."
+          />
+        ) : (
+          <div style={{ padding: "22px 22px 32px", display: "flex", flexDirection: "column", gap: 28 }}>
+            {questions.map((q, qIdx) => {
+              const selected = answers[qIdx];
+              const isCorrect = submitted && selected === q.answer;
+              const isWrong = submitted && selected !== undefined && selected !== q.answer;
+
+              return (
+                <div key={qIdx}>
+                  <Section title={`Question ${qIdx + 1}`}>
+                    <p style={{
+                      fontSize: 13, fontWeight: 600, color: T.dark,
+                      lineHeight: 1.65, margin: "0 0 12px",
+                    }}>
+                      {q.question}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {q.options.map((opt, oIdx) => {
+                        const isSelected = selected === oIdx;
+                        const isAnswerKey = submitted && oIdx === q.answer;
+                        const isSelectedWrong = submitted && isSelected && oIdx !== q.answer;
+
+                        let bg = T.surface;
+                        let border = T.border;
+                        let labelColor = T.body;
+                        let iconEl = null;
+
+                        if (isAnswerKey) {
+                          bg = T.greenTint; border = T.greenBorder; labelColor = T.green;
+                          iconEl = <CheckCircle2Icon size={13} color={T.green} />;
+                        } else if (isSelectedWrong) {
+                          bg = T.redTint; border = T.redBorder; labelColor = T.red;
+                          iconEl = <AlertTriangleIcon size={13} color={T.red} />;
+                        } else if (!submitted && isSelected) {
+                          bg = T.blueTint; border = `rgba(24,104,219,0.4)`; labelColor = T.blue;
+                        }
+
+                        return (
+                          <button
+                            key={oIdx}
+                            onClick={() => handleSelect(qIdx, oIdx)}
+                            style={{
+                              width: "100%", display: "flex", alignItems: "center", gap: 10,
+                              padding: "10px 14px", borderRadius: 6,
+                              background: bg, border: `1px solid ${border}`,
+                              cursor: submitted ? "default" : "pointer",
+                              textAlign: "left", fontFamily: "'DM Sans', sans-serif",
+                              transition: "all 0.15s",
+                            }}
+                          >
+                            {/* Option letter */}
+                            <div style={{
+                              width: 22, height: 22, borderRadius: 5, flexShrink: 0,
+                              background: !submitted && isSelected
+                                ? T.blue
+                                : isAnswerKey ? T.green
+                                  : isSelectedWrong ? T.red
+                                    : T.surface2,
+                              border: `1px solid ${!submitted && isSelected
+                                ? "rgba(24,104,219,0.3)"
+                                : isAnswerKey ? T.greenBorder
+                                  : isSelectedWrong ? T.redBorder
+                                    : T.border}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 9, fontWeight: 800,
+                              color: (!submitted && isSelected) || isAnswerKey || isSelectedWrong
+                                ? "#fff" : T.muted,
+                              letterSpacing: "0.05em",
+                            }}>
+                              {String.fromCharCode(65 + oIdx)}
+                            </div>
+                            <span style={{ fontSize: 12, fontWeight: isSelected || isAnswerKey ? 600 : 500, color: labelColor, flex: 1, lineHeight: 1.5 }}>
+                              {opt}
+                            </span>
+                            {iconEl && <div style={{ flexShrink: 0 }}>{iconEl}</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Explanation shown after submit */}
+                    {submitted && q.explanation && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        style={{
+                          marginTop: 10, padding: "10px 14px", borderRadius: 6,
+                          background: T.surface2, border: `1px solid ${T.border}`,
+                          fontSize: 12, color: T.body, lineHeight: 1.65,
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: T.dark }}>Explanation: </span>
+                        {q.explanation}
+                      </motion.div>
+                    )}
+                  </Section>
+                </div>
+              );
+            })}
+
+            {/* Submit button */}
+            {!submitted && (
+              <button
+                onClick={handleSubmit}
+                disabled={Object.keys(answers).length < questions.length}
+                style={{
+                  alignSelf: "flex-start",
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "8px 20px", borderRadius: 5, border: "none",
+                  fontSize: 12, fontWeight: 700, fontFamily: "'DM Sans', sans-serif",
+                  background: Object.keys(answers).length < questions.length ? T.surface2 : T.purple,
+                  color: Object.keys(answers).length < questions.length ? T.muted : "#fff",
+                  cursor: Object.keys(answers).length < questions.length ? "not-allowed" : "pointer",
+                  opacity: Object.keys(answers).length < questions.length ? 0.7 : 1,
+                  boxShadow: Object.keys(answers).length < questions.length ? "none" : "0 2px 8px rgba(101,84,192,0.28)",
+                  transition: "all 0.15s",
+                }}
+              >
+                <HelpCircleIcon size={11} />
+                Submit Answers
+                {Object.keys(answers).length < questions.length && (
+                  <span style={{ fontSize: 10, fontWeight: 500, color: T.muted }}>
+                    ({Object.keys(answers).length}/{questions.length})
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom: 24 }}>
@@ -924,7 +1262,6 @@ function CandidateVideoPanel({ streamClient, call, chatClient, channel, isInitia
             <VideoCallUI chatClient={chatClient} channel={channel} />
           </StreamCall>
         </StreamVideo>
-        {/* NO AIProctorStream in candidate view */}
       </div>
     </div>
   );
@@ -1008,21 +1345,17 @@ function InterviewerVideoPanel({ streamClient, call, chatClient, channel, isInit
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#060D18", overflow: "hidden" }}>
-      {/* Stats strip */}
       <InterviewerStatsPanel session={session} />
 
-      {/* Video — takes all remaining height */}
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
         <StreamVideo client={streamClient}>
           <StreamCall call={call}>
             <VideoCallUI chatClient={chatClient} channel={channel} />
           </StreamCall>
         </StreamVideo>
-        {/* AI Proctor ONLY in interviewer view */}
         <AIProctorStream />
       </div>
 
-      {/* Bottom info bar */}
       <div style={{
         padding: "6px 14px", borderTop: "1px solid rgba(255,255,255,0.05)",
         display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
@@ -1091,8 +1424,8 @@ function SessionPage() {
   const { id } = useParams();
   const { user } = useUser();
 
-  // Default role is candidate — interviewer can switch via dropdown
   const [role, setRole] = useState("candidate");
+  const [activePage, setActivePage] = useState("problem");
 
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -1212,7 +1545,7 @@ function SessionPage() {
     }
   };
 
-  /* ── INTERVIEWER LAYOUT — full-screen video, no compiler ── */
+  /* ── INTERVIEWER LAYOUT ── */
   if (role === "interviewer") {
     return (
       <>
@@ -1228,9 +1561,10 @@ function SessionPage() {
             onEndSession={handleEndSession}
             isEnding={endSessionMutation.isPending}
             recorder={recorder}
+            activePage={activePage}
+            onPageChange={setActivePage}
           />
 
-          {/* Full-screen video */}
           <div style={{ flex: 1, overflow: "hidden" }}>
             <InterviewerVideoPanel
               streamClient={streamClient}
@@ -1248,7 +1582,7 @@ function SessionPage() {
     );
   }
 
-  /* ── CANDIDATE LAYOUT — problem + code + video, NO AI proctor ── */
+  /* ── CANDIDATE LAYOUT ── */
   return (
     <>
       <GlobalStyles />
@@ -1265,16 +1599,42 @@ function SessionPage() {
           onRunCode={handleRunCode}
           role={role}
           onRoleChange={setRole}
+          activePage={activePage}
+          onPageChange={setActivePage}
         />
 
         <div style={{ flex: 1, overflow: "hidden" }}>
           <PanelGroup direction="horizontal" style={{ height: "100%" }}>
-            {/* LEFT: Problem + Code + Output */}
+            {/* LEFT: Problem/Quiz + Code + Output */}
             <Panel defaultSize={52} minSize={36}>
               <div style={{ height: "100%", boxShadow: "2px 0 8px rgba(0,0,0,0.05)" }}>
                 <PanelGroup direction="vertical" style={{ height: "100%" }}>
                   <Panel defaultSize={46} minSize={22}>
-                    <ProblemPanel problemData={problemData} session={session} loading={loadingSession} />
+                    <AnimatePresence mode="wait">
+                      {activePage === "problem" ? (
+                        <motion.div
+                          key="problem"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.18 }}
+                          style={{ height: "100%" }}
+                        >
+                          <ProblemPanel problemData={problemData} session={session} loading={loadingSession} />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="quiz"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.18 }}
+                          style={{ height: "100%" }}
+                        >
+                          <QuizPanel problemData={problemData} session={session} loading={loadingSession} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </Panel>
                   <VHandle />
                   <Panel defaultSize={36} minSize={20}>
@@ -1345,7 +1705,7 @@ function SessionPage() {
               <HHandle />
             </div>
 
-            {/* RIGHT: Video (candidate, no AI proctor) */}
+            {/* RIGHT: Video */}
             <Panel defaultSize={48} minSize={30}>
               <CandidateVideoPanel
                 streamClient={streamClient} call={call}
@@ -1355,11 +1715,10 @@ function SessionPage() {
             </Panel>
           </PanelGroup>
         </div>
-   <Navbar></Navbar>
+
         <StatusBar isRunning={isRunning} lastResult={lastResult} role="candidate" />
       </div>
     </>
-    
   );
 }
 
@@ -1381,5 +1740,5 @@ function GlobalStyles() {
     `}</style>
   );
 }
-//Increment 6  interviewer side changes
+
 export default SessionPage;
