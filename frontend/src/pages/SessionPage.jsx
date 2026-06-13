@@ -36,6 +36,7 @@ import {
   ActivityIcon,
 } from "lucide-react";
 import AIProctorStream from "../components/AIProctorStream";
+import Navbar from "../components/Navbar"
 
 /* ─── Design Tokens ────────────────────────────────────────────────────────── */
 const T = {
@@ -1354,10 +1355,11 @@ function SessionPage() {
             </Panel>
           </PanelGroup>
         </div>
-
+   <Navbar></Navbar>
         <StatusBar isRunning={isRunning} lastResult={lastResult} role="candidate" />
       </div>
     </>
+    
   );
 }
 

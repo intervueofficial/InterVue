@@ -47,8 +47,8 @@ function Navbar() {
 
        .navbar-inner:hover {
   box-shadow:
-    0 12px 40px rgba(31, 38, 135, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 12px 40px rgba(56, 67, 215, 0.18),
+    inset 0 1px 0 rgba(72, 151, 215, 0.35);
 }
 
         /* LOGO */
@@ -72,7 +72,7 @@ function Navbar() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 12px rgba(94, 138, 235, 0.35);
+          box-shadow: 0 4px 12px rgba(80, 130, 237, 0.35);
           flex-shrink: 0;
         }
 
@@ -101,7 +101,7 @@ function Navbar() {
 
         .logo-tagline {
           font-size: 10px;
-          color: #94a3b8;
+          color: #4a8deb;
           font-weight: 500;
           margin-top: 2px;
           letter-spacing: 0.02em;
