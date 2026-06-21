@@ -17,7 +17,7 @@ const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <BrowserRouter basename="/bot">
+    <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
           <App />
