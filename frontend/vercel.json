@@ -1,8 +1,20 @@
 {
   "rewrites": [
     {
+      "source": "/bot/:path*",
+      "destination": "https://inter-v-delta.vercel.app/:path*"
+    },
+    {
       "source": "/((?!assets|.*\\..*).*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/bot/:path*",
+      "headers": [
+        { "key": "x-vercel-enable-rewrite-caching", "value": "0" }
+      ]
     }
   ]
 }
