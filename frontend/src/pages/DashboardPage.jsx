@@ -626,7 +626,7 @@ export default function DashboardPage() {
 
               <motion.div custom={2.5} initial="hidden" animate="visible" variants={fadeUp}>
                 <Card
-                  onClick={() => navigate("/bot")}
+                  onClick={() => window.location.href = "/bot"}
                   style={{ padding: "18px 20px" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -651,7 +651,7 @@ export default function DashboardPage() {
                     Run a self-paced mock interview with instant AI feedback before your next live session.
                   </p>
                   <button
-                    onClick={(e) => { e.stopPropagation(); navigate("/bot"); }}
+                    onClick={(e) => { e.stopPropagation(); window.location.href = "/bot"; }}
                     style={{
                       width: "100%", display: "flex", alignItems: "center",
                       justifyContent: "center", gap: 7,

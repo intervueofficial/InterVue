@@ -494,7 +494,7 @@ export default function InterVueLanding() {
     
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
             <button
-              onClick={() => navigate("/bot")}
+              onClick={() => window.location.href = "/bot"}
               style={{
                 background: "transparent", border: "none", fontSize: 14, fontWeight: 500,
                 color: "#475569", cursor: "pointer", padding: "6px 10px", borderRadius: 6,
