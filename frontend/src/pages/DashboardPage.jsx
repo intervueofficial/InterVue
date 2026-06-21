@@ -23,6 +23,7 @@ import {
   SparklesIcon,
   ActivityIcon,
   XIcon,
+  BotIcon,
 } from "lucide-react";
 
 const T = {
@@ -621,6 +622,50 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </div>
+              </motion.div>
+
+              <motion.div custom={2.5} initial="hidden" animate="visible" variants={fadeUp}>
+                <Card
+                  onClick={() => window.open("/bot", "_blank")}
+                  style={{ padding: "18px 20px" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                      background: "rgba(101,84,192,0.08)",
+                      border: "1px solid rgba(101,84,192,0.2)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <BotIcon size={16} color="#6554C0" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: T.dark }}>
+                        Mock Interview Bot
+                      </div>
+                      <div style={{ fontSize: 11, color: T.muted, marginTop: 1 }}>
+                        Practice solo with AI
+                      </div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6, marginBottom: 16 }}>
+                    Run a self-paced mock interview with instant AI feedback before your next live session.
+                  </p>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); window.open("/bot", "_blank"); }}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center",
+                      justifyContent: "center", gap: 7,
+                      padding: "9px 16px", borderRadius: 4,
+                      border: `1px solid ${T.border}`, background: T.surface2,
+                      fontSize: 12.5, fontWeight: 600, color: T.dark,
+                      fontFamily: "inherit", cursor: "pointer",
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    Launch Bot
+                    <ArrowRightIcon size={13} />
+                  </button>
+                </Card>
               </motion.div>
 
               <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
