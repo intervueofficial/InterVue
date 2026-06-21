@@ -718,53 +718,6 @@ export default function DashboardPage() {
                 </Card>
               </motion.div>
 
-              <motion.div custom={4} initial="hidden" animate="visible" variants={fadeUp}>
-                <Card style={{ padding: "18px 20px" }} hover={false}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: T.dark, marginBottom: 16 }}>
-                    Recent Activity
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    {[
-                      {
-                        icon: CheckCircle2Icon, color: T.green, bg: T.greenTint,
-                        text: "Session with Alex R. completed", time: "2h ago",
-                      },
-                      {
-                        icon: ZapIcon, color: T.blue, bg: T.blueTint,
-                        text: "AI rubric generated for JS session", time: "5h ago",
-                      },
-                      {
-                        icon: UsersIcon, color: "#6554C0", bg: "rgba(101,84,192,0.08)",
-                        text: "New candidate joined your session", time: "Yesterday",
-                      },
-                    ].map((item, i) => {
-                      const Icon = item.icon;
-                      return (
-                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
-                          <div style={{
-                            width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-                            background: item.bg,
-                            border: `1px solid ${item.color}25`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                          }}>
-                            <Icon size={13} color={item.color} />
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, color: T.dark, fontWeight: 500, lineHeight: 1.5 }}>
-                              {item.text}
-                            </div>
-                            <div style={{ fontSize: 11, color: T.muted, marginTop: 2, fontWeight: 400 }}>
-                              {item.time}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Card>
-              </motion.div>
-
               <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
                 <div style={{
                   padding: "14px 16px",
