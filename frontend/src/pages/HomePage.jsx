@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SignInButton } from "@clerk/clerk-react";
 
@@ -405,6 +406,7 @@ const fadeUp = {
 
 /* ─── MAIN LANDING PAGE ─── */
 export default function InterVueLanding() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("board");
   const [scrollY, setScrollY] = useState(0);
 
@@ -491,6 +493,18 @@ export default function InterVueLanding() {
 </a>
     
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={() => navigate("/bot")}
+              style={{
+                background: "transparent", border: "none", fontSize: 14, fontWeight: 500,
+                color: "#475569", cursor: "pointer", padding: "6px 10px", borderRadius: 6,
+                transition: "background 0.15s", fontFamily: "inherit",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              Mock Interview Bot
+            </button>
             {/* Clerk Sign In */}
             <SignInButton mode="modal">
               <button style={{ background: "transparent", border: "none", fontSize: 14, fontWeight: 500, color: "#475569", cursor: "pointer", padding: "6px 10px", borderRadius: 6, transition: "background 0.15s", fontFamily: "inherit" }}
