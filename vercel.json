@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/bot/:path*",
+      "destination": "https://inter-v-delta.vercel.app/:path*"
+    }
+  ]
+}
