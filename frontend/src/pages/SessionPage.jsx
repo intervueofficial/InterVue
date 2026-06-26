@@ -38,8 +38,7 @@ import {
   HelpCircleIcon,
 } from "lucide-react";
 import AIProctorStream from "../components/AIProctorStream";
-
-
+import { useAuth } from "@clerk/clerk-react";
 /* ─── Design Tokens ────────────────────────────────────────────────────────── */
 const T = {
   blue: "#1868DB",
@@ -1213,7 +1212,15 @@ function EmptyPane({ icon: Icon, title, subtitle }) {
 }
 
 /* ─── Candidate Video Panel ──────────────────────────────────────────────────── */
-function CandidateVideoPanel({ streamClient, call, chatClient, channel, isInitializingCall }) {
+function CandidateVideoPanel({
+    streamClient,
+    call,
+    chatClient,
+    channel,
+    isInitializingCall,
+    session,
+    isHost,
+}){
   if (isInitializingCall) {
     return (
       <div style={{
@@ -1265,7 +1272,12 @@ function CandidateVideoPanel({ streamClient, call, chatClient, channel, isInitia
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
         <StreamVideo client={streamClient}>
           <StreamCall call={call}>
-            <VideoCallUI chatClient={chatClient} channel={channel} />
+           <VideoCallUI
+    chatClient={chatClient}
+    channel={channel}
+    session={session}
+    isHost={isHost}
+/>
           </StreamCall>
         </StreamVideo>
       </div>
@@ -1327,6 +1339,7 @@ function InterviewerVideoPanel({
   isInitializingCall,
   session,
   candidateStatus,
+  isHost,
 }) {
   if (isInitializingCall) {
     return (
@@ -1367,7 +1380,12 @@ function InterviewerVideoPanel({
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
         <StreamVideo client={streamClient}>
           <StreamCall call={call}>
-            <VideoCallUI chatClient={chatClient} channel={channel} />
+<VideoCallUI
+    chatClient={chatClient}
+    channel={channel}
+    session={session}
+    isHost={true}
+/>
           </StreamCall>
         </StreamVideo>
         <AIProctorStream />
@@ -1460,6 +1478,7 @@ function SessionPage() {
   const isHost = session?.host?.clerkId === user?.id;
   const isParticipant = session?.participant?.clerkId === user?.id;
 
+const { getToken } = useAuth();
   const { call, channel, chatClient, isInitializingCall, streamClient } =
     useStreamClient(session, loadingSession, isHost, isParticipant);
 
@@ -1564,11 +1583,26 @@ function SessionPage() {
     }
   };
 
-  const handleEndSession = () => {
-    if (confirm("End this session? All participants will be disconnected.")) {
-      endSessionMutation.mutate(id, { onSuccess: () => navigate("/dashboard") });
-    }
-  };
+const handleEndSession = async () => {
+  if (!confirm("End this session?")) return;
+
+  console.log("Starting end session...");
+
+  try {
+    await endSessionMutation.mutateAsync(id);
+
+    console.log("Mutation finished");
+
+    // wait 2 seconds
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    console.log("Now navigating");
+
+    navigate("/dashboard");
+  } catch (e) {
+    console.error(e);
+  }
+};
 
   /* ── INTERVIEWER LAYOUT ── */
   if (role === "interviewer") {
@@ -1591,7 +1625,7 @@ function SessionPage() {
           />
 
           <div style={{ flex: 1, overflow: "hidden" }}>
-          <InterviewerVideoPanel
+<InterviewerVideoPanel
   streamClient={streamClient}
   call={call}
   chatClient={chatClient}
@@ -1599,6 +1633,7 @@ function SessionPage() {
   isInitializingCall={isInitializingCall}
   session={session}
   candidateStatus={candidateStatus}
+  isHost={isHost}
 />
           </div>
 
@@ -1734,10 +1769,14 @@ function SessionPage() {
             {/* RIGHT: Video */}
             <Panel defaultSize={48} minSize={30}>
               <CandidateVideoPanel
-                streamClient={streamClient} call={call}
-                chatClient={chatClient} channel={channel}
-                isInitializingCall={isInitializingCall}
-              />
+    streamClient={streamClient}
+    call={call}
+    chatClient={chatClient}
+    channel={channel}
+    isInitializingCall={isInitializingCall}
+    session={session}
+    isHost={isHost}
+/>
             </Panel>
           </PanelGroup>
         </div>

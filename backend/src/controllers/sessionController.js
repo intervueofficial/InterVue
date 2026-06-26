@@ -116,9 +116,10 @@ export async function joinSession(req, res) {
     session.participant = userId;
     await session.save();
 
-const channel = chatClient.channel("messaging", session.callId);
-
-await channel.create();
+const channel = chatClient.channel(
+  "messaging",
+  session.callId
+);
 
 await channel.addMembers([clerkId]);
 
@@ -135,33 +136,56 @@ export async function endSession(req, res) {
     const userId = req.user._id;
 
     const session = await Session.findById(id);
+    console.log("Session found:", session?._id);
 
-    if (!session) return res.status(404).json({ message: "Session not found" });
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+      });
+    }
 
-    // check if user is the host
     if (session.host.toString() !== userId.toString()) {
-      return res.status(403).json({ message: "Only the host can end the session" });
+      return res.status(403).json({
+        message: "Only the host can end the session",
+      });
     }
 
-    // check if session is already completed
     if (session.status === "completed") {
-      return res.status(400).json({ message: "Session is already completed" });
+      return res.status(400).json({
+        message: "Session already completed",
+      });
     }
 
-    // delete stream video call
-    const call = streamClient.video.call("default", session.callId);
-    await call.delete({ hard: true });
-
-    // delete stream chat channel
-    const channel = chatClient.channel("messaging", session.callId);
-    await channel.delete();
-
+    // Mark completed FIRST
     session.status = "completed";
     await session.save();
+console.log("Session saved as completed");
+    // Delete Stream Video (don't fail if it errors)
+    try {
+      const call = streamClient.video.call("default", session.callId);
+      console.log("Deleting Stream Call...");
+      await call.delete({ hard: true });
+    } catch (err) {
+      console.log("Video delete failed:", err.message);
+    }
 
-    res.status(200).json({ session, message: "Session ended successfully" });
+    try {
+      const channel = chatClient.channel("messaging", session.callId);
+      console.log("Deleting Stream Chat...");
+      await channel.delete();
+    } catch (err) {
+      console.log("Chat delete failed:", err.message);
+    }
+
+    return res.status(200).json({
+      message: "Session ended successfully",
+      session,
+    });
+
   } catch (error) {
-    console.log("Error in endSession controller:", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    console.log("Error in endSession:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
   }
 }
