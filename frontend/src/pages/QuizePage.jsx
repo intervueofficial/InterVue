@@ -479,9 +479,6 @@ export default function QuizPage() {
       console.error(error);
     }
 
-    alert(`Interview terminated: ${reason}`);
-
-    window.location.href = "/terminated";
   };
 
   const handleVisibility = () => {

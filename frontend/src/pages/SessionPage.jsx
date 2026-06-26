@@ -403,10 +403,16 @@ function useScreenRecorder() {
     try {
       setError(null);
       setBlob(null);
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: "screen", cursor: "always" },
-        audio: true,
-      });
+     const displayStream = await navigator.mediaDevices.getDisplayMedia({
+  video: {
+    displaySurface: "browser",
+    cursor: "always",
+  },
+  audio: {
+    echoCancellation: false,
+    noiseSuppression: false,
+  },
+});
 
       let audioStream = null;
       try {
@@ -713,7 +719,7 @@ function InterviewerTopBar({
       {/* Right — interviewer actions */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {/* Page switcher */}
-        <PageSwitcher activePage={activePage} onChange={onPageChange} darkMode={true} />
+        
 
         <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }} />
 
@@ -1268,7 +1274,7 @@ function CandidateVideoPanel({ streamClient, call, chatClient, channel, isInitia
 }
 
 /* ─── Interviewer Stats Panel ────────────────────────────────────────────────── */
-function InterviewerStatsPanel({ session }) {
+function InterviewerStatsPanel({ session, candidateStatus }) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setElapsed(e => e + 1), 1000);
@@ -1279,7 +1285,7 @@ function InterviewerStatsPanel({ session }) {
 
   const stats = [
     { label: "Session Duration", value: `${mm}:${ss}`, Icon: ClockIcon, color: "#06B6D4" },
-    { label: "Candidate", value: session?.participant?.firstName || "Waiting…", Icon: UserIcon, color: "#A78BFA" },
+    {label: "Candidate", value: candidateStatus,Icon: UserIcon,color: "#A78BFA",},
     { label: "Problem", value: session?.problem || "—", Icon: Code2Icon, color: "#34D399" },
     { label: "Difficulty", value: (session?.difficulty || "—").toUpperCase(), Icon: ActivityIcon, color: session?.difficulty === "hard" ? "#F87171" : session?.difficulty === "medium" ? "#FCD34D" : "#34D399" },
   ];
@@ -1313,7 +1319,15 @@ function InterviewerStatsPanel({ session }) {
 }
 
 /* ─── Interviewer Full Video Panel ───────────────────────────────────────────── */
-function InterviewerVideoPanel({ streamClient, call, chatClient, channel, isInitializingCall, session }) {
+function InterviewerVideoPanel({
+  streamClient,
+  call,
+  chatClient,
+  channel,
+  isInitializingCall,
+  session,
+  candidateStatus,
+}) {
   if (isInitializingCall) {
     return (
       <div style={{
@@ -1345,7 +1359,10 @@ function InterviewerVideoPanel({ streamClient, call, chatClient, channel, isInit
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#060D18", overflow: "hidden" }}>
-      <InterviewerStatsPanel session={session} />
+      <InterviewerStatsPanel
+    session={session}
+    candidateStatus={candidateStatus}
+/>
 
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
         <StreamVideo client={streamClient}>
@@ -1445,6 +1462,14 @@ function SessionPage() {
 
   const { call, channel, chatClient, isInitializingCall, streamClient } =
     useStreamClient(session, loadingSession, isHost, isParticipant);
+
+    const participantCount =
+  call?.state?.remoteParticipants?.length + 1 || 1;
+
+    const candidateStatus =
+  participantCount > 1
+    ? "Connected"
+    : "Waiting...";
 
   const problemData = session?.problem
     ? Object.values(PROBLEMS).find(p => p.title === session.problem)
@@ -1566,14 +1591,15 @@ function SessionPage() {
           />
 
           <div style={{ flex: 1, overflow: "hidden" }}>
-            <InterviewerVideoPanel
-              streamClient={streamClient}
-              call={call}
-              chatClient={chatClient}
-              channel={channel}
-              isInitializingCall={isInitializingCall}
-              session={session}
-            />
+          <InterviewerVideoPanel
+  streamClient={streamClient}
+  call={call}
+  chatClient={chatClient}
+  channel={channel}
+  isInitializingCall={isInitializingCall}
+  session={session}
+  candidateStatus={candidateStatus}
+/>
           </div>
 
           <StatusBar isRunning={false} lastResult={null} role="interviewer" />

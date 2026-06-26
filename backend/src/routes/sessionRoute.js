@@ -1,6 +1,6 @@
 import express from "express";
 import { protectRoute } from "../middleware/protectRoute.js";
-
+import { streamClient } from "../lib/stream.js";
 import {
   createSession,
   endSession,

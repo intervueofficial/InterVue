@@ -567,7 +567,7 @@ export default function InterVueLanding() {
                   <button className="social-btn"><Icon.Google /> Google</button>
                 </SignInButton>
                 <SignInButton mode="modal">
-                  <button className="social-btn"><Icon.Microsoft /> Microsoft</button>
+                  <button className="social-btn"><Icon.Github/> Github</button>
                 </SignInButton>
               </div>
             </motion.div>
