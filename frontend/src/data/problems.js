@@ -71,6 +71,20 @@ class Solution {
       python: "[0, 1]\n[1, 2]\n[0, 1]",
       java: "[0, 1]\n[1, 2]\n[0, 1]",
     },
+    quiz: [
+  {
+    question: "Which data structure gives the optimal O(n) solution for Two Sum?",
+    options: ["Hash Map", "Stack", "Queue", "Heap"],
+    answer: 0,
+    explanation: "A Hash Map stores previously seen numbers for constant-time lookup."
+  },
+  {
+    question: "What is the optimal time complexity of Two Sum?",
+    options: ["O(n²)", "O(log n)", "O(n)", "O(n log n)"],
+    answer: 2,
+    explanation: "A single pass with a Hash Map solves it in O(n)."
+  }
+]
   },
 
   "reverse-string": {
@@ -143,6 +157,20 @@ class Solution {
       python: "['o', 'l', 'l', 'e', 'h']\n['h', 'a', 'n', 'n', 'a', 'H']",
       java: "[o, l, l, e, h]\n[h, a, n, n, a, H]",
     },
+    quiz: [
+  {
+    question: "Which approach is commonly used to reverse a string in-place?",
+    options: ["Two Pointers", "Binary Search", "DFS", "Heap"],
+    answer: 0,
+    explanation: "Swap characters from both ends using two pointers."
+  },
+  {
+    question: "What is the space complexity of the in-place solution?",
+    options: ["O(n)", "O(1)", "O(log n)", "O(n²)"],
+    answer: 1,
+    explanation: "No extra array is required."
+  }
+]
   },
 
   "valid-palindrome": {
@@ -210,6 +238,30 @@ print(isPalindrome(" "))  # Expected: True`,
       python: "True\nFalse\nTrue",
       java: "true\nfalse\ntrue",
     },
+    quiz: [
+  {
+    question: "Before checking a palindrome, what should be ignored?",
+    options: [
+      "Spaces and punctuation",
+      "Only uppercase letters",
+      "Numbers",
+      "Everything"
+    ],
+    answer: 0,
+    explanation: "Ignore non-alphanumeric characters and case."
+  },
+  {
+    question: "Which technique is commonly used?",
+    options: [
+      "Two Pointers",
+      "Dynamic Programming",
+      "Greedy",
+      "Backtracking"
+    ],
+    answer: 0,
+    explanation: "Compare characters from both ends."
+  }
+]
   },
 
   "maximum-subarray": {
@@ -276,6 +328,30 @@ print(maxSubArray([5,4,-1,7,8]))  # Expected: 23`,
       python: "6\n1\n23",
       java: "6\n1\n23",
     },
+    quiz: [
+  {
+    question: "Which algorithm solves Maximum Subarray optimally?",
+    options: [
+      "Kadane's Algorithm",
+      "Merge Sort",
+      "DFS",
+      "Binary Search"
+    ],
+    answer: 0,
+    explanation: "Kadane's Algorithm finds the answer in one pass."
+  },
+  {
+    question: "What is Kadane's Algorithm time complexity?",
+    options: [
+      "O(n²)",
+      "O(log n)",
+      "O(n)",
+      "O(n log n)"
+    ],
+    answer: 2,
+    explanation: "Only one traversal is required."
+  }
+]
   },
 
   "container-with-most-water": {
@@ -338,6 +414,30 @@ print(maxArea([1,1]))  # Expected: 1`,
       python: "49\n1",
       java: "49\n1",
     },
+    quiz: [
+  {
+    question: "Which technique gives the optimal solution?",
+    options: [
+      "Two Pointers",
+      "Breadth First Search",
+      "Sorting",
+      "Dynamic Programming"
+    ],
+    answer: 0,
+    explanation: "Move the shorter pointer inward to maximize area."
+  },
+  {
+    question: "What is the optimal time complexity?",
+    options: [
+      "O(n²)",
+      "O(n)",
+      "O(log n)",
+      "O(n log n)"
+    ],
+    answer: 1,
+    explanation: "Each pointer moves at most n times."
+  }
+]
   },
 };
 
