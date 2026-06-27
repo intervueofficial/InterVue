@@ -915,11 +915,11 @@ function CandidateTopBar({
               outline: "none",
             }}
           >
-            {["javascript", "python", "java", "cpp"].map((l) => (
-              <option key={l} value={l}>
-                {l === "cpp" ? "C++" : l.charAt(0).toUpperCase() + l.slice(1)}
-              </option>
-            ))}
+{["javascript", "python", "java"].map((l) => (
+  <option key={l} value={l}>
+    {l.charAt(0).toUpperCase() + l.slice(1)}
+  </option>
+))}
           </select>
           <svg
             style={{
@@ -2833,7 +2833,6 @@ function SessionPage() {
                                   javascript: "js",
                                   python: "py",
                                   java: "java",
-                                  cpp: "cpp",
                                 }[selectedLanguage]
                               }
                             </div>

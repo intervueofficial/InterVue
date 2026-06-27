@@ -235,11 +235,11 @@ function ProblemTopBar({
               outline: "none",
             }}
           >
-            {["javascript", "python", "java", "cpp"].map((l) => (
-              <option key={l} value={l}>
-                {l === "cpp" ? "C++" : l.charAt(0).toUpperCase() + l.slice(1)}
-              </option>
-            ))}
+{["javascript", "python", "java"].map((l) => (
+  <option key={l} value={l}>
+    {l.charAt(0).toUpperCase() + l.slice(1)}
+  </option>
+))}
           </select>
           <svg
             style={{
@@ -844,7 +844,7 @@ function CodeFileIcon() {
 
 function langExt(lang) {
   return (
-    { javascript: "js", python: "py", java: "java", cpp: "cpp" }[lang] || lang
+    { javascript: "js", python: "py", java: "java"}[lang] || lang
   );
 }
 

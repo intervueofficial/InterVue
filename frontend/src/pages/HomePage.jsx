@@ -879,7 +879,7 @@ export default function InterVueLanding() {
             ))}
           </div>
           <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, color: "#94a3b8" }}>© 2025 InterVue, Inc. All rights reserved.</span>
+            <span style={{ fontSize: 12, color: "#94a3b8" }}>© 2026 InterVue, Inc. All rights reserved.</span>
             <div style={{ display: "flex", gap: 24 }}>
               {["Terms", "Privacy", "Cookies", "Security"].map((item) => (
                 <a key={item} href="#" style={{ fontSize: 12, color: "#94a3b8" }}>{item}</a>

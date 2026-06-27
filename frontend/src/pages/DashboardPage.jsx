@@ -419,17 +419,7 @@ export default function DashboardPage() {
               custom={1} initial="hidden" animate="visible" variants={fadeUp}
               style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}
             >
-              <button style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "8px 14px", borderRadius: 4,
-                border: `1px solid ${T.border}`, background: T.bg,
-                fontSize: 13, fontWeight: 500, color: T.muted,
-                fontFamily: "inherit", cursor: "pointer",
-                transition: "border-color 0.15s, color 0.15s",
-              }}>
-                <BarChart3Icon size={14} />
-                Analytics
-              </button>
+
               <button
                 onClick={() => setShowCreateModal(true)}
                 style={{
@@ -459,7 +449,12 @@ export default function DashboardPage() {
               { icon: ZapIcon,          label: "Active Sessions",     value: activeSessions.length, deltaUp: true,  accentColor: T.blue   },
               { icon: CheckCircle2Icon, label: "Sessions Completed",  value: recentSessions.length, deltaUp: true,  accentColor: T.green  },
               { icon: UsersIcon,        label: "Candidates Reviewed", value: recentSessions.length, accentColor: "#6554C0" },
-              { icon: TrendingUpIcon,   label: "Avg. Score", value: "78.4",deltaUp: true,  accentColor: T.yellow },
+              {
+  icon: ActivityIcon,
+  label: "Total Interviews",
+  value: activeSessions.length + recentSessions.length,
+  accentColor: T.yellow,
+}
             ].map((s, i) => (
               <StatCard key={s.label} {...s} index={i} />
             ))}
@@ -490,37 +485,47 @@ export default function DashboardPage() {
                         {activeSessions.length}
                       </span>
                     </div>
-                    <button style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      fontSize: 12, fontWeight: 600, color: T.blue, fontFamily: "inherit",
-                      display: "flex", alignItems: "center", gap: 3,
-                    }}>
-                      View all <ChevronRightIcon size={13} />
-                    </button>
+                    
                   </div>
 
-                  <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: T.surface }}>
-                    {loadingActive ? (
-                      <><SkeletonRow /><SkeletonRow /></>
-                    ) : activeSessions.length === 0 ? (
-                      <EmptyState
-                        icon={VideoIcon}
-                        title="No active sessions"
-                        subtitle="Start a new interview session to get going."
-                        action="Create Session"
-                        onAction={() => setShowCreateModal(true)}
-                      />
-                    ) : (
-                      activeSessions.map((s, i) => (
-                        <SessionCard
-                          key={s._id} session={s}
-                          isUserIn={isUserIn(s)}
-                          onJoin={(id) => navigate(`/session/${id}`)}
-                          index={i}
-                        />
-                      ))
-                    )}
-                  </div>
+<div
+  style={{
+    background: T.surface,
+    height: 260, // shows roughly 3 session cards
+    overflowY: "auto",
+    overflowX: "hidden",
+    padding: "16px 18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  }}
+>
+  {loadingActive ? (
+    <>
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+    </>
+  ) : activeSessions.length === 0 ? (
+    <EmptyState
+      icon={VideoIcon}
+      title="No active sessions"
+      subtitle="Start a new interview session to get going."
+      action="Create Session"
+      onAction={() => setShowCreateModal(true)}
+    />
+  ) : (
+    activeSessions.map((s, i) => (
+      <SessionCard
+        key={s._id}
+        session={s}
+        isUserIn={isUserIn(s)}
+        onJoin={(id) => navigate(`/session/${id}`)}
+        index={i}
+      />
+    ))
+  )}
+</div>
                 </Card>
               </motion.div>
 
@@ -535,13 +540,7 @@ export default function DashboardPage() {
                       <ClockIcon size={14} color={T.muted} />
                       <span style={{ fontSize: 14, fontWeight: 700, color: T.dark }}>Recent Sessions</span>
                     </div>
-                    <button style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      fontSize: 12, fontWeight: 600, color: T.blue, fontFamily: "inherit",
-                      display: "flex", alignItems: "center", gap: 3,
-                    }}>
-                      View all <ChevronRightIcon size={13} />
-                    </button>
+                    
                   </div>
 
                   {loadingRecent ? (
@@ -557,22 +556,41 @@ export default function DashboardPage() {
                       />
                     </div>
                   ) : (
-                    <div style={{ overflowX: "auto", background: T.bg }}>
-                      <table className="iv-table">
-                        <thead>
-                          <tr>
-                            {["Problem", "Difficulty", "Host", "Date", "Status"].map((h) => (
-                              <th key={h}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {recentSessions.map((s, i) => (
-                            <RecentRow key={s._id} session={s} index={i} />
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+<div
+  style={{
+    background: T.bg,
+    maxHeight: 200,      // Change to 400/450 if you want taller
+    overflowY: "auto",
+    overflowX: "hidden",
+  }}
+>
+  <table className="iv-table">
+    <thead
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 2,
+        background: T.surface,
+      }}
+    >
+      <tr>
+        {["Problem", "Difficulty", "Host", "Date", "Status"].map((h) => (
+          <th key={h}>{h}</th>
+        ))}
+      </tr>
+    </thead>
+
+    <tbody>
+      {recentSessions.map((s, i) => (
+        <RecentRow
+          key={s._id}
+          session={s}
+          index={i}
+        />
+      ))}
+    </tbody>
+  </table>
+</div>
                   )}
                 </Card>
               </motion.div>
@@ -669,53 +687,6 @@ export default function DashboardPage() {
               </motion.div>
 
               <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
-                <Card style={{ padding: "18px 20px" }} hover={false}>
-                  <div style={{
-                    display: "flex", alignItems: "center",
-                    justifyContent: "space-between", marginBottom: 18,
-                  }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: T.dark }}>Performance Snapshot</span>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                      This month
-                    </span>
-                  </div>
-
-                  {[
-                    { label: "Problem Solving", score: 82, color: T.blue     },
-                    { label: "Code Quality",    score: 74, color: "#6554C0"  },
-                    { label: "Communication",   score: 91, color: T.green    },
-                  ].map((m, i) => (
-                    <div key={m.label} style={{ marginBottom: i < 2 ? 16 : 0 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
-                        <span style={{ fontSize: 12, color: T.muted, fontWeight: 500 }}>{m.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: T.dark }}>{m.score}%</span>
-                      </div>
-                      <div className="iv-progress-track">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${m.score}%` }}
-                          transition={{ duration: 0.85, delay: 0.3 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                          style={{
-                            height: "100%",
-                            background: m.color,
-                            borderRadius: 99,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  <div style={{
-                    marginTop: 18, paddingTop: 14,
-                    borderTop: `1px solid ${T.border2}`,
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                  }}>
-                    <span style={{ fontSize: 12, color: T.muted }}>Overall average</span>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: T.dark, letterSpacing: "-0.5px" }}>
-                      82.3%
-                    </span>
-                  </div>
-                </Card>
               </motion.div>
 
               <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
