@@ -36,6 +36,7 @@ import {
   ActivityIcon,
   FileTextIcon,
   HelpCircleIcon,
+  VideoIcon,
 } from "lucide-react";
 import AIProctorStream from "../components/AIProctorStream";
 import { useAuth } from "@clerk/clerk-react";
