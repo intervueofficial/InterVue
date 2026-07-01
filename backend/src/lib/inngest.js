@@ -21,14 +21,22 @@ const syncUser = inngest.createFunction(
       image_url,
     } = event.data;
 
-    const newUser = {
-      clerkId: id,
-      email: email_addresses?.[0]?.email_address || "",
-      name: `${first_name || ""} ${last_name || ""}`.trim(),
-      profileImage: image_url || "",
-    };
+const email =
+  email_addresses?.[0]?.email_address?.toLowerCase() || "";
 
-    await User.create(newUser);
+const newUser = {
+  clerkId: id,
+  email,
+  name: `${first_name || ""} ${last_name || ""}`.trim(),
+  profileImage: image_url || "",
+  role:
+    email === process.env.ADMIN_EMAIL.toLowerCase()
+      ? "admin"
+      : "candidate",
+  isActive: true,
+};
+
+await User.create(newUser);
 
     await upsertStreamUser({
       id: newUser.clerkId.toString(),

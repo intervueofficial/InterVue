@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { SignInButton } from "@clerk/clerk-react";
+import {SignInButton,SignUpButton,} from "@clerk/clerk-react";
+
+import RoleSelectionModal from "../components/RoleSelectionModal";
+
 
 /* ─── INLINE SVG ICONS ─── */
 const Icon = {
@@ -407,7 +410,9 @@ const fadeUp = {
 /* ─── MAIN LANDING PAGE ─── */
 export default function InterVueLanding() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("board");
+ const [activeTab, setActiveTab] = useState("board");
+const [showRoleModal, setShowRoleModal] = useState(false);
+const [selectedRole, setSelectedRole] = useState("");
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -514,11 +519,20 @@ export default function InterVueLanding() {
               </button>
             </SignInButton>
             {/* Clerk Get Started */}
-            <SignInButton mode="modal">
-              <button className="btn-primary" style={{ padding: "8px 18px", fontSize: 14, borderRadius: 7 }}>
-                Get started free <Icon.ArrowRight />
-              </button>
-            </SignInButton>
+<button
+  className="btn-primary"
+  style={{
+    padding: "8px 18px",
+    fontSize: 14,
+    borderRadius: 7,
+  }}
+  onClick={() => {
+  setSelectedRole("");
+  setShowRoleModal(true);
+}}
+>
+  Get started free <Icon.ArrowRight />
+</button>
           </div>
         </div>
       </nav>
@@ -548,27 +562,27 @@ export default function InterVueLanding() {
             <motion.div variants={fadeUp} style={{ maxWidth: 420, marginBottom: 32 }}>
               
               {/* Primary CTA — Clerk modal */}
-              <SignInButton mode="modal">
+              <SignUpButton mode="modal">
                 
                 <button className="btn-primary" style={{ width: "100%", justifyContent: "center", fontSize: 15, marginBottom: 10 }}>
                   Start Interviewing <Icon.ArrowRight />
                 </button>
-              </SignInButton>
+</SignUpButton>
 
               <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0" }}>
-                <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
+              <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
                 <span style={{ fontSize: 12, color: "#94a3b8" }}>Or continue with</span>
                 <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
               </div>
 
               {/* Social sign-in via Clerk modal */}
               <div style={{ display: "grid", gridTemplateColumns: "0.95fr 1.25fr", gap: 10 }}>
-                <SignInButton mode="modal">
+                <SignUpButton mode="modal">
                   <button className="social-btn"><Icon.Google /> Google</button>
-                </SignInButton>
-                <SignInButton mode="modal">
+                </SignUpButton>
+                <SignUpButton mode="modal">
                   <button className="social-btn"><Icon.Github/> Github</button>
-                </SignInButton>
+                </SignUpButton>
               </div>
             </motion.div>
 
@@ -811,13 +825,13 @@ export default function InterVueLanding() {
                     </div>
                   </div>
                   {/* Clerk-powered plan CTA */}
-                  <SignInButton mode="modal">
+                  <SignUpButton mode="modal">
                     <button style={{ background: plan.highlight ? "#2563eb" : "rgba(255,255,255,0.1)", border: "none", fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer", padding: "10px 18px", borderRadius: 7, whiteSpace: "nowrap", transition: "opacity 0.15s", fontFamily: "inherit" }}
                       onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                       onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                       {plan.cta}
                     </button>
-                  </SignInButton>
+                  </SignUpButton>
                 </motion.div>
               ))}
             </div>
@@ -832,9 +846,9 @@ export default function InterVueLanding() {
             <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: "-1px", color: "#0f172a", marginBottom: 16, lineHeight: 1.1 }}>Transform Your Technical Hiring</h2>
             <p style={{ fontSize: 16, color: "#475569", marginBottom: 32, maxWidth: 460, margin: "0 auto 32px" }}>Join 4,200+ engineering teams using InterVue to hire better, faster, and fairer.</p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <SignInButton mode="modal">
+              <SignUpButton mode="modal">
                 <button className="btn-primary">Get Started Today <Icon.ArrowRight /></button>
-              </SignInButton>
+              </SignUpButton>
               <button className="btn-secondary"><Icon.Play /> Watch Demo</button>
             </div>
           </motion.div>
@@ -888,6 +902,17 @@ export default function InterVueLanding() {
           </div>
         </div>
       </footer>
+      <RoleSelectionModal
+  open={showRoleModal}
+  selectedRole={selectedRole}
+  setSelectedRole={setSelectedRole}
+  onClose={() => setShowRoleModal(false)}
+  onContinue={(role) => {
+    localStorage.setItem("selectedRole", role);
+    setShowRoleModal(false);
+    window.location.href = "/sign-up";
+  }}
+/>
     </div>
   );
 }

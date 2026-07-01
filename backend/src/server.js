@@ -54,10 +54,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/execute", executeRoute);
 app.use("/api/auth", authRoute);
-app.use("/api/chat", chatRoutes);
-app.use("/api/sessions", sessionRoutes);
-app.use("/api/execute", executeRoute);
-app.use("/api/auth", authRoute);
+
 app.get("/health", (_, res) => {
   res.status(200).json({
     success: true,

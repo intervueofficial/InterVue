@@ -3,6 +3,7 @@ import User from "../models/User.js";
 
 export const protectRoute = [
   requireAuth(),
+
   async (req, res, next) => {
     try {
       const clerkId = req.auth().userId;
@@ -13,22 +14,75 @@ export const protectRoute = [
         });
       }
 
+      const clerkUser = await clerkClient.users.getUser(clerkId);
+
+      const email =
+        clerkUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+
+      const name =
+        `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
+        "User";
+
+      const profileImage = clerkUser.imageUrl || "";
+
+      const role =
+        email === process.env.ADMIN_EMAIL?.toLowerCase()
+          ? "admin"
+          : clerkUser.publicMetadata?.role || "candidate";
+
       let user = await User.findOne({ clerkId });
 
-      if (!user) {
-        const clerkUser = await clerkClient.users.getUser(clerkId);
+      // ==========================
+      // CREATE NEW USER
+      // ==========================
 
+      if (!user) {
         user = await User.create({
           clerkId,
-          name: `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim(),
-          email: clerkUser.emailAddresses[0]?.emailAddress,
-          profileImage: clerkUser.imageUrl,
-          role:
-  clerkUser.emailAddresses[0]?.emailAddress === process.env.ADMIN_EMAIL
-    ? "admin"
-    : "candidate",
+          name,
+          email,
+          profileImage,
+          role,
           isActive: true,
         });
+
+        console.log("✅ New User Created");
+      }
+
+      // ==========================
+      // UPDATE EXISTING USER
+      // ==========================
+
+      let updated = false;
+
+      if (user.name !== name) {
+        user.name = name;
+        updated = true;
+      }
+
+      if (user.email !== email) {
+        user.email = email;
+        updated = true;
+      }
+
+      if (user.profileImage !== profileImage) {
+        user.profileImage = profileImage;
+        updated = true;
+      }
+
+      if (!user.role) {
+        user.role = role;
+        updated = true;
+      }
+
+      if (user.isActive === undefined) {
+        user.isActive = true;
+        updated = true;
+      }
+
+      if (updated) {
+        await user.save();
+        console.log("✅ User Updated");
       }
 
       if (!user.isActive) {

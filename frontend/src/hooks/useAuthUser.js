@@ -8,11 +8,16 @@ const useAuthUser = () => {
 
   return useQuery({
     queryKey: ["auth-user"],
-
     enabled: isLoaded && isSignedIn,
 
     queryFn: async () => {
       const token = await getToken();
+
+      console.log("CLERK TOKEN:", token);
+
+      if (!token) {
+        throw new Error("No Clerk token found");
+      }
 
       const { data } = await axios.get("/auth/me", {
         headers: {
