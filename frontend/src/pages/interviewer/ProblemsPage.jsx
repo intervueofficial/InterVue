@@ -1,8 +1,8 @@
 import { Link } from "react-router";
-import Navbar from "../components/Navbar";
-import { PROBLEMS } from "../data/problems";
+import Navbar from "../../components/Navbar";
+import { PROBLEMS } from "../../data/problems";
 import { ChevronRightIcon, Code2Icon, ZapIcon, LayersIcon, FlameIcon } from "lucide-react";
-import { getDifficultyBadgeClass } from "../lib/utils";
+import { getDifficultyBadgeClass } from "../../lib/utils";
 
 /* ─── Jira-inspired palette + Apple glass tokens ─────────────────────────── */
 const styles = `

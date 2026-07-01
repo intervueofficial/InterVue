@@ -14,6 +14,7 @@ import { inngest, functions } from "./lib/inngest.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
 import executeRoute from "./routes/executeRoute.js";
+import authRoute from "./routes/authRoute.js";
 
 const app = express();
 const __dirname = path.resolve();
@@ -52,7 +53,11 @@ app.use(clerkMiddleware());
 app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/execute", executeRoute);
-
+app.use("/api/auth", authRoute);
+app.use("/api/chat", chatRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/execute", executeRoute);
+app.use("/api/auth", authRoute);
 app.get("/health", (_, res) => {
   res.status(200).json({
     success: true,

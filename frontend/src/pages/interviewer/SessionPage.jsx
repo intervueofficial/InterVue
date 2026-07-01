@@ -5,15 +5,15 @@ import {
   useEndSession,
   useJoinSession,
   useSessionById,
-} from "../hooks/useSessions";
-import { PROBLEMS } from "../data/problems";
-import { executeCode } from "../lib/piston";
+} from "../../hooks/useSessions";
+import { PROBLEMS } from "../../data/problems";
+import { executeCode } from "../../lib/piston";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import CodeEditorPanel from "../components/CodeEditorPanel";
-import OutputPanel from "../components/OutputPanel";
-import useStreamClient from "../hooks/useStreamClient";
+import CodeEditorPanel from "../../components/CodeEditorPanel";
+import OutputPanel from "../../components/OutputPanel";
+import useStreamClient from "../../hooks/useStreamClient";
 import { StreamCall, StreamVideo } from "@stream-io/video-react-sdk";
-import VideoCallUI from "../components/VideoCallUI";
+import VideoCallUI from "../../components/VideoCallUI";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOutIcon,
@@ -38,7 +38,7 @@ import {
   HelpCircleIcon,
   VideoIcon,
 } from "lucide-react";
-import AIProctorStream from "../components/AIProctorStream";
+import AIProctorStream from "../../components/AIProctorStream";
 import { useAuth } from "@clerk/clerk-react";
 /* ─── Design Tokens ────────────────────────────────────────────────────────── */
 const T = {

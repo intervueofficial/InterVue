@@ -1,4 +1,4 @@
-import { requireAuth } from "@clerk/express";
+import { requireAuth, clerkClient } from "@clerk/express";
 import User from "../models/User.js";
 
 export const protectRoute = [
@@ -7,20 +7,45 @@ export const protectRoute = [
     try {
       const clerkId = req.auth().userId;
 
-      if (!clerkId) return res.status(401).json({ message: "Unauthorized - invalid token" });
+      if (!clerkId) {
+        return res.status(401).json({
+          message: "Unauthorized",
+        });
+      }
 
-      // find user in db by clerk ID
-      const user = await User.findOne({ clerkId });
+      let user = await User.findOne({ clerkId });
 
-      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user) {
+        const clerkUser = await clerkClient.users.getUser(clerkId);
 
-      // attach user to req
+        user = await User.create({
+          clerkId,
+          name: `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim(),
+          email: clerkUser.emailAddresses[0]?.emailAddress,
+          profileImage: clerkUser.imageUrl,
+          role:
+  clerkUser.emailAddresses[0]?.emailAddress === process.env.ADMIN_EMAIL
+    ? "admin"
+    : "candidate",
+          isActive: true,
+        });
+      }
+
+      if (!user.isActive) {
+        return res.status(403).json({
+          message: "Your account has been disabled.",
+        });
+      }
+
       req.user = user;
 
       next();
     } catch (error) {
-      console.error("Error in protectRoute middleware", error);
-      res.status(500).json({ message: "Internal Server Error" });
+      console.error("protectRoute:", error);
+
+      return res.status(500).json({
+        message: "Internal Server Error",
+      });
     }
   },
 ];

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
-import Navbar from "../components/Navbar";
-import CreateSessionModal from "../components/CreateSessionModal";
+import Navbar from "../../components/Navbar";
+import CreateSessionModal from "../../components/CreateSessionModal";
 import { motion, AnimatePresence } from "framer-motion";
 // ─── Question Bank ────────────────────────────────────────────────────────────
 const QUESTION_BANK = {
