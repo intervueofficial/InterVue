@@ -1,9 +1,11 @@
 import { useUser, SignIn, SignUp } from "@clerk/clerk-react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import useAuthUser from "./hooks/useAuthUser";
+import useSyncRole from "./hooks/useSyncRole";
 
+// Landing
 import HomePage from "./pages/HomePage";
 
 // Interviewer
@@ -14,10 +16,14 @@ import SessionPage from "./pages/SessionPage";
 import QuizePage from "./pages/QuizePage";
 
 // Admin
+import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
-import Analytics from "./pages/admin/Analytics";
+import Problems from "./pages/admin/Problems";
+import Quiz from "./pages/admin/Quiz";
 import Users from "./pages/admin/Users";
 import Sessions from "./pages/admin/Sessions";
+import Analytics from "./pages/admin/Analytics";
+import Settings from "./pages/admin/Settings";
 
 // Candidate
 import CandidateDashboard from "./pages/candidate/Dashboard";
@@ -26,6 +32,8 @@ import Results from "./pages/candidate/Results";
 
 function App() {
   const { isLoaded, isSignedIn } = useUser();
+
+  useSyncRole();
 
   const {
     data: authUser,
@@ -74,8 +82,7 @@ function App() {
     candidate: "/candidate/dashboard",
   };
 
-  const dashboard =
-    dashboardRoutes[role] || "/";
+  const dashboard = dashboardRoutes[role] || "/";
 
   return (
     <>
@@ -92,81 +99,94 @@ function App() {
           }
         />
 
-        {/* Clerk */}
+        {/* Authentication */}
 
         <Route
           path="/sign-in/*"
           element={
-            !isSignedIn
-              ? (
-                <div className="min-h-screen flex items-center justify-center">
-                  <SignIn
-                    routing="path"
-                    path="/sign-in"
-                    signUpUrl="/sign-up"
-                    forceRedirectUrl={dashboard}
-                  />
-                </div>
-              )
-              : <Navigate replace to={dashboard} />
+            !isSignedIn ? (
+              <div className="min-h-screen flex items-center justify-center">
+                <SignIn
+                  routing="path"
+                  path="/sign-in"
+                  signUpUrl="/sign-up"
+                  forceRedirectUrl={dashboard}
+                />
+              </div>
+            ) : (
+              <Navigate replace to={dashboard} />
+            )
           }
         />
 
         <Route
           path="/sign-up/*"
           element={
-            !isSignedIn
-              ? (
-                <div className="min-h-screen flex items-center justify-center">
-                  <SignUp
-                    routing="path"
-                    path="/sign-up"
-                    signInUrl="/sign-in"
-                    forceRedirectUrl={dashboard}
-                  />
-                </div>
-              )
-              : <Navigate replace to={dashboard} />
+            !isSignedIn ? (
+              <div className="min-h-screen flex items-center justify-center">
+                <SignUp
+                  routing="path"
+                  path="/sign-up"
+                  signInUrl="/sign-in"
+                  forceRedirectUrl={dashboard}
+                />
+              </div>
+            ) : (
+              <Navigate replace to={dashboard} />
+            )
           }
         />
 
         {/* ================= ADMIN ================= */}
 
         <Route
-          path="/admin/dashboard"
+          path="/admin"
           element={
             role === "admin"
-              ? <AdminDashboard />
+              ? <AdminLayout />
               : <Navigate replace to={dashboard} />
           }
-        />
+        >
+          <Route
+            index
+            element={<Navigate to="dashboard" replace />}
+          />
 
-        <Route
-          path="/admin/users"
-          element={
-            role === "admin"
-              ? <Users />
-              : <Navigate replace to={dashboard} />
-          }
-        />
+          <Route
+            path="dashboard"
+            element={<AdminDashboard />}
+          />
 
-        <Route
-          path="/admin/sessions"
-          element={
-            role === "admin"
-              ? <Sessions />
-              : <Navigate replace to={dashboard} />
-          }
-        />
+          <Route
+            path="problems"
+            element={<Problems />}
+          />
 
-        <Route
-          path="/admin/analytics"
-          element={
-            role === "admin"
-              ? <Analytics />
-              : <Navigate replace to={dashboard} />
-          }
-        />
+          <Route
+            path="quiz"
+            element={<Quiz />}
+          />
+
+          <Route
+            path="users"
+            element={<Users />}
+          />
+
+          <Route
+            path="sessions"
+            element={<Sessions />}
+          />
+
+          <Route
+            path="analytics"
+            element={<Analytics />}
+          />
+
+          <Route
+            path="settings"
+            element={<Settings />}
+          />
+        </Route>
 
         {/* ================= INTERVIEWER ================= */}
 

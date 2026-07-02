@@ -11,10 +11,16 @@ import { ENV } from "./lib/env.js";
 import { connectDB } from "./lib/db.js";
 import { inngest, functions } from "./lib/inngest.js";
 
+// Routes
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
 import executeRoute from "./routes/executeRoute.js";
 import authRoute from "./routes/authRoute.js";
+
+// New Routes
+import problemRoute from "./routes/problemRoute.js";
+import adminRoute from "./routes/adminRoute.js";
+ import quizRoute from "./routes/quizRoute.js"; // Enable after creating Quiz API
 
 const app = express();
 const __dirname = path.resolve();
@@ -25,6 +31,7 @@ const allowedOrigins = [
   "https://www.intervue.site",
 ];
 
+// Middleware
 app.use(express.json());
 
 app.use(
@@ -50,10 +57,23 @@ app.use(
 
 app.use(clerkMiddleware());
 
+// ================= API Routes =================
+
 app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/execute", executeRoute);
 app.use("/api/auth", authRoute);
+
+// Admin APIs
+app.use("/api/admin", adminRoute);
+
+// Problems APIs
+app.use("/api/problems", problemRoute);
+
+// Quiz APIs (Coming Next)
+ app.use("/api/quizzes", quizRoute);
+
+// ================= Health Check =================
 
 app.get("/health", (_, res) => {
   res.status(200).json({
@@ -61,6 +81,8 @@ app.get("/health", (_, res) => {
     message: "API is running",
   });
 });
+
+// ================= Production =================
 
 if (ENV.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
@@ -72,12 +94,15 @@ if (ENV.NODE_ENV === "production") {
   });
 }
 
+// ================= Start Server =================
+
 const startServer = async () => {
   try {
     await connectDB();
 
     app.listen(ENV.PORT, () => {
-      console.log(`Server running on port ${ENV.PORT}`);
+      console.log(`🚀 Server running on port ${ENV.PORT}`);
+      console.log(`📡 Health: http://localhost:${ENV.PORT}/health`);
     });
   } catch (error) {
     console.error("Server startup failed:", error);
@@ -86,9 +111,23 @@ const startServer = async () => {
 };
 
 startServer();
-//Increment 1 UI Changesss
-//Quizepage ADDED 
-//Increment 2 QuizePage Added
-//Increment 4 Eye Ball Detection Added
-//Increment 5 meet record  done 
-//Increment 6  interviewer side changes
+
+/*
+============================================
+InterVue Progress
+============================================
+✓ UI Changes
+✓ Quiz Page
+✓ Eye Ball Detection
+✓ Meet Recording
+✓ Interviewer Dashboard
+✓ Admin Dashboard
+✓ Admin Users
+✓ Admin Sessions
+✓ Admin Analytics
+✓ Problem CRUD (Backend)
+⬜ Quiz CRUD
+⬜ Admin Settings
+⬜ Reports
+============================================
+*/

@@ -6,87 +6,94 @@ export const protectRoute = [
 
   async (req, res, next) => {
     try {
-      const clerkId = req.auth().userId;
+      const { userId: clerkId } = req.auth();
 
       if (!clerkId) {
         return res.status(401).json({
+          success: false,
           message: "Unauthorized",
         });
       }
 
+      // Fetch latest Clerk user
       const clerkUser = await clerkClient.users.getUser(clerkId);
 
       const email =
         clerkUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
 
       const name =
-        `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
+        `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+        clerkUser.username ||
         "User";
 
       const profileImage = clerkUser.imageUrl || "";
 
-      const role =
-        email === process.env.ADMIN_EMAIL?.toLowerCase()
-          ? "admin"
-          : clerkUser.publicMetadata?.role || "candidate";
+      // Find existing user by Clerk ID or Email
+      let user = await User.findOne({
+        $or: [{ clerkId }, { email }],
+      });
 
-      let user = await User.findOne({ clerkId });
+      // Email exists but Clerk account changed
+      if (user && user.clerkId !== clerkId) {
+        user.clerkId = clerkId;
+      }
 
-      // ==========================
-      // CREATE NEW USER
-      // ==========================
-
+      // ===============================
+      // FIRST LOGIN
+      // ===============================
       if (!user) {
         user = await User.create({
           clerkId,
           name,
           email,
           profileImage,
-          role,
+          role:
+            email === process.env.ADMIN_EMAIL?.toLowerCase()
+              ? "admin"
+              : null,
           isActive: true,
         });
 
-        console.log("✅ New User Created");
+        console.log(`✅ New user created: ${email}`);
       }
 
-      // ==========================
-      // UPDATE EXISTING USER
-      // ==========================
+      // ===============================
+      // KEEP PROFILE SYNCED
+      // ===============================
 
-      let updated = false;
+      let hasChanges = false;
 
       if (user.name !== name) {
         user.name = name;
-        updated = true;
+        hasChanges = true;
       }
 
       if (user.email !== email) {
         user.email = email;
-        updated = true;
+        hasChanges = true;
       }
 
       if (user.profileImage !== profileImage) {
         user.profileImage = profileImage;
-        updated = true;
+        hasChanges = true;
       }
 
-      if (!user.role) {
-        user.role = role;
-        updated = true;
+      if (user.clerkId !== clerkId) {
+        user.clerkId = clerkId;
+        hasChanges = true;
       }
 
-      if (user.isActive === undefined) {
-        user.isActive = true;
-        updated = true;
-      }
-
-      if (updated) {
+      if (hasChanges) {
         await user.save();
-        console.log("✅ User Updated");
       }
+
+      // ===============================
+      // ACCOUNT STATUS
+      // ===============================
 
       if (!user.isActive) {
         return res.status(403).json({
+          success: false,
           message: "Your account has been disabled.",
         });
       }
@@ -98,6 +105,7 @@ export const protectRoute = [
       console.error("protectRoute:", error);
 
       return res.status(500).json({
+        success: false,
         message: "Internal Server Error",
       });
     }
