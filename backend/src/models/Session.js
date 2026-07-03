@@ -2,39 +2,98 @@ import mongoose from "mongoose";
 
 const sessionSchema = new mongoose.Schema(
   {
-    problem: {
+    title: {
       type: String,
       required: true,
+      trim: true,
     },
-    difficulty: {
+
+    description: {
       type: String,
-      enum: ["easy", "medium", "hard"],
+      default: "",
+    },
+
+    scheduledAt: {
+      type: Date,
       required: true,
     },
-    host: {
+
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    participant: {
+
+    interviewer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
+
+    candidate: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    activeProblem: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Problem",
+      default: null,
+    },
+
+    activeQuiz: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Quiz",
+      default: null,
+    },
+
     status: {
       type: String,
-      enum: ["active", "completed"],
-      default: "active",
+      enum: [
+        "scheduled",
+        "waiting",
+        "live",
+        "completed",
+        "cancelled",
+      ],
+      default: "scheduled",
     },
-    // stream video call ID
+
     callId: {
       type: String,
       default: "",
     },
+
+startedAt: {
+  type: Date,
+  default: null,
+},
+
+endedAt: {
+  type: Date,
+  default: null,
+},
+
+currentStage: {
+  type: String,
+  enum: [
+    "waiting",
+    "problem",
+    "quiz",
+    "discussion",
+    "completed",
+  ],
+  default: "waiting",
+},
+
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-const Session = mongoose.model("Session", sessionSchema);
-
-export default Session;
+export default mongoose.model(
+  "Session",
+  sessionSchema
+);

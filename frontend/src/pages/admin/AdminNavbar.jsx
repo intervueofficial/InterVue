@@ -1,9 +1,4 @@
-import {
-  Menu,
-  Bell,
-  Search,
-  CalendarDays,
-} from "lucide-react";
+import { Menu, Bell, Search, CalendarDays } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 import { useLocation } from "react-router-dom";
 
@@ -19,18 +14,14 @@ const titles = {
 const AdminNavbar = ({ setSidebarOpen }) => {
   const location = useLocation();
 
-  const pageTitle =
-    titles[location.pathname] || "Admin";
+  const pageTitle = titles[location.pathname] || "Admin";
 
-  const today = new Date().toLocaleDateString(
-    "en-US",
-    {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }
-  );
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <>
@@ -43,7 +34,6 @@ const AdminNavbar = ({ setSidebarOpen }) => {
           padding:0 32px;
           background:rgba(255,255,255,.82);
           backdrop-filter:blur(18px);
-          border-bottom:1px solid #E5E7EB;
         }
 
         .nav-left{
@@ -59,34 +49,36 @@ const AdminNavbar = ({ setSidebarOpen }) => {
         }
 
         .page-title{
-          font-size:24px;
+          font-size:23px;
           font-weight:700;
-          color:#0F172A;
+          letter-spacing:-.3px;
+          color:#2563EB;
         }
 
         .date{
           color:#64748B;
-          font-size:13px;
+          font-size:12.5px;
           margin-top:3px;
+          font-weight:500;
         }
 
         .nav-right{
           display:flex;
           align-items:center;
-          gap:18px;
+          gap:14px;
         }
 
         .search-box{
-          width:320px;
-          height:46px;
+          width:300px;
+          height:44px;
           display:flex;
           align-items:center;
           gap:10px;
           padding:0 16px;
-          border-radius:14px;
-          background:white;
-          border:1px solid #E5E7EB;
-          transition:.25s;
+          border-radius:12px;
+          background:#fff;
+          border:1px solid #E2E8F0;
+          transition:.2s ease;
         }
 
         .search-box:focus-within{
@@ -99,7 +91,7 @@ const AdminNavbar = ({ setSidebarOpen }) => {
           border:none;
           outline:none;
           background:transparent;
-          font-size:14px;
+          font-size:13.5px;
           color:#0F172A;
         }
 
@@ -108,26 +100,27 @@ const AdminNavbar = ({ setSidebarOpen }) => {
         }
 
         .icon-btn{
-          width:46px;
-          height:46px;
-          border-radius:14px;
-          border:1px solid #E5E7EB;
-          background:white;
+          width:44px;
+          height:44px;
+          border-radius:12px;
+          border:1px solid #E2E8F0;
+          background:#fff;
           display:flex;
           align-items:center;
           justify-content:center;
           cursor:pointer;
-          transition:.25s;
+          color:#475569;
+          transition:.2s ease;
         }
 
         .icon-btn:hover{
           border-color:#2563EB;
           color:#2563EB;
-          transform:translateY(-2px);
+          box-shadow:0 4px 14px rgba(37,99,235,.16);
+          transform:translateY(-1px);
         }
 
         @media(max-width:992px){
-
           .menu-btn{
             display:block;
           }
@@ -141,55 +134,33 @@ const AdminNavbar = ({ setSidebarOpen }) => {
           }
 
           .page-title{
-            font-size:20px;
+            font-size:19px;
           }
-
         }
-
       `}</style>
 
       <header className="navbar">
-
         <div className="nav-left">
-
-          <Menu
-            className="menu-btn"
-            onClick={() => setSidebarOpen(true)}
-          />
+          <Menu className="menu-btn" onClick={() => setSidebarOpen(true)} />
 
           <div>
-
-            <div className="page-title">
-              {pageTitle}
-            </div>
-
-            <div className="date">
-              {today}
-            </div>
-
+            <div className="page-title">{pageTitle}</div>
+            <div className="date">{today}</div>
           </div>
-
         </div>
 
         <div className="nav-right">
-
           <div className="search-box">
-
-            <Search size={18} />
-
-            <input
-              type="text"
-              placeholder="Search..."
-            />
-
+            <Search size={17} />
+            <input type="text" placeholder="Search..." />
           </div>
 
           <button className="icon-btn">
-            <CalendarDays size={18} />
+            <CalendarDays size={17} />
           </button>
 
           <button className="icon-btn">
-            <Bell size={18} />
+            <Bell size={17} />
           </button>
 
           <UserButton
@@ -202,9 +173,7 @@ const AdminNavbar = ({ setSidebarOpen }) => {
               },
             }}
           />
-
         </div>
-
       </header>
     </>
   );

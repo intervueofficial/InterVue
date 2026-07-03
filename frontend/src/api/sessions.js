@@ -71,4 +71,14 @@ export const sessionApi = {
     });
     return response.data;
   },
+
+  deleteSession: async (id, token) => {
+  const response = await axiosInstance.delete(`/sessions/${id}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+},
 };

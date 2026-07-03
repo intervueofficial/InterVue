@@ -67,4 +67,69 @@ export const adminApi = {
 
     return data;
   },
+
+  deleteUser: async (id, token) => {
+  const { data } = await axiosInstance.delete(
+    `/admin/users/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+},
+
+deleteSession: async (id, token) => {
+  const { data } = await axiosInstance.delete(
+    `/admin/sessions/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+},
+
+getProblems: async (token) => {
+  const { data } = await axiosInstance.get(
+    "/admin/problems",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+},
+
+deleteProblem: async (id, token) => {
+  const { data } = await axiosInstance.delete(
+    `/admin/problems/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+},
+
+getAnalytics: async (token) => {
+  const { data } = await axiosInstance.get(
+    "/admin/analytics",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+},
 };

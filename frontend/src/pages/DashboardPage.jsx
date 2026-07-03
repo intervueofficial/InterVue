@@ -3,7 +3,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useState } from "react";
 import { useActiveSessions, useCreateSession, useMyRecentSessions } from "../hooks/useSessions";
 import Navbar from "../components/Navbar";
-import CreateSessionModal from "../components/CreateSessionModal";
+import CreateSessionModal from "../components/session/CreateSessionModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PlusIcon,

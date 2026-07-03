@@ -1,8 +1,10 @@
 import express from "express";
 import { protectRoute } from "../middleware/protectRoute.js";
-import { streamClient } from "../lib/stream.js";
+import { requireRole } from "../middleware/requireRole.js";
+
 import {
   createSession,
+  deleteSession,
   endSession,
   getActiveSessions,
   getMyRecentSessions,
@@ -14,7 +16,19 @@ import SessionViolation from "../models/SessionViolation.js";
 
 const router = express.Router();
 
-router.post("/", protectRoute, createSession);
+router.post(
+  "/",
+  protectRoute,
+  requireRole("admin"),
+  createSession
+);
+
+router.delete(
+  "/:id",
+  protectRoute,
+  requireRole("admin"),
+  deleteSession
+);
 
 router.get(
   "/active",

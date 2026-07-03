@@ -1,19 +1,62 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { sessionApi } from "../api/sessions";
 import { useAuth } from "@clerk/clerk-react";
 
 export const useCreateSession = () => {
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
 
-  const result = useMutation({
+  return useMutation({
     mutationFn: async (data) => {
       const token = await getToken();
       return sessionApi.createSession(data, token);
     },
-  });
 
-  return result;
+    onSuccess: () => {
+      toast.success("Session created");
+
+      queryClient.invalidateQueries({
+        queryKey: ["activeSessions"],
+      });
+    },
+
+    onError: (error) =>
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to create session"
+      ),
+  });
+};
+
+export const useDeleteSession = () => {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      const token = await getToken();
+      return sessionApi.deleteSession(id, token);
+    },
+
+    onSuccess: () => {
+      toast.success("Session deleted");
+
+      queryClient.invalidateQueries({
+        queryKey: ["activeSessions"],
+      });
+    },
+
+    onError: (error) =>
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to delete session"
+      ),
+  });
 };
 
 export const useActiveSessions = () => {
@@ -62,14 +105,20 @@ export const useSessionById = (id) => {
 
 export const useJoinSession = () => {
   const { getToken } = useAuth();
-
+const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["joinSession"],
     mutationFn: async (id) => {
       const token = await getToken();
       return sessionApi.joinSession(id, token);
     },
-    onSuccess: () => toast.success("Joined session successfully!"),
+    onSuccess: () => {
+  toast.success("Joined session successfully!");
+
+  queryClient.invalidateQueries({
+    queryKey: ["activeSessions"],
+  });
+},
     onError: (error) =>
       toast.error(error.response?.data?.message || "Failed to join session"),
   });

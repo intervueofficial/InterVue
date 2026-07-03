@@ -1,10 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  Users,
-  FileCode,
-  MonitorPlay,
-  BarChart3,
-} from "lucide-react";
+import { Users, FileCode, MonitorPlay, BarChart3 } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 
 import StatCard from "./StatCard";
@@ -31,26 +26,22 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <span className="loading loading-spinner loading-lg"></span>
+        <span className="loading loading-spinner loading-lg" style={{ color: "#2563EB" }}></span>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-
       <div>
-        <h1 className="text-4xl font-bold text-slate-900">
+        <h1 className="text-4xl font-bold" style={{ color: "#2563EB", letterSpacing: "-0.5px" }}>
           Admin Dashboard
         </h1>
 
-        <p className="text-slate-500 mt-2">
-          Welcome to the InterVue Administration Panel
-        </p>
+        <p className="text-slate-500 mt-2">Welcome to the InterVue Administration Panel</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
         <StatCard
           title="Total Users"
           value={data?.totalUsers || 0}
@@ -82,9 +73,7 @@ const Dashboard = () => {
           icon={BarChart3}
           color="#8B5CF6"
         />
-
       </div>
-
     </div>
   );
 };

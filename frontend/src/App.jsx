@@ -21,7 +21,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import Problems from "./pages/admin/Problems";
 import Quiz from "./pages/admin/Quiz";
 import Users from "./pages/admin/Users";
-import Sessions from "./pages/admin/Sessions";
+import Sessions from "./pages/Sessions";
 import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
 
@@ -270,6 +270,24 @@ function App() {
           path="*"
           element={<Navigate replace to="/" />}
         />
+
+        <Route
+    path="/sessions"
+    element={
+        role === "interviewer"
+            ? <Sessions />
+            : <Navigate replace to={dashboard} />
+    }
+/>
+
+<Route
+    path="/candidate/sessions"
+    element={
+        role === "candidate"
+            ? <Sessions />
+            : <Navigate replace to={dashboard} />
+    }
+/>
 
       </Routes>
 
