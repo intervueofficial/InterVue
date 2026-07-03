@@ -8,6 +8,7 @@ import {
   updateUserRole,
   toggleUserStatus,
   getSessions,
+  getAnalytics,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -26,5 +27,8 @@ router.patch("/users/:id/status", toggleUserStatus);
 
 // Sessions
 router.get("/sessions", getSessions);
+
+// Analytics
+router.get("/analytics", getAnalytics);
 
 export default router;

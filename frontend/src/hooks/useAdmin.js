@@ -13,3 +13,15 @@ export const useAdminUsers = () => {
     },
   });
 };
+
+export const useAdminAnalytics = () => {
+  const { getToken } = useAuth();
+
+  return useQuery({
+    queryKey: ["admin-analytics"],
+    queryFn: async () => {
+      const token = await getToken();
+      return adminApi.getAnalytics(token);
+    },
+  });
+};
