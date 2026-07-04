@@ -6,7 +6,7 @@ import {
   useJoinSession,
   useSessionById,
 } from "../hooks/useSessions";
-import { PROBLEMS } from "../data/problems";
+import useAuthUser from "../hooks/useAuthUser";
 import { executeCode } from "../lib/piston";
 import useStreamClient from "../hooks/useStreamClient";
 import { useAuth } from "@clerk/clerk-react";
@@ -19,7 +19,12 @@ function SessionPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useUser();
+  const { data: authUser } = useAuthUser();
 
+  // `role` drives which layout renders. It's seeded from the signed-in
+  // user's real platform role as soon as it loads (RoleSwitcher in the
+  // top bars is a leftover dev-preview toggle, left in place but no
+  // longer the source of truth for real sessions).
   const [role, setRole] = useState("candidate");
   const [activePage, setActivePage] = useState("problem");
 
@@ -40,8 +45,17 @@ function SessionPage() {
   const endSessionMutation = useEndSession();
 
   const session = sessionData?.session;
-  const isHost = session?.host?.clerkId === user?.id;
-  const isParticipant = session?.participant?.clerkId === user?.id;
+
+  useEffect(() => {
+    if (authUser?.role === "interviewer" || authUser?.role === "candidate") {
+      setRole(authUser.role);
+    }
+  }, [authUser]);
+
+  // Session.interviewer / Session.candidate are populated with clerkId
+  // by the backend (see getSessionById / joinSession).
+  const isHost = !!session?.interviewer && session.interviewer.clerkId === user?.id;
+  const isParticipant = !!session?.candidate && session.candidate.clerkId === user?.id;
 
   const { getToken } = useAuth();
   const { call, channel, chatClient, isInitializingCall, streamClient } =
@@ -51,9 +65,9 @@ function SessionPage() {
 
   const candidateStatus = participantCount > 1 ? "Connected" : "Waiting...";
 
-  const problemData = session?.problem
-    ? Object.values(PROBLEMS).find((p) => p.title === session.problem)
-    : null;
+  // Real, admin-created content pushed by the interviewer for this session.
+  const problemData = session?.activeProblem || null;
+  const quizData = session?.activeQuiz || null;
 
   /* Anti-cheat + fullscreen enforcement (candidate only) */
   useEffect(() => {
@@ -132,19 +146,16 @@ function SessionPage() {
     if (session.status === "completed" && !isHost) navigate("/dashboard");
   }, [session, loadingSession, navigate, isHost]);
 
-  /* Sync code with problem */
+  /* Sync code editor whenever a *new* problem is pushed */
   useEffect(() => {
-    if (problemData?.starterCode?.[selectedLanguage]) {
-      setCode(problemData.starterCode[selectedLanguage]);
-    }
-  }, [problemData, selectedLanguage]);
+    setCode(problemData?.starterCode || "");
+    setOutput(null);
+    setLastResult(null);
+  }, [problemData?._id]);
 
   const handleLanguageChange = (e) => {
     const lang = e.target.value;
     setSelectedLanguage(lang);
-    setCode(problemData?.starterCode?.[lang] || "");
-    setOutput(null);
-    setLastResult(null);
   };
 
   const handleRunCode = async () => {
@@ -223,6 +234,7 @@ function SessionPage() {
       activePage={activePage}
       setActivePage={setActivePage}
       problemData={problemData}
+      quizData={quizData}
       loadingSession={loadingSession}
       code={code}
       setCode={setCode}

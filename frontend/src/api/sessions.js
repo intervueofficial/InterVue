@@ -81,4 +81,56 @@ export const sessionApi = {
 
   return response.data;
 },
+
+  pushProblem: async (id, problemId, token) => {
+    const response = await axiosInstance.patch(
+      `/sessions/${id}/push-problem`,
+      { problemId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
+
+  pushQuiz: async (id, quizId, token) => {
+    const response = await axiosInstance.patch(
+      `/sessions/${id}/push-quiz`,
+      { quizId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
+
+  clearActiveContent: async (id, token) => {
+    const response = await axiosInstance.patch(
+      `/sessions/${id}/clear-content`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
+
+  submitQuizResult: async (id, { score, total }, token) => {
+    const response = await axiosInstance.patch(
+      `/sessions/${id}/quiz-result`,
+      { score, total },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
 };

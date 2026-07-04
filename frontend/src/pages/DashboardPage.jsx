@@ -1,725 +1,249 @@
-import { useNavigate } from "react-router";
 import { useUser } from "@clerk/clerk-react";
-import { useState } from "react";
-import { useActiveSessions, useCreateSession, useMyRecentSessions } from "../hooks/useSessions";
-import Navbar from "../components/Navbar";
-import CreateSessionModal from "../components/session/CreateSessionModal";
-import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router";
 import {
-  PlusIcon,
-  PlayIcon,
-  ClockIcon,
-  UsersIcon,
-  BarChart3Icon,
-  Code2Icon,
-  VideoIcon,
-  ChevronRightIcon,
-  ArrowRightIcon,
   ZapIcon,
-  TrendingUpIcon,
   CheckCircle2Icon,
-  AlertCircleIcon,
-  CalendarIcon,
-  SparklesIcon,
+  UsersIcon,
   ActivityIcon,
-  XIcon,
-  BotIcon,
+  ClockIcon,
+  ArrowRightIcon,
+  BookOpenIcon,
+  HelpCircleIcon,
+  CalendarDaysIcon,
 } from "lucide-react";
 
-const T = {
-  blue:       "#1868DB",
-  blueHover:  "#1558BC",
-  blueTint:   "#cfe1fd",
-  blueMid:    "#4A9EE8",
-  amber:      "#ffab00",
-  amberHover: "#ff991f",
-  dark:       "#1C2B42",
-  body:       "#44526C",
-  muted:      "#6B778C",
-  border:     "#DFE1E6",
-  border2:    "#DDDEE1",
-  bg:         "#FFFFFF",
-  surface:    "#F8F8F8",
-  surface2:   "#F4F5F7",
-  green:      "#00875A",
-  greenTint:  "rgba(0,135,90,0.08)",
-  greenBorder:"rgba(0,135,90,0.2)",
-  red:        "#DE350B",
-  redTint:    "rgba(222,53,11,0.08)",
-  yellow:     "#FF8B00",
-  yellowTint: "rgba(255,139,0,0.08)",
-};
+import { useActiveSessions, useMyRecentSessions } from "../hooks/useSessions";
+import Navbar from "../components/Navbar";
+import StatCard from "./admin/StatCard";
+import SessionGrid from "../components/session/SessionGrid";
 
-const fadeUp = {
-  hidden:  { opacity: 0, y: 14 },
-  visible: (i = 0) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.42, delay: i * 0.055, ease: [0.22, 1, 0.36, 1] },
-  }),
-};
-
-const DIFF = {
-  easy:   { bg: T.greenTint,  text: T.green,  border: T.greenBorder,  label: "Easy"   },
-  medium: { bg: T.yellowTint, text: T.yellow, border: "rgba(255,139,0,0.2)", label: "Medium" },
-  hard:   { bg: T.redTint,    text: T.red,    border: "rgba(222,53,11,0.2)", label: "Hard"   },
-};
-
-function Badge({ children, color, bg, border, style = {} }) {
+/* ─── Skeleton for the session grids while loading ──────────────────────── */
+function SkeletonSessionGrid() {
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center",
-      fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
-      textTransform: "uppercase",
-      padding: "3px 8px", borderRadius: 3,
-      background: bg, color, border: `1px solid ${border}`,
-      ...style,
-    }}>
-      {children}
-    </span>
-  );
-}
-
-function Card({ children, style = {}, hover = true, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => hover && setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: T.bg,
-        border: `1px solid ${hovered ? "#B3CCFF" : T.border}`,
-        borderRadius: 8,
-        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-        boxShadow: hovered ? "0 4px 16px rgba(24,104,219,0.10)" : "0 1px 4px rgba(0,0,0,0.04)",
-        transform: hovered && onClick ? "translateY(-1px)" : "none",
-        cursor: onClick ? "pointer" : "default",
-        ...style,
-      }}
-    >
-      {children}
+    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="rounded-xl bg-white border animate-pulse"
+          style={{ borderColor: "#E5E9F0", minHeight: 240 }}
+        >
+          <div className="p-6 space-y-4">
+            <div className="h-5 w-2/3 rounded bg-slate-100" />
+            <div className="h-3 w-1/3 rounded bg-slate-100" />
+            <div className="h-px my-2 bg-slate-100" />
+            <div className="h-3 w-1/2 rounded bg-slate-100" />
+            <div className="h-3 w-1/2 rounded bg-slate-100" />
+            <div className="h-px my-2 bg-slate-100" />
+            <div className="h-8 w-24 rounded-xl bg-slate-100 ml-auto" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, delta, deltaUp, accentColor, index }) {
+/* ─── Simple, honest navigation shortcuts (no fake marketing / CTAs) ────── */
+function QuickLink({ to, icon: Icon, title, subtitle, color }) {
   return (
-    <motion.div custom={index} initial="hidden" animate="visible" variants={fadeUp}>
-      <Card style={{ padding: "20px 22px", position: "relative", overflow: "hidden" }}>
-
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: 3,
-          background: accentColor, borderRadius: "8px 8px 0 0",
-        }} />
-
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 6,
-            background: `${accentColor}14`,
-            border: `1px solid ${accentColor}30`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Icon size={16} color={accentColor} />
+    <Link to={to} className="block group">
+      <div
+        className="rounded-xl bg-white border p-5 transition-all duration-150"
+        style={{ borderColor: "#E5E9F0" }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,23,42,0.05)";
+          e.currentTarget.style.borderColor = "#CBD5E1";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.borderColor = "#E5E9F0";
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center"
+            style={{ background: "#F1F5F9" }}
+          >
+            <Icon size={16} color="#475569" strokeWidth={2} />
           </div>
-          {delta && (
-            <span style={{
-              fontSize: 11, fontWeight: 700,
-              color: deltaUp ? T.green : T.red,
-              background: deltaUp ? T.greenTint : T.redTint,
-              border: `1px solid ${deltaUp ? T.greenBorder : "rgba(222,53,11,0.2)"}`,
-              padding: "2px 7px", borderRadius: 3,
-            }}>
-              {deltaUp ? "↑" : "↓"} {delta}
-            </span>
-          )}
+          <ArrowRightIcon
+            size={14}
+            className="text-slate-300 transition-transform duration-150 group-hover:translate-x-0.5"
+          />
         </div>
-
-        <div style={{
-          fontSize: 28, fontWeight: 800, color: T.dark,
-          letterSpacing: "-0.5px", lineHeight: 1, marginBottom: 4,
-          fontFamily: "'DM Sans', sans-serif",
-        }}>
-          {value}
-        </div>
-        <div style={{ fontSize: 12, color: T.muted, fontWeight: 500 }}>{label}</div>
-      </Card>
-    </motion.div>
+        <div className="mt-3.5 text-sm font-semibold text-slate-900">{title}</div>
+        <div className="text-xs text-slate-400 mt-1">{subtitle}</div>
+      </div>
+    </Link>
   );
 }
 
-function SessionCard({ session, isUserIn, onJoin, index }) {
-  const diff = DIFF[session.difficulty] || DIFF.medium;
-  const isLive = session.status === "active";
-
+/* ─── Section header used above each session grid ───────────────────────── */
+function SectionHeader({ icon: Icon, title, count, viewAllTo }) {
   return (
-    <motion.div custom={index} initial="hidden" animate="visible" variants={fadeUp}>
-      <Card
-        onClick={() => onJoin(session._id)}
-        style={{ padding: "16px 18px", display: "flex", alignItems: "center", gap: 14 }}
-      >
-        <div style={{
-          width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-          background: T.blueTint,
-          border: `1px solid rgba(24,104,219,0.2)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <Code2Icon size={17} color={T.blue} />
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 14, fontWeight: 600, color: T.dark,
-            marginBottom: 5, whiteSpace: "nowrap",
-            overflow: "hidden", textOverflow: "ellipsis",
-          }}>
-            {session.problem || "Untitled Problem"}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Badge color={diff.text} bg={diff.bg} border={diff.border}>{diff.label}</Badge>
-            <span style={{ fontSize: 12, color: T.muted, display: "flex", alignItems: "center", gap: 4 }}>
-              <UsersIcon size={11} />
-              {session.host?.firstName || "Host"}
-            </span>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          {isLive && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 5,
-              background: T.greenTint, padding: "4px 9px", borderRadius: 3,
-              border: `1px solid ${T.greenBorder}`,
-            }}>
-              <div style={{
-                width: 6, height: 6, borderRadius: "50%", background: T.green,
-                animation: "iv-pulse 2s infinite",
-              }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: T.green, letterSpacing: "0.05em" }}>LIVE</span>
-            </div>
-          )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onJoin(session._id); }}
+    <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center gap-2.5">
+        {Icon && <Icon size={18} className="text-slate-400" />}
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
+        {typeof count === "number" && (
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-full"
             style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "8px 14px", borderRadius: 4, border: "none", cursor: "pointer",
-              fontSize: 12, fontWeight: 600, fontFamily: "inherit",
-              background: isUserIn ? T.surface2 : T.blue,
-              color: isUserIn ? T.dark : "#fff",
-              border: isUserIn ? `1px solid ${T.border}` : "none",
-              transition: "background 0.15s",
+              background: "rgba(37,99,235,0.08)",
+              color: "#2563EB",
+              border: "1px solid rgba(37,99,235,0.16)",
             }}
           >
-            <PlayIcon size={10} fill={isUserIn ? T.dark : "#fff"} />
-            {isUserIn ? "Resume" : "Join"}
-          </button>
-        </div>
-      </Card>
-    </motion.div>
-  );
-}
-
-function RecentRow({ session, index }) {
-  const diff = DIFF[session.difficulty] || DIFF.medium;
-  const date = session.createdAt
-    ? new Date(session.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    : "—";
-
-  return (
-    <motion.tr custom={index} initial="hidden" animate="visible" variants={fadeUp}>
-      <td style={{ padding: "12px 18px", borderBottom: `1px solid ${T.border2}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-            background: T.blueTint, border: `1px solid rgba(24,104,219,0.15)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Code2Icon size={12} color={T.blue} />
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 500, color: T.dark }}>{session.problem || "Untitled"}</span>
-        </div>
-      </td>
-      <td style={{ padding: "12px 18px", borderBottom: `1px solid ${T.border2}` }}>
-        <Badge color={diff.text} bg={diff.bg} border={diff.border}>{diff.label}</Badge>
-      </td>
-      <td style={{ padding: "12px 18px", borderBottom: `1px solid ${T.border2}`, fontSize: 13, color: T.muted }}>
-        {session.host?.firstName || "—"}
-      </td>
-      <td style={{ padding: "12px 18px", borderBottom: `1px solid ${T.border2}` }}>
-        <span style={{ fontSize: 12, color: T.muted, display: "flex", alignItems: "center", gap: 5 }}>
-          <CalendarIcon size={11} /> {date}
-        </span>
-      </td>
-      <td style={{ padding: "12px 18px", borderBottom: `1px solid ${T.border2}` }}>
-        <Badge color={T.green} bg={T.greenTint} border={T.greenBorder}>Completed</Badge>
-      </td>
-    </motion.tr>
-  );
-}
-
-function SkeletonRow() {
-  return (
-    <div style={{
-      background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8,
-      padding: "16px 18px", display: "flex", alignItems: "center", gap: 14,
-    }}>
-      <div style={{ width: 40, height: 40, borderRadius: 8, background: T.surface2 }} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ height: 13, width: "52%", borderRadius: 4, background: T.surface2 }} />
-        <div style={{ height: 10, width: "28%", borderRadius: 4, background: T.surface2 }} />
+            {count}
+          </span>
+        )}
       </div>
-      <div style={{ width: 68, height: 30, borderRadius: 4, background: T.surface2 }} />
+
+      <Link
+        to={viewAllTo}
+        className="flex items-center gap-1.5 text-sm font-semibold transition-colors"
+        style={{ color: "#2563EB" }}
+      >
+        View all
+        <ArrowRightIcon size={14} />
+      </Link>
     </div>
   );
 }
 
-function EmptyState({ icon: Icon, title, subtitle, action, onAction }) {
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: "44px 24px", gap: 10, textAlign: "center",
-    }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 10,
-        background: T.surface2, border: `1px solid ${T.border}`,
-        display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 2,
-      }}>
-        <Icon size={20} color={T.muted} />
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: T.dark }}>{title}</div>
-      <div style={{ fontSize: 13, color: T.muted, maxWidth: 240, lineHeight: 1.6 }}>{subtitle}</div>
-      {action && (
-        <button
-          onClick={onAction}
-          style={{
-            marginTop: 6, display: "flex", alignItems: "center", gap: 6,
-            padding: "8px 16px", borderRadius: 4, border: "none",
-            background: T.blue, color: "#fff", fontSize: 13,
-            fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
-          }}
-        >
-          <PlusIcon size={13} /> {action}
-        </button>
-      )}
-    </div>
-  );
-}
-
-export default function DashboardPage() {
-  const navigate = useNavigate();
+const DashboardPage = () => {
   const { user } = useUser();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [roomConfig, setRoomConfig] = useState({ problem: "", difficulty: "" });
 
-  const createSessionMutation = useCreateSession();
-  const { data: activeSessionsData,  isLoading: loadingActive  } = useActiveSessions();
-  const { data: recentSessionsData,  isLoading: loadingRecent  } = useMyRecentSessions();
-
-  const handleCreateRoom = () => {
-    if (!roomConfig.problem || !roomConfig.difficulty) return;
-    createSessionMutation.mutate(
-      { problem: roomConfig.problem, difficulty: roomConfig.difficulty.toLowerCase() },
-      {
-        onSuccess: (data) => {
-          setShowCreateModal(false);
-          navigate(`/session/${data.session._id}`);
-        },
-      }
-    );
-  };
+  const { data: activeSessionsData, isLoading: loadingActive } = useActiveSessions();
+  const { data: recentSessionsData, isLoading: loadingRecent } = useMyRecentSessions();
 
   const activeSessions = activeSessionsData?.sessions || [];
   const recentSessions = recentSessionsData?.sessions || [];
 
-  const isUserIn = (s) =>
-    user?.id && (s.host?.clerkId === user.id || s.participant?.clerkId === user.id);
+  const uniqueCandidates = new Set(
+    recentSessions.filter((s) => s.candidate?._id).map((s) => s.candidate._id)
+  ).size;
 
   const firstName = user?.firstName || "there";
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
-        .iv-dash { font-family: 'DM Sans', system-ui, sans-serif; }
-        @keyframes iv-pulse {
-          0%,100% { opacity:1; transform:scale(1); }
-          50%      { opacity:.5; transform:scale(.82); }
-        }
-        .iv-table { width:100%; border-collapse:collapse; }
-        .iv-table th {
-          text-align:left; padding:10px 18px;
-          font-size:10px; font-weight:700; color:${T.muted};
-          text-transform:uppercase; letter-spacing:.08em;
-          border-bottom:1px solid ${T.border2};
-          background:${T.surface};
-        }
-        .iv-table tr:last-child td { border-bottom:none !important; }
-        .iv-sidebar-cta {
-          background: linear-gradient(135deg, #EBF2FF 0%, #F0F7FF 60%, #FAFCFF 100%);
-          border: 1px solid rgba(24,104,219,0.18);
-          border-radius: 8px;
-          padding: 22px;
-          position: relative;
-          overflow: hidden;
-        }
-        .iv-sidebar-cta::before {
-          content:'';
-          position:absolute; top:-60px; right:-60px;
-          width:140px; height:140px; border-radius:50%;
-          background:rgba(24,104,219,0.07);
-          pointer-events:none;
-        }
-        .iv-progress-track {
-          height: 4px; background:${T.surface2}; border-radius:99px; overflow:hidden;
-        }
-      `}</style>
+    <div className="min-h-screen bg-[#EFF6FF]">
+      <Navbar />
 
-      <div className="iv-dash" style={{ minHeight: "100vh", background: T.surface, color: T.dark }}>
-        <Navbar />
-
-        <div style={{ background: T.bg, borderBottom: `1px solid ${T.border2}` }}>
-          <div style={{
-            maxWidth: 1280, margin: "0 auto",
-            padding: "28px 32px 24px",
-            display: "flex", alignItems: "flex-end",
-            justifyContent: "space-between", gap: 20,
-          }}>
-            <motion.div initial="hidden" animate="visible" variants={fadeUp}>
-              {/* Greeting eyebrow */}
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: T.blueTint, border: `1px solid rgba(24,104,219,0.2)`,
-                padding: "3px 10px", borderRadius: 3, marginBottom: 10,
-              }}>
-                <div style={{
-                  width: 6, height: 6, borderRadius: "50%",
-                  background: T.blue, animation: "iv-pulse 2s infinite",
-                }} />
-                <span style={{
-                  fontSize: 10, fontWeight: 700, color: T.blue,
-                  letterSpacing: "0.1em", textTransform: "uppercase",
-                }}>
-                  {greeting}
-                </span>
-              </div>
-
-              <h1 style={{
-                fontSize: 26, fontWeight: 800, color: T.dark,
-                letterSpacing: "-0.4px", lineHeight: 1.1, marginBottom: 5,
-              }}>
-                {firstName}'s Dashboard
-              </h1>
-              <p style={{ fontSize: 13, color: T.muted, fontWeight: 400 }}>
-                Manage sessions, track candidates, and hire with confidence.
-              </p>
-            </motion.div>
-
-            <motion.div
-              custom={1} initial="hidden" animate="visible" variants={fadeUp}
-              style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}
-            >
-
-              <button
-                onClick={() => setShowCreateModal(true)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 7,
-                  padding: "8px 18px", borderRadius: 4,
-                  border: "none", background: T.blue,
-                  fontSize: 13, fontWeight: 600, color: "#fff",
-                  fontFamily: "inherit", cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(24,104,219,0.28)",
-                  transition: "background 0.15s",
-                }}
-              >
-                <PlusIcon size={14} />
-                New Session
-              </button>
-            </motion.div>
-          </div>
+      <div className="max-w-7xl mx-auto p-8 space-y-12">
+        {/* Header */}
+        <div>
+          <h1
+            className="text-4xl font-bold"
+            style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
+          >
+            Interviewer Dashboard
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Welcome back, {firstName}. Here's what's happening with your interviews.
+          </p>
         </div>
 
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 32px 72px" }}>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+          <StatCard
+            title="Active Sessions"
+            value={activeSessions.length}
+            subtitle="Scheduled, waiting, or live"
+            icon={ZapIcon}
+            color="#2563EB"
+          />
+          <StatCard
+            title="Completed"
+            value={recentSessions.length}
+            subtitle="Interviews you've finished"
+            icon={CheckCircle2Icon}
+            color="#10B981"
+          />
+          <StatCard
+            title="Candidates Interviewed"
+            value={uniqueCandidates}
+            subtitle="Unique candidates met"
+            icon={UsersIcon}
+            color="#8B5CF6"
+          />
+          <StatCard
+            title="Total Interviews"
+            value={activeSessions.length + recentSessions.length}
+            subtitle="All-time sessions"
+            icon={ActivityIcon}
+            color="#F59E0B"
+          />
+        </div>
 
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 14, marginBottom: 24,
-          }}>
-            {[
-              { icon: ZapIcon,          label: "Active Sessions",     value: activeSessions.length, deltaUp: true,  accentColor: T.blue   },
-              { icon: CheckCircle2Icon, label: "Sessions Completed",  value: recentSessions.length, deltaUp: true,  accentColor: T.green  },
-              { icon: UsersIcon,        label: "Candidates Reviewed", value: recentSessions.length, accentColor: "#6554C0" },
-              {
-  icon: ActivityIcon,
-  label: "Total Interviews",
-  value: activeSessions.length + recentSessions.length,
-  accentColor: T.yellow,
-}
-            ].map((s, i) => (
-              <StatCard key={s.label} {...s} index={i} />
-            ))}
-          </div>
+        {/* Active Sessions */}
+        <div>
+          <SectionHeader
+            icon={ZapIcon}
+            title="Active Sessions"
+            count={activeSessions.length}
+            viewAllTo="/sessions"
+          />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
+          {loadingActive ? (
+            <SkeletonSessionGrid />
+          ) : (
+            <SessionGrid
+              sessions={activeSessions.slice(0, 3)}
+              emptyTitle="No active sessions"
+              emptySubtitle="Sessions waiting for an interviewer or candidate will show up here."
+            />
+          )}
+        </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* Recent Sessions */}
+        <div>
+          <SectionHeader
+            icon={ClockIcon}
+            title="Recent Sessions"
+            viewAllTo="/sessions"
+          />
 
-              <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUp}>
-                <Card style={{ overflow: "hidden" }} hover={false}>
-                  <div style={{
-                    padding: "16px 20px", borderBottom: `1px solid ${T.border2}`,
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    background: T.bg,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 8, height: 8, borderRadius: "50%",
-                        background: T.green, animation: "iv-pulse 2s infinite",
-                      }} />
-                      <span style={{ fontSize: 14, fontWeight: 700, color: T.dark }}>Active Sessions</span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, color: T.blue,
-                        background: T.blueTint, border: `1px solid rgba(24,104,219,0.2)`,
-                        padding: "2px 7px", borderRadius: 3,
-                      }}>
-                        {activeSessions.length}
-                      </span>
-                    </div>
-                    
-                  </div>
+          {loadingRecent ? (
+            <SkeletonSessionGrid />
+          ) : (
+            <SessionGrid
+              sessions={recentSessions.slice(0, 3)}
+              emptyTitle="No completed interviews yet"
+              emptySubtitle="Interviews you've finished will show up here."
+            />
+          )}
+        </div>
 
-<div
-  style={{
-    background: T.surface,
-    height: 260, // shows roughly 3 session cards
-    overflowY: "auto",
-    overflowX: "hidden",
-    padding: "16px 18px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-  }}
->
-  {loadingActive ? (
-    <>
-      <SkeletonRow />
-      <SkeletonRow />
-      <SkeletonRow />
-    </>
-  ) : activeSessions.length === 0 ? (
-    <EmptyState
-      icon={VideoIcon}
-      title="No active sessions"
-      subtitle="Start a new interview session to get going."
-      action="Create Session"
-      onAction={() => setShowCreateModal(true)}
-    />
-  ) : (
-    activeSessions.map((s, i) => (
-      <SessionCard
-        key={s._id}
-        session={s}
-        isUserIn={isUserIn(s)}
-        onJoin={(id) => navigate(`/session/${id}`)}
-        index={i}
-      />
-    ))
-  )}
-</div>
-                </Card>
-              </motion.div>
+        {/* Quick links */}
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-5">
+            Quick Links
+          </h2>
 
-              <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
-                <Card style={{ overflow: "hidden" }} hover={false}>
-                  <div style={{
-                    padding: "16px 20px", borderBottom: `1px solid ${T.border2}`,
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    background: T.bg,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <ClockIcon size={14} color={T.muted} />
-                      <span style={{ fontSize: 14, fontWeight: 700, color: T.dark }}>Recent Sessions</span>
-                    </div>
-                    
-                  </div>
-
-                  {loadingRecent ? (
-                    <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, background: T.surface }}>
-                      <SkeletonRow /><SkeletonRow /><SkeletonRow />
-                    </div>
-                  ) : recentSessions.length === 0 ? (
-                    <div style={{ background: T.surface }}>
-                      <EmptyState
-                        icon={ClockIcon}
-                        title="No sessions yet"
-                        subtitle="Your completed sessions will appear here."
-                      />
-                    </div>
-                  ) : (
-<div
-  style={{
-    background: T.bg,
-    maxHeight: 200,      // Change to 400/450 if you want taller
-    overflowY: "auto",
-    overflowX: "hidden",
-  }}
->
-  <table className="iv-table">
-    <thead
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 2,
-        background: T.surface,
-      }}
-    >
-      <tr>
-        {["Problem", "Difficulty", "Host", "Date", "Status"].map((h) => (
-          <th key={h}>{h}</th>
-        ))}
-      </tr>
-    </thead>
-
-    <tbody>
-      {recentSessions.map((s, i) => (
-        <RecentRow
-          key={s._id}
-          session={s}
-          index={i}
-        />
-      ))}
-    </tbody>
-  </table>
-</div>
-                  )}
-                </Card>
-              </motion.div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-              <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUp}>
-                <div className="iv-sidebar-cta">
-                  <div style={{ position: "relative" }}>
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      background: T.blueTint, border: `1px solid rgba(24,104,219,0.22)`,
-                      padding: "3px 9px", borderRadius: 3, marginBottom: 12,
-                    }}>
-                      <ZapIcon size={10} color={T.blue} />
-                      <span style={{
-                        fontSize: 9, fontWeight: 800, color: T.blue,
-                        letterSpacing: "0.1em", textTransform: "uppercase",
-                      }}>Quick Start</span>
-                    </div>
-
-                    <div style={{
-                      fontSize: 17, fontWeight: 700, color: T.dark,
-                      lineHeight: 1.35, marginBottom: 8,
-                    }}>
-                      Launch a session in under 60 seconds
-                    </div>
-                    <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>
-                      Pick a problem, invite a candidate, and let AI handle the scoring.
-                    </p>
-                    <button
-                      onClick={() => setShowCreateModal(true)}
-                      style={{
-                        width: "100%", display: "flex", alignItems: "center",
-                        justifyContent: "center", gap: 7,
-                        padding: "10px 18px", borderRadius: 4, border: "none",
-                        background: T.blue, color: "#fff",
-                        fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-                        cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(24,104,219,0.28)",
-                        transition: "background 0.15s",
-                      }}
-                    >
-                      <PlusIcon size={13} />
-                      Create New Session
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div custom={2.5} initial="hidden" animate="visible" variants={fadeUp}>
-                <Card
-                  onClick={() => window.location.href = "/bot"}
-                  style={{ padding: "18px 20px" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                      background: "rgba(101,84,192,0.08)",
-                      border: "1px solid rgba(101,84,192,0.2)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <BotIcon size={16} color="#6554C0" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: T.dark }}>
-                        Mock Interview Bot
-                      </div>
-                      <div style={{ fontSize: 11, color: T.muted, marginTop: 1 }}>
-                        Practice solo with AI
-                      </div>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6, marginBottom: 16 }}>
-                    Run a self-paced mock interview with instant AI feedback before your next live session.
-                  </p>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); window.location.href = "/bot"; }}
-                    style={{
-                      width: "100%", display: "flex", alignItems: "center",
-                      justifyContent: "center", gap: 7,
-                      padding: "9px 16px", borderRadius: 4,
-                      border: `1px solid ${T.border}`, background: T.surface2,
-                      fontSize: 12.5, fontWeight: 600, color: T.dark,
-                      fontFamily: "inherit", cursor: "pointer",
-                      transition: "background 0.15s",
-                    }}
-                  >
-                    Launch Bot
-                    <ArrowRightIcon size={13} />
-                  </button>
-                </Card>
-              </motion.div>
-
-              <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
-              </motion.div>
-
-              <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
-                <div style={{
-                  padding: "14px 16px",
-                  background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8,
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-                    Trusted by teams at
-                  </div>
-                  <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-                    {["Airbnb", "eBay", "Spotify", "Cisco"].map((co) => (
-                      <span key={co} style={{ fontSize: 11, fontWeight: 800, color: T.border, letterSpacing: "0.04em" }}>
-                        {co}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <QuickLink
+              to="/problems"
+              icon={BookOpenIcon}
+              title="Coding Problems"
+              subtitle="Browse the problem library"
+            />
+            <QuickLink
+              to="/quiz"
+              icon={HelpCircleIcon}
+              title="Quizzes"
+              subtitle="Review the quiz library"
+            />
+            <QuickLink
+              to="/sessions"
+              icon={CalendarDaysIcon}
+              title="All Sessions"
+              subtitle="See every scheduled interview"
+            />
           </div>
         </div>
       </div>
-
-      <CreateSessionModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        roomConfig={roomConfig}
-        setRoomConfig={setRoomConfig}
-        onCreateRoom={handleCreateRoom}
-        isCreating={createSessionMutation.isPending}
-      />
-    </>
+    </div>
   );
-}
-//Increment 1 UI Changess
+};
+
+export default DashboardPage;

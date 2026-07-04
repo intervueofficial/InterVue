@@ -6,11 +6,13 @@ import {
   UserRound,
   Video,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import useAuthUser from "../../hooks/useAuthUser";
 import { useDeleteSession, useJoinSession } from "../../hooks/useSessions";
 
 const SessionCard = ({ session }) => {
+  const navigate = useNavigate();
   const { data: authUser } = useAuthUser();
 
   const { mutate: joinSession, isPending: joining } = useJoinSession();
@@ -36,14 +38,21 @@ const SessionCard = ({ session }) => {
     session.status !== "cancelled";
 
   const isLive = session.status === "live";
+  const isWaiting = session.status === "waiting";
 
   const canEnterInterview =
-    isLive &&
+    (isLive || isWaiting) &&
     (session.candidate?._id?.toString() === authUser?._id?.toString() ||
       session.interviewer?._id?.toString() === authUser?._id?.toString());
 
   const handleJoin = () => {
-    joinSession(session._id);
+    joinSession(session._id, {
+      onSuccess: () => navigate(`/session/${session._id}`),
+    });
+  };
+
+  const handleEnterInterview = () => {
+    navigate(`/session/${session._id}`);
   };
 
   const handleDelete = () => {
@@ -55,52 +64,51 @@ const SessionCard = ({ session }) => {
   };
 
   const badgeStyle = {
-    scheduled: { bg: "#DBEAFE", text: "#2563EB", border: "#BFDBFE" },
-    waiting: { bg: "#FEF3C7", text: "#B45309", border: "#FDE68A" },
-    live: { bg: "#DCFCE7", text: "#15803D", border: "#BBF7D0" },
-    completed: { bg: "#F1F5F9", text: "#475569", border: "#E2E8F0" },
-    cancelled: { bg: "#FEE2E2", text: "#DC2626", border: "#FECACA" },
+    scheduled: { bg: "rgba(37,99,235,0.07)", text: "#2563EB", border: "rgba(37,99,235,0.18)" },
+    waiting: { bg: "rgba(180,83,9,0.07)", text: "#B45309", border: "rgba(180,83,9,0.18)" },
+    live: { bg: "rgba(21,128,61,0.07)", text: "#15803D", border: "rgba(21,128,61,0.18)" },
+    completed: { bg: "#F1F5F9", text: "#475569", border: "#E5E9F0" },
+    cancelled: { bg: "rgba(220,38,38,0.07)", text: "#DC2626", border: "rgba(220,38,38,0.18)" },
   };
 
   const badge = badgeStyle[session.status] || badgeStyle.completed;
 
   return (
     <div
-      className="rounded-2xl bg-white border transition-all duration-200"
+      className="rounded-xl bg-white border transition-colors duration-150"
       style={{
-        borderColor: "#E2E8F0",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+        borderColor: "#E5E9F0",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 12px 28px rgba(15,23,42,0.10)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.borderColor = "#BFDBFE";
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,23,42,0.05)";
+        e.currentTarget.style.borderColor = "#CBD5E1";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 1px 3px rgba(15,23,42,0.06)";
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.borderColor = "#E2E8F0";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.borderColor = "#E5E9F0";
       }}
     >
-      <div className="p-6">
+      <div className="p-5">
         <div className="flex justify-between items-start gap-3">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-base font-semibold text-slate-900 tracking-tight">
               {session.title}
             </h2>
 
-            <p className="text-sm text-slate-400 mt-1 font-mono">
-              {session.sessionCode}
-            </p>
+            {session.sessionCode && (
+              <p className="text-xs text-slate-400 mt-1 font-mono">
+                {session.sessionCode}
+              </p>
+            )}
           </div>
 
           <span
-            className="text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
+            className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md whitespace-nowrap"
             style={{
               background: badge.bg,
               color: badge.text,
               border: `1px solid ${badge.border}`,
-              letterSpacing: "0.03em",
+              letterSpacing: "0.04em",
             }}
           >
             {session.status.toUpperCase()}
@@ -108,21 +116,21 @@ const SessionCard = ({ session }) => {
         </div>
 
         {session.description && (
-          <p className="mt-3 text-sm text-slate-500 leading-relaxed">
+          <p className="mt-2.5 text-sm text-slate-500 leading-relaxed">
             {session.description}
           </p>
         )}
 
-        <div className="h-px my-5" style={{ background: "#EEF2F7" }} />
+        <div className="h-px my-4" style={{ background: "#EEF2F7" }} />
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5 text-sm text-slate-600">
-            <Calendar size={16} color="#2563EB" />
+            <Calendar size={14} color="#94A3B8" />
             <span>{new Date(session.scheduledAt).toLocaleDateString()}</span>
           </div>
 
           <div className="flex items-center gap-2.5 text-sm text-slate-600">
-            <Clock size={16} color="#2563EB" />
+            <Clock size={14} color="#94A3B8" />
             <span>
               {new Date(session.scheduledAt).toLocaleTimeString([], {
                 hour: "2-digit",
@@ -132,18 +140,18 @@ const SessionCard = ({ session }) => {
           </div>
         </div>
 
-        <div className="h-px my-5" style={{ background: "#EEF2F7" }} />
+        <div className="h-px my-4" style={{ background: "#EEF2F7" }} />
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2.5 text-sm text-slate-600">
-              <UserRound size={16} />
+            <div className="flex items-center gap-2.5 text-sm text-slate-500">
+              <UserRound size={14} color="#94A3B8" />
               <span>Candidate</span>
             </div>
 
             <span
-              className={`text-sm font-semibold ${
-                session.candidate ? "text-slate-800" : "text-slate-400"
+              className={`text-sm font-medium ${
+                session.candidate ? "text-slate-700" : "text-slate-400"
               }`}
             >
               {session.candidate ? session.candidate.name : "Available"}
@@ -151,14 +159,14 @@ const SessionCard = ({ session }) => {
           </div>
 
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2.5 text-sm text-slate-600">
-              <UserCheck size={16} />
+            <div className="flex items-center gap-2.5 text-sm text-slate-500">
+              <UserCheck size={14} color="#94A3B8" />
               <span>Interviewer</span>
             </div>
 
             <span
-              className={`text-sm font-semibold ${
-                session.interviewer ? "text-slate-800" : "text-slate-400"
+              className={`text-sm font-medium ${
+                session.interviewer ? "text-slate-700" : "text-slate-400"
               }`}
             >
               {session.interviewer ? session.interviewer.name : "Available"}
@@ -166,18 +174,17 @@ const SessionCard = ({ session }) => {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
+        <div className="flex justify-end gap-2 mt-5">
           {canJoinCandidate && (
             <button
               disabled={joining}
               onClick={handleJoin}
-              className="flex items-center gap-2 rounded-xl font-semibold text-white px-4 py-2.5 text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{
-                background: "#2563EB",
-                boxShadow: "0 4px 14px rgba(37,99,235,0.28)",
-              }}
+              className="flex items-center gap-2 rounded-lg font-semibold text-white px-3.5 py-2 text-[13px] transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: "#2563EB" }}
+              onMouseEnter={(e) => !joining && (e.currentTarget.style.background = "#1D4ED8")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
             >
-              <Video size={16} />
+              <Video size={14} />
               Join
             </button>
           )}
@@ -186,26 +193,25 @@ const SessionCard = ({ session }) => {
             <button
               disabled={joining}
               onClick={handleJoin}
-              className="flex items-center gap-2 rounded-xl font-semibold text-white px-4 py-2.5 text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{
-                background: "#2563EB",
-                boxShadow: "0 4px 14px rgba(37,99,235,0.28)",
-              }}
+              className="flex items-center gap-2 rounded-lg font-semibold text-white px-3.5 py-2 text-[13px] transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: "#2563EB" }}
+              onMouseEnter={(e) => !joining && (e.currentTarget.style.background = "#1D4ED8")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
             >
-              <Video size={16} />
+              <Video size={14} />
               Join
             </button>
           )}
 
           {canEnterInterview && (
             <button
-              className="flex items-center gap-2 rounded-xl font-semibold text-white px-4 py-2.5 text-sm transition-all duration-200"
-              style={{
-                background: "#16A34A",
-                boxShadow: "0 4px 14px rgba(22,163,74,0.28)",
-              }}
+              onClick={handleEnterInterview}
+              className="flex items-center gap-2 rounded-lg font-semibold text-white px-3.5 py-2 text-[13px] transition-colors duration-150"
+              style={{ background: "#15803D" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#116932")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#15803D")}
             >
-              <Video size={16} />
+              <Video size={14} />
               Enter Interview
             </button>
           )}
@@ -214,7 +220,7 @@ const SessionCard = ({ session }) => {
             <button
               disabled={deleting}
               onClick={handleDelete}
-              className="flex items-center gap-2 rounded-xl font-semibold px-4 py-2.5 text-sm border transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-lg font-semibold px-3.5 py-2 text-[13px] border transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 color: "#DC2626",
                 borderColor: "#FECACA",
@@ -227,7 +233,7 @@ const SessionCard = ({ session }) => {
                 e.currentTarget.style.background = "#FFF";
               }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={14} />
               Delete
             </button>
           )}

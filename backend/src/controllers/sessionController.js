@@ -1,5 +1,7 @@
 import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
+import Problem from "../models/Problem.js";
+import Quiz from "../models/Quiz.js";
 
 export async function createSession(req, res) {
   try {
@@ -127,6 +129,11 @@ export async function getMyRecentSessions(req, res) {
     { candidate: userId },
 ],
     })
+      .populate("candidate", "name email profileImage role")
+      .populate("interviewer", "name email profileImage role")
+      .populate("createdBy", "name")
+      .populate("activeProblem", "title difficulty tags")
+      .populate("activeQuiz", "title difficulty questions")
       .sort({ createdAt: -1 })
       .limit(20);
 
@@ -397,6 +404,231 @@ await session.save();
     });
   } catch (error) {
     console.log(error);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+}
+
+/**
+ * Candidate submits their quiz answers/score for the currently active quiz.
+ * Grading itself happens client-side (in QuizPanel); this just persists
+ * the final score so it can show up later in the candidate's Results page.
+ */
+export async function submitQuizResult(req, res) {
+  try {
+    const { id } = req.params;
+    const { score, total } = req.body;
+
+    if (typeof score !== "number" || typeof total !== "number") {
+      return res.status(400).json({
+        message: "score and total are required numbers",
+      });
+    }
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+      });
+    }
+
+    if (
+      !session.candidate ||
+      session.candidate.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Only the candidate on this session can submit a quiz result",
+      });
+    }
+
+    session.quizResult = { score, total, submittedAt: new Date() };
+    await session.save();
+
+    return res.json({
+      success: true,
+      quizResult: session.quizResult,
+    });
+  } catch (error) {
+    console.log("Error in submitQuizResult:", error.message);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+}
+
+const populateSession = (query) =>
+  query
+    .populate("candidate", "name email profileImage role clerkId")
+    .populate("interviewer", "name email profileImage role clerkId")
+    .populate("createdBy", "name")
+    .populate("activeProblem")
+    .populate("activeQuiz");
+
+/**
+ * Interviewer pushes a coding problem to the candidate.
+ * The candidate's client polls the session and shows a popup
+ * as soon as `activeProblem` changes.
+ */
+export async function pushProblem(req, res) {
+  try {
+    const { id } = req.params;
+    const { problemId } = req.body;
+
+    if (!problemId) {
+      return res.status(400).json({
+        message: "problemId is required",
+      });
+    }
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+      });
+    }
+
+    if (
+      !session.interviewer ||
+      session.interviewer.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Only the interviewer assigned to this session can push content",
+      });
+    }
+
+    const problem = await Problem.findById(problemId);
+
+    if (!problem) {
+      return res.status(404).json({
+        message: "Problem not found",
+      });
+    }
+
+    session.activeProblem = problem._id;
+    session.activeQuiz = null;
+    session.currentStage = "problem";
+
+    await session.save();
+
+    const populatedSession = await populateSession(Session.findById(id));
+
+    return res.json({
+      success: true,
+      session: populatedSession,
+    });
+  } catch (error) {
+    console.log("Error in pushProblem:", error.message);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+}
+
+/**
+ * Interviewer pushes a quiz to the candidate.
+ */
+export async function pushQuiz(req, res) {
+  try {
+    const { id } = req.params;
+    const { quizId } = req.body;
+
+    if (!quizId) {
+      return res.status(400).json({
+        message: "quizId is required",
+      });
+    }
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+      });
+    }
+
+    if (
+      !session.interviewer ||
+      session.interviewer.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Only the interviewer assigned to this session can push content",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) {
+      return res.status(404).json({
+        message: "Quiz not found",
+      });
+    }
+
+    session.activeQuiz = quiz._id;
+    session.activeProblem = null;
+    session.currentStage = "quiz";
+
+    await session.save();
+
+    const populatedSession = await populateSession(Session.findById(id));
+
+    return res.json({
+      success: true,
+      session: populatedSession,
+    });
+  } catch (error) {
+    console.log("Error in pushQuiz:", error.message);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+}
+
+/**
+ * Interviewer clears whatever is currently pushed
+ * (goes back to the waiting/discussion state).
+ */
+export async function clearActiveContent(req, res) {
+  try {
+    const { id } = req.params;
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+      });
+    }
+
+    if (
+      !session.interviewer ||
+      session.interviewer.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Only the interviewer assigned to this session can do this",
+      });
+    }
+
+    session.activeProblem = null;
+    session.activeQuiz = null;
+    session.currentStage = "discussion";
+
+    await session.save();
+
+    const populatedSession = await populateSession(Session.findById(id));
+
+    return res.json({
+      success: true,
+      session: populatedSession,
+    });
+  } catch (error) {
+    console.log("Error in clearActiveContent:", error.message);
 
     return res.status(500).json({
       message: "Internal Server Error",

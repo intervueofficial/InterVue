@@ -1,7 +1,10 @@
+import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { T } from "../../constants/sessionTheme";
 import GlobalStyles from "./SessionStyles";
 import InterviewerTopBar from "./InterviewerTopBar";
 import InterviewerVideoPanel from "./InterviewerVideoPanel";
+import InterviewerLibraryPanel from "./InterviewerLibraryPanel";
 import StatusBar from "./StatusBar";
 
 /* ─── Interviewer Layout ─────────────────────────────────────────────────────── */
@@ -22,6 +25,8 @@ function InterviewerLayout({
   candidateStatus,
   isHost,
 }) {
+    const [showLibrary, setShowLibrary] = useState(false);
+
     return (
       <>
         <GlobalStyles />
@@ -45,6 +50,7 @@ function InterviewerLayout({
             recorder={recorder}
             activePage={activePage}
             onPageChange={setActivePage}
+            onOpenLibrary={() => setShowLibrary(true)}
           />
 
           <div style={{ flex: 1, overflow: "hidden" }}>
@@ -62,6 +68,15 @@ function InterviewerLayout({
 
           <StatusBar isRunning={false} lastResult={null} role="interviewer" />
         </div>
+
+        <AnimatePresence>
+          {showLibrary && (
+            <InterviewerLibraryPanel
+              session={session}
+              onClose={() => setShowLibrary(false)}
+            />
+          )}
+        </AnimatePresence>
       </>
     );
 }

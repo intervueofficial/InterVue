@@ -87,6 +87,12 @@ currentStage: {
   default: "waiting",
 },
 
+quizResult: {
+  score: { type: Number, default: null },
+  total: { type: Number, default: null },
+  submittedAt: { type: Date, default: null },
+},
+
   },
   {
     timestamps: true,

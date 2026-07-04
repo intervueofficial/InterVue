@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import useAuthUser from "../hooks/useAuthUser";
 import { useActiveSessions } from "../hooks/useSessions";
 
+import Navbar from "../components/Navbar";
 import SessionGrid from "../components/session/SessionGrid";
 import CreateSessionModal from "../components/session/CreateSessionModal";
 
@@ -16,8 +17,15 @@ const Sessions = () => {
 
   const sessions = data?.sessions || [];
 
+  // Admin reaches this page through /admin/sessions, nested inside
+  // AdminLayout, which already renders the sidebar — so we only show
+  // the top navbar here for interviewer/candidate, who land on this
+  // page directly at /sessions or /candidate/sessions with no other shell.
+  const showNavbar = authUser?.role === "interviewer" || authUser?.role === "candidate";
+
   return (
     <div className="min-h-screen bg-[#EFF6FF]">
+      {showNavbar && <Navbar />}
       <div className="max-w-7xl mx-auto p-8">
         <div className="flex justify-between items-center">
           <div>

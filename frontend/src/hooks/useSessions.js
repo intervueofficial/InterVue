@@ -138,3 +138,80 @@ export const useEndSession = () => {
       toast.error(error.response?.data?.message || "Failed to end session"),
   });
 };
+
+export const usePushProblem = (sessionId) => {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["pushProblem", sessionId],
+    mutationFn: async (problemId) => {
+      const token = await getToken();
+      return sessionApi.pushProblem(sessionId, problemId, token);
+    },
+    onSuccess: (data) => {
+      toast.success(
+        `"${data?.session?.activeProblem?.title || "Problem"}" sent to candidate`
+      );
+      queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+    },
+    onError: (error) =>
+      toast.error(error.response?.data?.message || "Failed to push problem"),
+  });
+};
+
+export const usePushQuiz = (sessionId) => {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["pushQuiz", sessionId],
+    mutationFn: async (quizId) => {
+      const token = await getToken();
+      return sessionApi.pushQuiz(sessionId, quizId, token);
+    },
+    onSuccess: (data) => {
+      toast.success(
+        `"${data?.session?.activeQuiz?.title || "Quiz"}" sent to candidate`
+      );
+      queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+    },
+    onError: (error) =>
+      toast.error(error.response?.data?.message || "Failed to push quiz"),
+  });
+};
+
+export const useClearActiveContent = (sessionId) => {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["clearActiveContent", sessionId],
+    mutationFn: async () => {
+      const token = await getToken();
+      return sessionApi.clearActiveContent(sessionId, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+    },
+    onError: (error) =>
+      toast.error(error.response?.data?.message || "Failed to clear content"),
+  });
+};
+
+export const useSubmitQuizResult = (sessionId) => {
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationKey: ["submitQuizResult", sessionId],
+    mutationFn: async ({ score, total }) => {
+      const token = await getToken();
+      return sessionApi.submitQuizResult(sessionId, { score, total }, token);
+    },
+    onError: (error) =>
+      console.log(
+        "Failed to save quiz result:",
+        error.response?.data?.message || error.message
+      ),
+  });
+};

@@ -10,6 +10,10 @@ import {
   getMyRecentSessions,
   getSessionById,
   joinSession,
+  pushProblem,
+  pushQuiz,
+  clearActiveContent,
+  submitQuizResult,
 } from "../controllers/sessionController.js";
 
 import SessionViolation from "../models/SessionViolation.js";
@@ -58,6 +62,34 @@ router.post(
   "/:id/end",
   protectRoute,
   endSession
+);
+
+router.patch(
+  "/:id/push-problem",
+  protectRoute,
+  requireRole("interviewer"),
+  pushProblem
+);
+
+router.patch(
+  "/:id/push-quiz",
+  protectRoute,
+  requireRole("interviewer"),
+  pushQuiz
+);
+
+router.patch(
+  "/:id/clear-content",
+  protectRoute,
+  requireRole("interviewer"),
+  clearActiveContent
+);
+
+router.patch(
+  "/:id/quiz-result",
+  protectRoute,
+  requireRole("candidate"),
+  submitQuizResult
 );
 
 router.post(

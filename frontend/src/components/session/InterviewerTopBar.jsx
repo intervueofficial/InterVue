@@ -6,6 +6,7 @@ import {
   CircleIcon,
   StopCircleIcon,
   LogOutIcon,
+  SendIcon,
 } from "lucide-react";
 import { T, DIFF } from "../../constants/sessionTheme";
 import { Badge, SpinnerIcon, RoleSwitcher } from "./SessionUI";
@@ -21,8 +22,13 @@ function InterviewerTopBar({
   recorder,
   activePage,
   onPageChange,
+  onOpenLibrary,
 }) {
-  const isLive = session?.status === "active";
+  const isLive = session?.status === "active" || session?.status === "live";
+  const activeContentLabel =
+    session?.activeProblem?.title ||
+    session?.activeQuiz?.title ||
+    "Nothing sent yet";
   const diff = DIFF[session?.difficulty] || DIFF.medium;
   const timer = useSessionTimer(isLive);
 
@@ -108,12 +114,16 @@ function InterviewerTopBar({
             whiteSpace: "nowrap",
           }}
         >
-          {session?.problem || "Loading…"}
+          {activeContentLabel}
         </span>
 
-        {session?.difficulty && (
-          <Badge color={diff.text} bg={diff.bg} border={diff.border}>
-            {diff.label}
+        {session?.activeProblem?.difficulty && (
+          <Badge
+            color={DIFF[session.activeProblem.difficulty?.toLowerCase()]?.text || diff.text}
+            bg={DIFF[session.activeProblem.difficulty?.toLowerCase()]?.bg || diff.bg}
+            border={DIFF[session.activeProblem.difficulty?.toLowerCase()]?.border || diff.border}
+          >
+            {session.activeProblem.difficulty}
           </Badge>
         )}
 
@@ -128,7 +138,7 @@ function InterviewerTopBar({
           }}
         >
           <UsersIcon size={12} color="rgba(255,255,255,0.4)" />
-          {session?.participant ? "2" : "1"}/2
+          {session?.candidate ? "2" : "1"}/2
         </div>
       </div>
 
@@ -136,7 +146,27 @@ function InterviewerTopBar({
       <div
         style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}
       >
-        {/* Page switcher */}
+        {/* Send problem/quiz to candidate */}
+        <button
+          onClick={onOpenLibrary}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 14px",
+            borderRadius: 4,
+            border: "1px solid rgba(24,104,219,0.4)",
+            background: "rgba(24,104,219,0.15)",
+            color: "#7CB3FF",
+            fontSize: 11.5,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          <SendIcon size={12} />
+          Send to Candidate
+        </button>
 
         <div
           style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }}

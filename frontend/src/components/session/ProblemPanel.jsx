@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Code2Icon, BookOpenIcon, ListIcon } from "lucide-react";
+import { Code2Icon, BookOpenIcon, FlaskConicalIcon, InboxIcon } from "lucide-react";
 import { T, DIFF } from "../../constants/sessionTheme";
 import {
   Badge,
@@ -11,10 +11,15 @@ import {
   EmptyPane,
 } from "./SessionUI";
 
-/* ─── Problem Panel ─────────────────────────────────────────────────────────── */
+/* ─── Problem Panel ─────────────────────────────────────────────────────────── *
+ * `problemData` here is the real Problem document pushed by the interviewer
+ * (session.activeProblem), populated by the backend:
+ *   { title, description, difficulty, tags[], starterCode, testCases[] }
+ * ────────────────────────────────────────────────────────────────────────── */
 function ProblemPanel({ problemData, session, loading }) {
   const [tab, setTab] = useState("problem");
-  const diff = DIFF[session?.difficulty] || DIFF.medium;
+  const diff = DIFF[problemData?.difficulty?.toLowerCase()] || DIFF.medium;
+  const testCases = problemData?.testCases || [];
 
   return (
     <div
@@ -32,17 +37,17 @@ function ProblemPanel({ problemData, session, loading }) {
             <BookOpenIcon size={10} /> Problem
           </TabPill>
           <TabPill
-            active={tab === "constraints"}
-            onClick={() => setTab("constraints")}
+            active={tab === "testcases"}
+            onClick={() => setTab("testcases")}
           >
-            <ListIcon size={10} /> Constraints
+            <FlaskConicalIcon size={10} /> Test Cases
           </TabPill>
         </div>
-        {session?.host?.firstName && (
+        {session?.interviewer?.name && (
           <span style={{ fontSize: 11, color: T.muted, fontWeight: 500 }}>
-            Host:{" "}
+            Interviewer:{" "}
             <span style={{ color: T.dark, fontWeight: 600 }}>
-              {session.host.firstName}
+              {session.interviewer.name}
             </span>
           </span>
         )}
@@ -64,9 +69,13 @@ function ProblemPanel({ problemData, session, loading }) {
             <SkeletonBlock h={13} />
             <SkeletonBlock h={13} w="90%" />
             <SkeletonBlock h={13} w="75%" />
-            <div style={{ height: 8 }} />
-            <SkeletonBlock h={80} radius={8} />
           </div>
+        ) : !problemData ? (
+          <EmptyPane
+            icon={InboxIcon}
+            title="No problem sent yet"
+            subtitle="Your interviewer hasn't pushed a coding problem to this session yet. It will appear here as soon as they do."
+          />
         ) : tab === "problem" ? (
           <div style={{ padding: "22px 22px 32px" }}>
             <motion.div
@@ -113,7 +122,7 @@ function ProblemPanel({ problemData, session, loading }) {
                     margin: 0,
                   }}
                 >
-                  {problemData?.title || session?.problem || "Loading…"}
+                  {problemData.title}
                 </h2>
               </div>
               <div
@@ -123,24 +132,26 @@ function ProblemPanel({ problemData, session, loading }) {
                   gap: 8,
                   marginBottom: 20,
                   marginLeft: 42,
+                  flexWrap: "wrap",
                 }}
               >
-                {session?.difficulty && (
+                {problemData.difficulty && (
                   <Badge color={diff.text} bg={diff.bg} border={diff.border}>
                     {diff.label}
                   </Badge>
                 )}
-                {problemData?.category && (
+                {problemData.tags?.map((tagname) => (
                   <span
+                    key={tagname}
                     style={{ fontSize: 11, color: T.muted, fontWeight: 500 }}
                   >
-                    {problemData.category}
+                    #{tagname}
                   </span>
-                )}
+                ))}
               </div>
             </motion.div>
 
-            {problemData?.description && (
+            {problemData.description && (
               <Section title="Description">
                 <p
                   style={{
@@ -148,32 +159,22 @@ function ProblemPanel({ problemData, session, loading }) {
                     color: T.body,
                     lineHeight: 1.75,
                     margin: 0,
+                    whiteSpace: "pre-wrap",
                   }}
                 >
-                  {problemData.description.text}
+                  {problemData.description}
                 </p>
-                {problemData.description.notes?.map((note, i) => (
-                  <p
-                    key={i}
-                    style={{
-                      fontSize: 13,
-                      color: T.body,
-                      lineHeight: 1.75,
-                      margin: "10px 0 0",
-                    }}
-                  >
-                    {note}
-                  </p>
-                ))}
               </Section>
             )}
-
-            {problemData?.examples?.length > 0 && (
-              <Section title="Examples">
+          </div>
+        ) : (
+          <div style={{ padding: "22px 22px 32px" }}>
+            {testCases.length > 0 ? (
+              <Section title="Test Cases">
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 12 }}
                 >
-                  {problemData.examples.map((ex, i) => (
+                  {testCases.map((tc, i) => (
                     <div
                       key={i}
                       style={{
@@ -187,9 +188,6 @@ function ProblemPanel({ problemData, session, loading }) {
                         style={{
                           padding: "7px 14px",
                           borderBottom: `1px solid ${T.border2}`,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 7,
                           background: T.surface2,
                         }}
                       >
@@ -206,132 +204,38 @@ function ProblemPanel({ problemData, session, loading }) {
                             textTransform: "uppercase",
                           }}
                         >
-                          Example {i + 1}
+                          Case {i + 1}
                         </span>
                       </div>
                       <div
                         style={{
                           padding: "12px 14px",
-                          fontFamily:
-                            "'JetBrains Mono', 'Fira Code', monospace",
+                          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                           fontSize: 12,
                         }}
                       >
-                        <div
-                          style={{ display: "flex", gap: 8, marginBottom: 6 }}
-                        >
-                          <span
-                            style={{
-                              color: T.blue,
-                              fontWeight: 700,
-                              minWidth: 58,
-                            }}
-                          >
+                        <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                          <span style={{ color: T.blue, fontWeight: 700, minWidth: 58 }}>
                             Input:
                           </span>
-                          <span style={{ color: T.dark }}>{ex.input}</span>
+                          <span style={{ color: T.dark }}>{tc.input}</span>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 8,
-                            marginBottom: ex.explanation ? 10 : 0,
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: T.green,
-                              fontWeight: 700,
-                              minWidth: 58,
-                            }}
-                          >
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <span style={{ color: T.green, fontWeight: 700, minWidth: 58 }}>
                             Output:
                           </span>
-                          <span style={{ color: T.dark }}>{ex.output}</span>
+                          <span style={{ color: T.dark }}>{tc.expectedOutput}</span>
                         </div>
-                        {ex.explanation && (
-                          <div
-                            style={{
-                              paddingTop: 10,
-                              borderTop: `1px solid ${T.border2}`,
-                              fontSize: 11,
-                              color: T.muted,
-                              lineHeight: 1.65,
-                              fontFamily: "'DM Sans', sans-serif",
-                            }}
-                          >
-                            <span style={{ fontWeight: 700, color: T.body }}>
-                              Explanation:{" "}
-                            </span>
-                            {ex.explanation}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
-          </div>
-        ) : (
-          <div style={{ padding: "22px 22px 32px" }}>
-            {problemData?.constraints?.length > 0 ? (
-              <Section title="Constraints">
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {problemData.constraints.map((c, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        padding: "10px 14px",
-                        borderRadius: 6,
-                        background: T.surface,
-                        border: `1px solid ${T.border}`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 4,
-                          flexShrink: 0,
-                          background: T.blueTint,
-                          border: `1px solid rgba(24,104,219,0.2)`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 9,
-                          fontWeight: 800,
-                          color: T.blue,
-                          marginTop: 1,
-                        }}
-                      >
-                        {i + 1}
-                      </div>
-                      <code
-                        style={{
-                          fontSize: 12,
-                          color: T.dark,
-                          fontFamily:
-                            "'JetBrains Mono', 'Fira Code', monospace",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {c}
-                      </code>
                     </div>
                   ))}
                 </div>
               </Section>
             ) : (
               <EmptyPane
-                icon={ListIcon}
-                title="No constraints listed"
-                subtitle="This problem has no explicit constraints."
+                icon={FlaskConicalIcon}
+                title="No test cases listed"
+                subtitle="This problem has no sample test cases attached."
               />
             )}
           </div>

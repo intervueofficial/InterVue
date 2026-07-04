@@ -1,9 +1,9 @@
 import SessionCard from "./SessionCard";
 import EmptySessions from "./EmptySessions";
 
-const SessionGrid = ({ sessions }) => {
+const SessionGrid = ({ sessions, emptyTitle, emptySubtitle }) => {
   if (!sessions.length) {
-    return <EmptySessions />;
+    return <EmptySessions title={emptyTitle} subtitle={emptySubtitle} />;
   }
 
   return (

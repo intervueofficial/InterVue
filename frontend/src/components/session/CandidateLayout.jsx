@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup } from "react-resizable-panels";
 import { T } from "../../constants/sessionTheme";
 import GlobalStyles from "./SessionStyles";
@@ -6,6 +7,7 @@ import CandidateTopBar from "./CandidateTopBar";
 import ProblemPanel from "./ProblemPanel";
 import QuizPanel from "./QuizPanel";
 import CandidateVideoPanel from "./CandidateVideoPanel";
+import ContentPushedModal from "./ContentPushedModal";
 import StatusBar from "./StatusBar";
 import CodeEditorPanel from "../CodeEditorPanel";
 import OutputPanel from "../OutputPanel";
@@ -23,6 +25,7 @@ function CandidateLayout({
   activePage,
   setActivePage,
   problemData,
+  quizData,
   loadingSession,
   code,
   setCode,
@@ -34,9 +37,61 @@ function CandidateLayout({
   isInitializingCall,
   isHost,
 }) {
+  const [pushedContent, setPushedContent] = useState(null); // { kind, item } | null
+  const seenProblemId = useRef(undefined);
+  const seenQuizId = useRef(undefined);
+
+  // Detect a *new* problem or quiz landing on the session and pop up an
+  // announcement for the candidate. `undefined` refs mean "first render",
+  // which we treat as already-seen so a page refresh doesn't re-trigger it.
+  useEffect(() => {
+    const currentProblemId = problemData?._id || null;
+
+    if (seenProblemId.current === undefined) {
+      seenProblemId.current = currentProblemId;
+      return;
+    }
+
+    if (currentProblemId && currentProblemId !== seenProblemId.current) {
+      setPushedContent({ kind: "problem", item: problemData });
+    }
+
+    seenProblemId.current = currentProblemId;
+  }, [problemData]);
+
+  useEffect(() => {
+    const currentQuizId = quizData?._id || null;
+
+    if (seenQuizId.current === undefined) {
+      seenQuizId.current = currentQuizId;
+      return;
+    }
+
+    if (currentQuizId && currentQuizId !== seenQuizId.current) {
+      setPushedContent({ kind: "quiz", item: quizData });
+    }
+
+    seenQuizId.current = currentQuizId;
+  }, [quizData]);
+
+  const handleDismissPopup = () => {
+    if (pushedContent?.kind === "problem" || pushedContent?.kind === "quiz") {
+      setActivePage(pushedContent.kind);
+    }
+    setPushedContent(null);
+  };
+
   return (
     <>
       <GlobalStyles />
+
+      {pushedContent && (
+        <ContentPushedModal
+          kind={pushedContent.kind}
+          item={pushedContent.item}
+          onDismiss={handleDismissPopup}
+        />
+      )}
       <div
         className="sp-root"
         style={{
@@ -151,7 +206,7 @@ function CandidateLayout({
                   </PanelGroup>
                 ) : (
                   <QuizPanel
-                    problemData={problemData}
+                    problemData={quizData}
                     session={session}
                     loading={loadingSession}
                   />

@@ -1,19 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   HelpCircleIcon,
   CheckCircle2Icon,
   AlertTriangleIcon,
+  InboxIcon,
 } from "lucide-react";
 import { T } from "../../constants/sessionTheme";
 import { Badge, PanelHeader, SkeletonBlock, Section, EmptyPane } from "./SessionUI";
+import { useSubmitQuizResult } from "../../hooks/useSessions";
 
-/* ─── Quiz Panel ─────────────────────────────────────────────────────────────── */
+/* ─── Quiz Panel ─────────────────────────────────────────────────────────────── *
+ * `problemData` here is the real Quiz document pushed by the interviewer
+ * (session.activeQuiz), populated by the backend:
+ *   { title, difficulty, duration, questions: [{ question, options[4], correctAnswer, explanation }] }
+ * ────────────────────────────────────────────────────────────────────────── */
 function QuizPanel({ problemData, session, loading }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
-  const questions = problemData?.quiz || [];
+  const questions = problemData?.questions || [];
+  const submitQuizResult = useSubmitQuizResult(session?._id);
+
+  // Reset local answers whenever a *different* quiz gets pushed
+  useEffect(() => {
+    setAnswers({});
+    setSubmitted(false);
+  }, [problemData?._id]);
 
   const handleSelect = (qIdx, optIdx) => {
     if (submitted) return;
@@ -23,6 +36,14 @@ function QuizPanel({ problemData, session, loading }) {
   const handleSubmit = () => {
     if (Object.keys(answers).length < questions.length) return;
     setSubmitted(true);
+
+    const finalScore = questions.filter(
+      (q, i) => answers[i] === q.correctAnswer
+    ).length;
+
+    if (session?._id) {
+      submitQuizResult.mutate({ score: finalScore, total: questions.length });
+    }
   };
 
   const handleReset = () => {
@@ -31,7 +52,7 @@ function QuizPanel({ problemData, session, loading }) {
   };
 
   const score = submitted
-    ? questions.filter((q, i) => answers[i] === q.answer).length
+    ? questions.filter((q, i) => answers[i] === q.correctAnswer).length
     : 0;
 
   return (
@@ -61,7 +82,7 @@ function QuizPanel({ problemData, session, loading }) {
             }}
           >
             <HelpCircleIcon size={10} />
-            Quiz
+            {problemData?.title || "Quiz"}
           </div>
           {questions.length > 0 && (
             <span style={{ fontSize: 11, color: T.muted, fontWeight: 500 }}>
@@ -139,11 +160,17 @@ function QuizPanel({ problemData, session, loading }) {
               </div>
             ))}
           </div>
+        ) : !problemData ? (
+          <EmptyPane
+            icon={InboxIcon}
+            title="No quiz sent yet"
+            subtitle="Your interviewer hasn't pushed a quiz to this session yet. It will appear here as soon as they do."
+          />
         ) : questions.length === 0 ? (
           <EmptyPane
             icon={HelpCircleIcon}
             title="No quiz questions"
-            subtitle="No quiz questions are available for this problem yet."
+            subtitle="This quiz doesn't have any questions yet."
           />
         ) : (
           <div
@@ -156,9 +183,9 @@ function QuizPanel({ problemData, session, loading }) {
           >
             {questions.map((q, qIdx) => {
               const selected = answers[qIdx];
-              const isCorrect = submitted && selected === q.answer;
+              const isCorrect = submitted && selected === q.correctAnswer;
               const isWrong =
-                submitted && selected !== undefined && selected !== q.answer;
+                submitted && selected !== undefined && selected !== q.correctAnswer;
 
               return (
                 <div key={qIdx}>
@@ -183,9 +210,9 @@ function QuizPanel({ problemData, session, loading }) {
                     >
                       {q.options.map((opt, oIdx) => {
                         const isSelected = selected === oIdx;
-                        const isAnswerKey = submitted && oIdx === q.answer;
+                        const isAnswerKey = submitted && oIdx === q.correctAnswer;
                         const isSelectedWrong =
-                          submitted && isSelected && oIdx !== q.answer;
+                          submitted && isSelected && oIdx !== q.correctAnswer;
 
                         let bg = T.surface;
                         let border = T.border;

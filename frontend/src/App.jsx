@@ -220,7 +220,7 @@ function App() {
         <Route
           path="/session/:id"
           element={
-            role === "interviewer"
+            role === "interviewer" || role === "candidate"
               ? <SessionPage />
               : <Navigate replace to={dashboard} />
           }
