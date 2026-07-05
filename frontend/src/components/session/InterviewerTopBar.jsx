@@ -9,14 +9,12 @@ import {
   SendIcon,
 } from "lucide-react";
 import { T, DIFF } from "../../constants/sessionTheme";
-import { Badge, SpinnerIcon, RoleSwitcher } from "./SessionUI";
+import { Badge, SpinnerIcon } from "./SessionUI";
 import useSessionTimer from "../../hooks/session/useSessionTimer";
 
 /* ─── Interviewer Top Bar ───────────────────────────────────────────────────── */
 function InterviewerTopBar({
   session,
-  role,
-  onRoleChange,
   onEndSession,
   isEnding,
   recorder,
@@ -167,13 +165,6 @@ function InterviewerTopBar({
           <SendIcon size={12} />
           Send to Candidate
         </button>
-
-        <div
-          style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }}
-        />
-
-        {/* Role switcher */}
-        <RoleSwitcher role={role} onChange={onRoleChange} />
 
         <div
           style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }}

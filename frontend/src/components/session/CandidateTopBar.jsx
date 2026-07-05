@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ClockIcon, UsersIcon, MonitorIcon } from "lucide-react";
 import { T, DIFF } from "../../constants/sessionTheme";
-import { Badge, SpinnerIcon, TriangleIcon, RoleSwitcher, PageSwitcher } from "./SessionUI";
+import { Badge, SpinnerIcon, TriangleIcon, PageSwitcher } from "./SessionUI";
 import useSessionTimer from "../../hooks/session/useSessionTimer";
 
 /* ─── Candidate Top Bar ─────────────────────────────────────────────────────── */
@@ -12,8 +12,6 @@ function CandidateTopBar({
   selectedLanguage,
   onLanguageChange,
   onRunCode,
-  role,
-  onRoleChange,
   activePage,
   onPageChange,
 }) {
@@ -139,11 +137,6 @@ function CandidateTopBar({
 
         <div style={{ width: 1, height: 18, background: T.border }} />
 
-        {/* Role switcher */}
-        <RoleSwitcher role={role} onChange={onRoleChange} />
-
-        <div style={{ width: 1, height: 18, background: T.border }} />
-
         {/* Language picker */}
         <div style={{ position: "relative" }}>
           <select
@@ -265,7 +258,7 @@ function CandidateTopBar({
                 bg={lastResult.success ? T.greenTint : T.redTint}
                 border={lastResult.success ? T.greenBorder : T.redBorder}
               >
-                {lastResult.success ? "✓ Passed" : "✗ Failed"}
+                {lastResult.success ? "✓ Ran" : "✗ Error"}
               </Badge>
             </motion.div>
           )}

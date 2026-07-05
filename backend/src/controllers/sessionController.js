@@ -241,6 +241,23 @@ export async function joinSession(
         req.user._id;
     }
 
+    // Make sure whoever just joined can actually read/write the
+    // session's chat channel. The channel is created at session-creation
+    // time with only the admin as a member (see createSession), so
+    // without this, the second person to join (usually the candidate)
+    // gets a Stream "not allowed to perform action ReadChannel" error
+    // the moment their client tries to watch() the channel.
+    try {
+      await chatClient
+        .channel("messaging", session.callId)
+        .addMembers([req.user.clerkId]);
+    } catch (chatError) {
+      console.log(
+        "Error adding user to chat channel:",
+        chatError.message
+      );
+    }
+
 if (
   session.candidate &&
   session.interviewer

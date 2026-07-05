@@ -22,9 +22,10 @@ function SessionPage() {
   const { data: authUser } = useAuthUser();
 
   // `role` drives which layout renders. It's seeded from the signed-in
-  // user's real platform role as soon as it loads (RoleSwitcher in the
-  // top bars is a leftover dev-preview toggle, left in place but no
-  // longer the source of truth for real sessions).
+  // user's real platform role as soon as it loads. There used to be a
+  // manual role-switcher dropdown in the top bars for dev-preview
+  // purposes; it's been removed since it let real users flip their own
+  // rendered layout to the other role's view mid-interview.
   const [role, setRole] = useState("candidate");
   const [activePage, setActivePage] = useState("problem");
 
@@ -202,8 +203,6 @@ function SessionPage() {
     return (
       <InterviewerLayout
         session={session}
-        role={role}
-        setRole={setRole}
         handleEndSession={handleEndSession}
         endSessionMutation={endSessionMutation}
         recorder={recorder}
@@ -229,8 +228,6 @@ function SessionPage() {
       selectedLanguage={selectedLanguage}
       handleLanguageChange={handleLanguageChange}
       handleRunCode={handleRunCode}
-      role={role}
-      setRole={setRole}
       activePage={activePage}
       setActivePage={setActivePage}
       problemData={problemData}

@@ -10,8 +10,6 @@ import StatusBar from "./StatusBar";
 /* ─── Interviewer Layout ─────────────────────────────────────────────────────── */
 function InterviewerLayout({
   session,
-  role,
-  setRole,
   handleEndSession,
   endSessionMutation,
   recorder,
@@ -43,8 +41,6 @@ function InterviewerLayout({
         >
           <InterviewerTopBar
             session={session}
-            role={role}
-            onRoleChange={setRole}
             onEndSession={handleEndSession}
             isEnding={endSessionMutation.isPending}
             recorder={recorder}

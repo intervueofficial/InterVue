@@ -80,6 +80,14 @@ await chatChannel.watch();
         if (!isMounted) return;
         setChannel(chatChannel);
       } catch (error) {
+        // If this invocation was already superseded (e.g. React
+        // StrictMode's dev-only mount → cleanup → mount cycle aborted
+        // it mid-flight, or the user navigated away), don't show a
+        // scary "failed" toast for a run that no longer matters —
+        // that's exactly what was causing a false failure toast to
+        // appear even when the real, current connection succeeded.
+        if (!isMounted) return;
+
         console.error("Error init call", error);
         toast.error("Failed to join video call");
       } finally {
@@ -105,7 +113,17 @@ await chatChannel.watch();
         }
       })();
     };
-  }, [session, loadingSession, isHost, isParticipant, getToken]); // ✅ include getToken
+    // ⚠️ Deliberately NOT depending on the whole `session` object here.
+    // `session` comes from a query that polls every few seconds and
+    // returns a brand-new object reference each time even when nothing
+    // relevant changed, which was tearing down and re-creating the
+    // entire call + chat connection on every poll — that's what caused
+    // the repeated "Failed to join video call" toasts, the "Participant
+    // not found" warnings, the duplicate-client warning, and candidates
+    // getting disconnected mid-interview. We only actually need to
+    // re-run this when the call itself changes or ends.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?._id, session?.callId, session?.status, loadingSession, isHost, isParticipant]);
 
   return {
     streamClient,

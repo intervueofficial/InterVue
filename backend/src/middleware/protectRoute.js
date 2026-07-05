@@ -1,5 +1,6 @@
 import { requireAuth, clerkClient } from "@clerk/express";
 import User from "../models/User.js";
+import { upsertStreamUser } from "../lib/stream.js";
 
 export const protectRoute = [
   requireAuth(),
@@ -55,6 +56,18 @@ export const protectRoute = [
         });
 
         console.log(`✅ New user created: ${email}`);
+
+        // Clerk webhooks need a public HTTPS endpoint to reach this
+        // server (they can't hit localhost without a tunnel), so the
+        // Inngest "sync-user" webhook that normally handles this may
+        // never fire in local development. Upsert here too so Stream
+        // Chat/Video always knows about the user regardless of whether
+        // the webhook is reachable.
+        await upsertStreamUser({
+          id: user.clerkId,
+          name: user.name,
+          image: user.profileImage,
+        });
       }
 
       // ===============================
@@ -85,6 +98,12 @@ export const protectRoute = [
 
       if (hasChanges) {
         await user.save();
+
+        await upsertStreamUser({
+          id: user.clerkId,
+          name: user.name,
+          image: user.profileImage,
+        });
       }
 
       // ===============================

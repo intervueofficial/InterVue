@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * NOTE: This file was not in the originally requested file list, but is
  * required by the refactor. Several small presentational helpers
- * (Badge, PanelHeader, SpinnerIcon, RoleSwitcher, Section, EmptyPane, etc.)
+ * (Badge, PanelHeader, SpinnerIcon, PageSwitcher, Section, EmptyPane, etc.)
  * are used by MORE THAN ONE of the requested target components
  * (e.g. Badge is used by CandidateTopBar, InterviewerTopBar, ProblemPanel
  * and QuizPanel). Extracting them here avoids duplicating identical code
@@ -19,8 +19,6 @@ import { PanelResizeHandle } from "react-resizable-panels";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDownIcon,
-  UserIcon,
-  BriefcaseIcon,
   FileTextIcon,
   HelpCircleIcon,
 } from "lucide-react";
@@ -225,153 +223,6 @@ function VHandle() {
         />
       </div>
     </PanelResizeHandle>
-  );
-}
-
-/* ─── Role Switcher Dropdown ────────────────────────────────────────────────── */
-function RoleSwitcher({ role, onChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const roles = [
-    { id: "candidate", label: "Candidate", Icon: UserIcon, color: T.blue },
-    {
-      id: "interviewer",
-      label: "Interviewer",
-      Icon: BriefcaseIcon,
-      color: T.purple,
-    },
-  ];
-
-  const current = roles.find((r) => r.id === role) || roles[0];
-
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "5px 10px",
-          borderRadius: 4,
-          border: `1px solid ${role === "interviewer" ? "rgba(101,84,192,0.3)" : T.border}`,
-          background: role === "interviewer" ? T.purpleTint : T.surface,
-          fontSize: 11,
-          fontWeight: 600,
-          color: role === "interviewer" ? T.purple : T.body,
-          cursor: "pointer",
-          fontFamily: "'DM Sans', sans-serif",
-          transition: "all 0.15s",
-        }}
-      >
-        <current.Icon size={11} />
-        {current.label}
-        <ChevronDownIcon
-          size={10}
-          style={{
-            transform: open ? "rotate(180deg)" : "none",
-            transition: "transform 0.15s",
-          }}
-        />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-            style={{
-              position: "absolute",
-              top: "calc(100% + 6px)",
-              left: 0,
-              background: T.bg,
-              border: `1px solid ${T.border}`,
-              borderRadius: 6,
-              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              overflow: "hidden",
-              zIndex: 200,
-              minWidth: 150,
-            }}
-          >
-            {roles.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => {
-                  onChange(r.id);
-                  setOpen(false);
-                }}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "9px 14px",
-                  border: "none",
-                  cursor: "pointer",
-                  background:
-                    role === r.id
-                      ? r.id === "interviewer"
-                        ? T.purpleTint
-                        : T.blueTint
-                      : "transparent",
-                  color: role === r.id ? r.color : T.body,
-                  fontSize: 12,
-                  fontWeight: role === r.id ? 700 : 500,
-                  fontFamily: "'DM Sans', sans-serif",
-                  textAlign: "left",
-                  transition: "background 0.12s",
-                }}
-              >
-                <r.Icon size={12} />
-                {r.label}
-                {role === r.id && (
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: r.color,
-                    }}
-                  />
-                )}
-              </button>
-            ))}
-
-            <div
-              style={{
-                padding: "8px 14px 10px",
-                borderTop: `1px solid ${T.border2}`,
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 10,
-                  color: T.muted,
-                  lineHeight: 1.5,
-                }}
-              >
-                {role === "interviewer"
-                  ? "Interviewer view: full video, AI proctor, recording"
-                  : "Candidate view: code editor + video"}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }
 
@@ -647,7 +498,6 @@ export {
   CodeFileIcon,
   HHandle,
   VHandle,
-  RoleSwitcher,
   PageSwitcher,
   Section,
   EmptyPane,

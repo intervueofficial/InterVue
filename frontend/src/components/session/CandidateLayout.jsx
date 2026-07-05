@@ -20,8 +20,6 @@ function CandidateLayout({
   selectedLanguage,
   handleLanguageChange,
   handleRunCode,
-  role,
-  setRole,
   activePage,
   setActivePage,
   problemData,
@@ -110,8 +108,6 @@ function CandidateLayout({
           selectedLanguage={selectedLanguage}
           onLanguageChange={handleLanguageChange}
           onRunCode={handleRunCode}
-          role={role}
-          onRoleChange={setRole}
           activePage={activePage}
           onPageChange={setActivePage}
         />

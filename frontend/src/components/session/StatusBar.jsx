@@ -50,7 +50,7 @@ function StatusBar({ isRunning, lastResult, role }) {
                 : "rgba(255,90,70,0.8)",
             }}
           >
-            {lastResult.success ? "✓ All tests passed" : "✗ Tests failed"}
+            {lastResult.success ? "✓ Ran successfully" : "✗ Execution error"}
           </span>
         )}
       </div>
