@@ -10,17 +10,36 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
   const [hoverIndex, setHoverIndex] = useState(null);
 
   const width = 720;
-  const height = 220;
-  const paddingLeft = 8;
+  const height = 260;
+  const paddingLeft = 34;
   const paddingRight = 8;
-  const paddingTop = 16;
+  const paddingTop = 20;
   const paddingBottom = 34;
 
   const maxCount = Math.max(1, ...data.map((d) => d.count));
+
+  // Round the axis ceiling up to a "nice" number so gridlines read cleanly
+  const niceMax = (() => {
+    if (maxCount <= 4) return Math.max(4, maxCount);
+    const magnitude = Math.pow(10, Math.floor(Math.log10(maxCount)));
+    const residual = maxCount / magnitude;
+    let niceResidual;
+    if (residual <= 1) niceResidual = 1;
+    else if (residual <= 2) niceResidual = 2;
+    else if (residual <= 5) niceResidual = 5;
+    else niceResidual = 10;
+    return niceResidual * magnitude;
+  })();
+
+  const gridSteps = 4;
+  const gridValues = Array.from({ length: gridSteps + 1 }, (_, i) =>
+    Math.round((niceMax / gridSteps) * i)
+  ).reverse();
+
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
 
-  const barGap = 8;
+  const barGap = 10;
   const barWidth =
     data.length > 0
       ? Math.max(4, chartWidth / data.length - barGap)
@@ -29,6 +48,15 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
   const formatLabel = (dateStr) => {
     const d = new Date(dateStr + "T00:00:00");
     return d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+  };
+
+  const formatFullLabel = (dateStr) => {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
   };
 
   return (
@@ -60,30 +88,73 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
         }
 
         .chart-bar{
-          fill:#2563EB;
-          opacity:0.85;
-          transition:opacity .15s;
+          fill:url(#barGradient);
+          transition:filter .15s ease, opacity .15s ease;
           cursor:pointer;
         }
 
-        .chart-bar:hover{
-          opacity:1;
+        .chart-bar.dimmed{
+          opacity:0.35;
         }
 
-        .chart-bar-track{
-          fill:#EFF6FF;
+        .chart-bar.active{
+          filter:brightness(1.08);
+        }
+
+        .chart-hit-area{
+          fill:transparent;
+          cursor:pointer;
+        }
+
+        .chart-gridline{
+          stroke:#EEF2F7;
+          stroke-width:1;
+        }
+
+        .chart-baseline{
+          stroke:#E2E8F0;
+          stroke-width:1.5;
+        }
+
+        .chart-hover-line{
+          stroke:#CBD5E1;
+          stroke-width:1;
+          stroke-dasharray:3 3;
         }
 
         .chart-axis-label{
-          font-size:10px;
+          font-size:10.5px;
           fill:#94A3B8;
           font-family:inherit;
         }
 
-        .chart-tooltip{
-          font-size:11px;
-          font-weight:700;
+        .chart-axis-label.active{
           fill:#2563EB;
+          font-weight:600;
+        }
+
+        .chart-y-label{
+          font-size:10px;
+          fill:#B0BAC9;
+          font-family:inherit;
+        }
+
+        .chart-tooltip-bg{
+          fill:#0F172A;
+        }
+
+        .chart-tooltip-text{
+          font-size:11.5px;
+          font-weight:700;
+          fill:#fff;
+          font-family:inherit;
+        }
+
+        .chart-tooltip-subtext{
+          font-size:9.5px;
+          font-weight:500;
+          fill:#94A3B8;
+          font-family:inherit;
         }
       `}</style>
 
@@ -98,12 +169,53 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
             role="img"
             aria-label={title || "Sessions over time"}
           >
+            <defs>
+              <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4F7DF9" />
+                <stop offset="100%" stopColor="#2563EB" />
+              </linearGradient>
+            </defs>
+
+            {/* Gridlines + Y-axis labels */}
+            {gridValues.map((val, i) => {
+              const y = paddingTop + (chartHeight / gridSteps) * i;
+              return (
+                <g key={val + "-" + i}>
+                  <line
+                    className="chart-gridline"
+                    x1={paddingLeft}
+                    x2={width - paddingRight}
+                    y1={y}
+                    y2={y}
+                  />
+                  <text
+                    className="chart-y-label"
+                    x={paddingLeft - 10}
+                    y={y + 3}
+                    textAnchor="end"
+                  >
+                    {val}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Baseline (solid, on top of gridlines) */}
+            <line
+              className="chart-baseline"
+              x1={paddingLeft}
+              x2={width - paddingRight}
+              y1={paddingTop + chartHeight}
+              y2={paddingTop + chartHeight}
+            />
+
             {data.map((d, i) => {
               const x = paddingLeft + i * (barWidth + barGap);
               const barHeight =
-                maxCount > 0 ? (d.count / maxCount) * chartHeight : 0;
+                niceMax > 0 ? (d.count / niceMax) * chartHeight : 0;
               const y = paddingTop + (chartHeight - barHeight);
               const isHovered = hoverIndex === i;
+              const anyHovered = hoverIndex !== null;
 
               return (
                 <g
@@ -111,39 +223,41 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
                   onMouseEnter={() => setHoverIndex(i)}
                   onMouseLeave={() => setHoverIndex(null)}
                 >
-                  {/* full-height invisible hit area + track */}
+                  {/* full-height hit area for easier hover targeting */}
                   <rect
-                    className="chart-bar-track"
-                    x={x}
+                    className="chart-hit-area"
+                    x={x - barGap / 2}
                     y={paddingTop}
-                    width={barWidth}
+                    width={barWidth + barGap}
                     height={chartHeight}
-                    rx={6}
-                  />
-
-                  <rect
-                    className="chart-bar"
-                    x={x}
-                    y={y}
-                    width={barWidth}
-                    height={Math.max(barHeight, d.count > 0 ? 3 : 0)}
-                    rx={6}
                   />
 
                   {isHovered && (
-                    <text
-                      className="chart-tooltip"
-                      x={x + barWidth / 2}
-                      y={y - 8}
-                      textAnchor="middle"
-                    >
-                      {d.count}
-                    </text>
+                    <line
+                      className="chart-hover-line"
+                      x1={x + barWidth / 2}
+                      x2={x + barWidth / 2}
+                      y1={paddingTop}
+                      y2={paddingTop + chartHeight}
+                    />
                   )}
+
+                  <rect
+                    className={`chart-bar ${
+                      anyHovered && !isHovered ? "dimmed" : ""
+                    } ${isHovered ? "active" : ""}`}
+                    x={x}
+                    y={y}
+                    width={barWidth}
+                    height={Math.max(barHeight, d.count > 0 ? 3 : 1.5)}
+                    rx={5}
+                  />
 
                   {i % 2 === 0 && (
                     <text
-                      className="chart-axis-label"
+                      className={`chart-axis-label ${
+                        isHovered ? "active" : ""
+                      }`}
                       x={x + barWidth / 2}
                       y={height - 12}
                       textAnchor="middle"
@@ -151,6 +265,49 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
                       {formatLabel(d.date)}
                     </text>
                   )}
+
+                  {isHovered &&
+                    (() => {
+                      const tooltipWidth = 64;
+                      const tooltipHeight = 34;
+                      const tipX = Math.min(
+                        Math.max(
+                          x + barWidth / 2 - tooltipWidth / 2,
+                          paddingLeft
+                        ),
+                        width - paddingRight - tooltipWidth
+                      );
+                      const tipY = Math.max(y - tooltipHeight - 10, paddingTop);
+
+                      return (
+                        <g>
+                          <rect
+                            className="chart-tooltip-bg"
+                            x={tipX}
+                            y={tipY}
+                            width={tooltipWidth}
+                            height={tooltipHeight}
+                            rx={8}
+                          />
+                          <text
+                            className="chart-tooltip-text"
+                            x={tipX + tooltipWidth / 2}
+                            y={tipY + 15}
+                            textAnchor="middle"
+                          >
+                            {d.count} session{d.count === 1 ? "" : "s"}
+                          </text>
+                          <text
+                            className="chart-tooltip-subtext"
+                            x={tipX + tooltipWidth / 2}
+                            y={tipY + 27}
+                            textAnchor="middle"
+                          >
+                            {formatFullLabel(d.date)}
+                          </text>
+                        </g>
+                      );
+                    })()}
                 </g>
               );
             })}

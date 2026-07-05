@@ -47,8 +47,10 @@ function PanelCard({ title, subtitle, children }) {
   return (
     <div className="panel-card">
       <div className="panel-card-header">
-        <div className="panel-card-title">{title}</div>
-        {subtitle && <div className="panel-card-subtitle">{subtitle}</div>}
+        <div>
+          <div className="panel-card-title">{title}</div>
+          {subtitle && <div className="panel-card-subtitle">{subtitle}</div>}
+        </div>
       </div>
       <div className="panel-card-body">{children}</div>
     </div>
@@ -94,47 +96,56 @@ const Dashboard = () => {
         .panel-card{
           background:#fff;
           border:1px solid #E5E9F0;
-          border-radius:14px;
+          border-radius:16px;
           overflow:hidden;
+          transition: box-shadow .2s ease, border-color .2s ease;
+        }
+        .panel-card:hover{
+          border-color:#DCE3EE;
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
         }
         .panel-card-header{
-          padding:18px 22px;
+          padding:20px 24px;
           border-bottom:1px solid #EEF2F7;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
         }
         .panel-card-title{
-          font-size:14.5px;
+          font-size:15px;
           font-weight:700;
           color:#0B1220;
+          letter-spacing:-0.2px;
         }
         .panel-card-subtitle{
-          font-size:12px;
+          font-size:12.5px;
           color:#94A3B8;
-          margin-top:2px;
+          margin-top:3px;
         }
         .panel-card-body{
-          padding:20px 22px 22px;
+          padding:22px 24px 24px;
           display:flex;
           flex-direction:column;
-          gap:18px;
+          gap:20px;
         }
         .breakdown-row-top{
           display:flex;
           align-items:center;
           justify-content:space-between;
-          margin-bottom:8px;
+          margin-bottom:9px;
         }
         .breakdown-row-label{
           display:flex;
           align-items:center;
-          gap:8px;
+          gap:9px;
           font-size:13px;
           font-weight:600;
           color:#334155;
         }
         .breakdown-icon{
-          width:22px;
-          height:22px;
-          border-radius:6px;
+          width:24px;
+          height:24px;
+          border-radius:7px;
           display:flex;
           align-items:center;
           justify-content:center;
@@ -147,11 +158,14 @@ const Dashboard = () => {
           display:flex;
           align-items:center;
           gap:6px;
+          font-variant-numeric: tabular-nums;
         }
         .breakdown-row-pct{
           font-size:11px;
           font-weight:600;
           color:#94A3B8;
+          min-width:30px;
+          text-align:right;
         }
         .breakdown-track{
           height:6px;
@@ -164,19 +178,30 @@ const Dashboard = () => {
           border-radius:99px;
           transition:width .5s ease;
         }
+        .dash-header-eyebrow{
+          font-size:12px;
+          font-weight:700;
+          color:#2563EB;
+          text-transform:uppercase;
+          letter-spacing:0.6px;
+          margin-bottom:6px;
+        }
       `}</style>
 
-      <div>
-        <h1
-          className="text-4xl font-bold"
-          style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
-        >
-          Admin Dashboard
-        </h1>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b border-[#EEF2F7] pb-7">
+        <div>
+          <div className="dash-header-eyebrow">Overview</div>
+          <h1
+            className="text-4xl font-bold"
+            style={{ color: "#0B1220", letterSpacing: "-0.5px" }}
+          >
+            Admin Dashboard
+          </h1>
 
-        <p className="text-slate-500 mt-2">
-          Welcome to the InterVue Administration Panel
-        </p>
+          <p className="text-slate-500 mt-2">
+            Welcome to the InterVue Administration Panel
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">

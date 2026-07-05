@@ -30,6 +30,54 @@ const ROLE_META = {
   unassigned: { label: "Unassigned", color: "#94A3B8" },
 };
 
+/* ─── Donut ring built from stacked SVG arcs (real proportions, no filler) ─── */
+function DonutRing({ entries, meta, total, size = 132, stroke = 16 }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let cumulative = 0;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="#F1F5F9"
+        strokeWidth={stroke}
+      />
+      {total > 0 &&
+        entries.map(([key, count]) => {
+          const info = meta[key] || { label: key, color: "#94A3B8" };
+          const fraction = count / total;
+          const dash = fraction * circumference;
+          const gap = circumference - dash;
+          const offset = -cumulative * circumference;
+          cumulative += fraction;
+
+          if (count === 0) return null;
+
+          return (
+            <circle
+              key={key}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={info.color}
+              strokeWidth={stroke}
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={offset}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              strokeLinecap="butt"
+              style={{ transition: "stroke-dasharray .5s ease" }}
+            />
+          );
+        })}
+    </svg>
+  );
+}
+
 const BreakdownCard = ({ title, subtitle, entries, meta, total }) => {
   return (
     <>
@@ -59,49 +107,105 @@ const BreakdownCard = ({ title, subtitle, entries, meta, total }) => {
           margin-top:4px;
         }
 
-        .breakdown-row{
-          margin-top:18px;
-        }
-
-        .breakdown-row-top{
+        .breakdown-body{
           display:flex;
-          justify-content:space-between;
           align-items:center;
-          font-size:13px;
-          margin-bottom:6px;
+          gap:24px;
+          margin-top:22px;
         }
 
-        .breakdown-label{
+        .breakdown-ring-wrap{
+          position:relative;
+          flex-shrink:0;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+        }
+
+        .breakdown-ring-center{
+          position:absolute;
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          justify-content:center;
+        }
+
+        .breakdown-ring-total{
+          font-size:24px;
+          font-weight:800;
+          color:#0F172A;
+          letter-spacing:-0.3px;
+          line-height:1;
+        }
+
+        .breakdown-ring-label{
+          font-size:10.5px;
+          color:#94A3B8;
+          font-weight:600;
+          text-transform:uppercase;
+          letter-spacing:0.4px;
+          margin-top:3px;
+        }
+
+        .breakdown-legend{
+          flex:1;
+          display:flex;
+          flex-direction:column;
+          gap:11px;
+          min-width:0;
+        }
+
+        .legend-row{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:10px;
+        }
+
+        .legend-label{
           display:flex;
           align-items:center;
           gap:8px;
-          color:#334155;
+          font-size:12.5px;
           font-weight:600;
+          color:#334155;
+          min-width:0;
         }
 
-        .breakdown-dot{
-          width:8px;
-          height:8px;
-          border-radius:50%;
+        .legend-dot{
+          width:9px;
+          height:9px;
+          border-radius:3px;
           flex-shrink:0;
         }
 
-        .breakdown-value{
-          color:#0F172A;
+        .legend-value{
+          display:flex;
+          align-items:baseline;
+          gap:5px;
+          flex-shrink:0;
+        }
+
+        .legend-count{
+          font-size:13px;
           font-weight:700;
+          color:#0F172A;
+          font-variant-numeric:tabular-nums;
         }
 
-        .breakdown-track{
-          height:8px;
-          border-radius:99px;
-          background:#EFF6FF;
-          overflow:hidden;
+        .legend-pct{
+          font-size:11px;
+          font-weight:600;
+          color:#94A3B8;
+          min-width:32px;
+          text-align:right;
+          font-variant-numeric:tabular-nums;
         }
 
-        .breakdown-fill{
-          height:100%;
-          border-radius:99px;
-          transition:width .4s cubic-bezier(.4,0,.2,1);
+        .breakdown-empty{
+          margin-top:22px;
+          font-size:13px;
+          color:#94A3B8;
         }
       `}</style>
 
@@ -109,40 +213,51 @@ const BreakdownCard = ({ title, subtitle, entries, meta, total }) => {
         <div className="breakdown-title">{title}</div>
         {subtitle && <div className="breakdown-subtitle">{subtitle}</div>}
 
-        {entries.length === 0 && (
-          <div style={{ marginTop: 18, fontSize: 13, color: "#94A3B8" }}>
-            No data yet.
-          </div>
-        )}
-
-        {entries.map(([key, count]) => {
-          const info = meta[key] || { label: key, color: "#94A3B8" };
-          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-
-          return (
-            <div className="breakdown-row" key={key}>
-              <div className="breakdown-row-top">
-                <span className="breakdown-label">
-                  <span
-                    className="breakdown-dot"
-                    style={{ background: info.color }}
-                  />
-                  {info.label}
-                </span>
-                <span className="breakdown-value">
-                  {count} <span style={{ color: "#94A3B8", fontWeight: 500 }}>({pct}%)</span>
-                </span>
-              </div>
-
-              <div className="breakdown-track">
-                <div
-                  className="breakdown-fill"
-                  style={{ width: `${pct}%`, background: info.color }}
-                />
+        {entries.length === 0 || total === 0 ? (
+          <div className="breakdown-empty">No data yet.</div>
+        ) : (
+          <div className="breakdown-body">
+            <div className="breakdown-ring-wrap">
+              <DonutRing entries={entries} meta={meta} total={total} />
+              <div className="breakdown-ring-center">
+                <span className="breakdown-ring-total">{total}</span>
+                <span className="breakdown-ring-label">Total</span>
               </div>
             </div>
-          );
-        })}
+
+            <div className="breakdown-legend">
+              {entries.map(([key, count]) => {
+                const info = meta[key] || { label: key, color: "#94A3B8" };
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
+                return (
+                  <div className="legend-row" key={key}>
+                    <span className="legend-label">
+                      <span
+                        className="legend-dot"
+                        style={{ background: info.color }}
+                      />
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {info.label}
+                      </span>
+                    </span>
+
+                    <span className="legend-value">
+                      <span className="legend-count">{count}</span>
+                      <span className="legend-pct">{pct}%</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
