@@ -99,6 +99,24 @@ export const createQuiz = async (req, res) => {
 // =======================================
 export const updateQuiz = async (req, res) => {
   try {
+    const existing = await Quiz.findById(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+    }
+
+    const isOwner = existing.createdBy?.toString() === req.user._id.toString();
+
+    if (req.user.role !== "admin" && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit quizzes you created",
+      });
+    }
+
     const {
       title,
       description,
@@ -126,13 +144,6 @@ export const updateQuiz = async (req, res) => {
       }
     );
 
-    if (!quiz) {
-      return res.status(404).json({
-        success: false,
-        message: "Quiz not found",
-      });
-    }
-
     return res.status(200).json({
       success: true,
       quiz,
@@ -153,14 +164,25 @@ export const updateQuiz = async (req, res) => {
 // =======================================
 export const deleteQuiz = async (req, res) => {
   try {
-    const quiz = await Quiz.findByIdAndDelete(req.params.id);
+    const existing = await Quiz.findById(req.params.id);
 
-    if (!quiz) {
+    if (!existing) {
       return res.status(404).json({
         success: false,
         message: "Quiz not found",
       });
     }
+
+    const isOwner = existing.createdBy?.toString() === req.user._id.toString();
+
+    if (req.user.role !== "admin" && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete quizzes you created",
+      });
+    }
+
+    await Quiz.findByIdAndDelete(req.params.id);
 
     return res.status(200).json({
       success: true,

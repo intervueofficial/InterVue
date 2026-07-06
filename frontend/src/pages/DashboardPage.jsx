@@ -13,9 +13,11 @@ import {
 } from "lucide-react";
 
 import { useActiveSessions, useMyRecentSessions } from "../hooks/useSessions";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
+import PageHeader from "../components/PageHeader";
 import StatCard from "./admin/StatCard";
 import SessionGrid from "../components/session/SessionGrid";
+import { THEME } from "../constants/theme";
 
 /* ─── Skeleton for the session grids while loading ──────────────────────── */
 function SkeletonSessionGrid() {
@@ -24,17 +26,15 @@ function SkeletonSessionGrid() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="rounded-xl bg-white border animate-pulse"
-          style={{ borderColor: "#E5E9F0", minHeight: 240 }}
+          className="rounded-xl animate-pulse"
+          style={{ background: THEME.surface, border: `1px solid ${THEME.border}`, minHeight: 240 }}
         >
           <div className="p-6 space-y-4">
-            <div className="h-5 w-2/3 rounded bg-slate-100" />
-            <div className="h-3 w-1/3 rounded bg-slate-100" />
-            <div className="h-px my-2 bg-slate-100" />
-            <div className="h-3 w-1/2 rounded bg-slate-100" />
-            <div className="h-3 w-1/2 rounded bg-slate-100" />
-            <div className="h-px my-2 bg-slate-100" />
-            <div className="h-8 w-24 rounded-xl bg-slate-100 ml-auto" />
+            <div className="h-5 w-2/3 rounded" style={{ background: THEME.surface2 }} />
+            <div className="h-3 w-1/3 rounded" style={{ background: THEME.surface2 }} />
+            <div className="h-px my-2" style={{ background: THEME.surface2 }} />
+            <div className="h-3 w-1/2 rounded" style={{ background: THEME.surface2 }} />
+            <div className="h-3 w-1/2 rounded" style={{ background: THEME.surface2 }} />
           </div>
         </div>
       ))}
@@ -43,35 +43,30 @@ function SkeletonSessionGrid() {
 }
 
 /* ─── Simple, honest navigation shortcuts (no fake marketing / CTAs) ────── */
-function QuickLink({ to, icon: Icon, title, subtitle, color }) {
+function QuickLink({ to, icon: Icon, title, subtitle }) {
   return (
     <Link to={to} className="block group">
       <div
-        className="rounded-xl bg-white border p-5 transition-all duration-150"
-        style={{ borderColor: "#E5E9F0" }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,23,42,0.05)";
-          e.currentTarget.style.borderColor = "#CBD5E1";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = "none";
-          e.currentTarget.style.borderColor = "#E5E9F0";
-        }}
+        className="rounded-xl p-5 transition-colors duration-150"
+        style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+        onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.borderStrong)}
+        onMouseLeave={(e) => (e.currentTarget.style.borderColor = THEME.border)}
       >
         <div className="flex items-center justify-between">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center"
-            style={{ background: "#F1F5F9" }}
+            style={{ background: THEME.surface2 }}
           >
-            <Icon size={16} color="#475569" strokeWidth={2} />
+            <Icon size={16} color={THEME.inkMuted} strokeWidth={2} />
           </div>
           <ArrowRightIcon
             size={14}
-            className="text-slate-300 transition-transform duration-150 group-hover:translate-x-0.5"
+            color={THEME.inkFaint}
+            className="transition-transform duration-150 group-hover:translate-x-0.5"
           />
         </div>
-        <div className="mt-3.5 text-sm font-semibold text-slate-900">{title}</div>
-        <div className="text-xs text-slate-400 mt-1">{subtitle}</div>
+        <div className="mt-3.5 text-sm font-semibold" style={{ color: THEME.ink }}>{title}</div>
+        <div className="text-xs mt-1" style={{ color: THEME.inkFaint }}>{subtitle}</div>
       </div>
     </Link>
   );
@@ -82,16 +77,14 @@ function SectionHeader({ icon: Icon, title, count, viewAllTo }) {
   return (
     <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-2.5">
-        {Icon && <Icon size={18} className="text-slate-400" />}
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
+        {Icon && <Icon size={18} color={THEME.inkFaint} />}
+        <h2 style={{ fontFamily: THEME.fontDisplay, fontSize: 19, fontWeight: 600, color: THEME.ink, letterSpacing: "-0.01em" }}>
+          {title}
+        </h2>
         {typeof count === "number" && (
           <span
             className="text-xs font-bold px-2.5 py-1 rounded-full"
-            style={{
-              background: "rgba(37,99,235,0.08)",
-              color: "#2563EB",
-              border: "1px solid rgba(37,99,235,0.16)",
-            }}
+            style={{ background: THEME.primaryTint, color: THEME.primary, border: `1px solid ${THEME.primaryTintBorder}` }}
           >
             {count}
           </span>
@@ -101,7 +94,7 @@ function SectionHeader({ icon: Icon, title, count, viewAllTo }) {
       <Link
         to={viewAllTo}
         className="flex items-center gap-1.5 text-sm font-semibold transition-colors"
-        style={{ color: "#2563EB" }}
+        style={{ color: THEME.primary }}
       >
         View all
         <ArrowRightIcon size={14} />
@@ -126,38 +119,29 @@ const DashboardPage = () => {
   const firstName = user?.firstName || "there";
 
   return (
-    <div className="min-h-screen bg-[#EFF6FF]">
-      <Navbar />
-
-      <div className="max-w-7xl mx-auto p-8 space-y-12">
-        {/* Header */}
-        <div>
-          <h1
-            className="text-4xl font-bold"
-            style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
-          >
-            Interviewer Dashboard
-          </h1>
-          <p className="text-slate-500 mt-2">
-            Welcome back, {firstName}. Here's what's happening with your interviews.
-          </p>
-        </div>
+    <AppShell scope="interviewer">
+      <div className="space-y-12">
+        <PageHeader
+          eyebrow="Interviewer"
+          title="Dashboard"
+          description={`Welcome back, ${firstName}. Here's what's happening with your interviews.`}
+        />
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             title="Active Sessions"
             value={activeSessions.length}
             subtitle="Scheduled, waiting, or live"
             icon={ZapIcon}
-            color="#2563EB"
+            color={THEME.primary}
           />
           <StatCard
             title="Completed"
             value={recentSessions.length}
             subtitle="Interviews you've finished"
             icon={CheckCircle2Icon}
-            color="#10B981"
+            color={THEME.success}
           />
           <StatCard
             title="Candidates Interviewed"
@@ -171,7 +155,7 @@ const DashboardPage = () => {
             value={activeSessions.length + recentSessions.length}
             subtitle="All-time sessions"
             icon={ActivityIcon}
-            color="#F59E0B"
+            color={THEME.warning}
           />
         </div>
 
@@ -216,11 +200,14 @@ const DashboardPage = () => {
 
         {/* Quick links */}
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight mb-5">
+          <h2
+            className="mb-5"
+            style={{ fontFamily: THEME.fontDisplay, fontSize: 19, fontWeight: 600, color: THEME.ink, letterSpacing: "-0.01em" }}
+          >
             Quick Links
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <QuickLink
               to="/problems"
               icon={BookOpenIcon}
@@ -242,7 +229,7 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 };
 

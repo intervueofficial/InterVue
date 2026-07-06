@@ -3,8 +3,10 @@ import { CalendarClockIcon, CheckCircle2Icon, ArrowRightIcon } from "lucide-reac
 
 import useAuthUser from "../../hooks/useAuthUser";
 import { useActiveSessions, useMyRecentSessions } from "../../hooks/useSessions";
-import Navbar from "../../components/Navbar";
+import AppShell from "../../components/AppShell";
+import PageHeader from "../../components/PageHeader";
 import SessionGrid from "../../components/session/SessionGrid";
+import { THEME } from "../../constants/theme";
 
 function SkeletonSessionGrid() {
   return (
@@ -12,15 +14,15 @@ function SkeletonSessionGrid() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="rounded-xl bg-white border animate-pulse"
-          style={{ borderColor: "#E5E9F0", minHeight: 240 }}
+          className="rounded-xl animate-pulse"
+          style={{ background: THEME.surface, border: `1px solid ${THEME.border}`, minHeight: 240 }}
         >
           <div className="p-5 space-y-4">
-            <div className="h-5 w-2/3 rounded bg-slate-100" />
-            <div className="h-3 w-1/3 rounded bg-slate-100" />
-            <div className="h-px my-2 bg-slate-100" />
-            <div className="h-3 w-1/2 rounded bg-slate-100" />
-            <div className="h-3 w-1/2 rounded bg-slate-100" />
+            <div className="h-5 w-2/3 rounded" style={{ background: THEME.surface2 }} />
+            <div className="h-3 w-1/3 rounded" style={{ background: THEME.surface2 }} />
+            <div className="h-px my-2" style={{ background: THEME.surface2 }} />
+            <div className="h-3 w-1/2 rounded" style={{ background: THEME.surface2 }} />
+            <div className="h-3 w-1/2 rounded" style={{ background: THEME.surface2 }} />
           </div>
         </div>
       ))}
@@ -31,16 +33,14 @@ function SkeletonSessionGrid() {
 function SectionHeader({ icon: Icon, title, count }) {
   return (
     <div className="flex items-center gap-2.5 mb-5">
-      {Icon && <Icon size={18} className="text-slate-400" />}
-      <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
+      {Icon && <Icon size={18} color={THEME.inkFaint} />}
+      <h2 style={{ fontFamily: THEME.fontDisplay, fontSize: 19, fontWeight: 600, color: THEME.ink, letterSpacing: "-0.01em" }}>
+        {title}
+      </h2>
       {typeof count === "number" && (
         <span
           className="text-xs font-bold px-2.5 py-1 rounded-full"
-          style={{
-            background: "rgba(37,99,235,0.08)",
-            color: "#2563EB",
-            border: "1px solid rgba(37,99,235,0.16)",
-          }}
+          style={{ background: THEME.primaryTint, color: THEME.primary, border: `1px solid ${THEME.primaryTintBorder}` }}
         >
           {count}
         </span>
@@ -63,35 +63,24 @@ const MyInterviews = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#EFF6FF]">
-      <Navbar />
-
-      <div className="max-w-7xl mx-auto p-8 space-y-12">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1
-              className="text-4xl font-bold"
-              style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
+    <AppShell scope="candidate">
+      <div className="space-y-12">
+        <PageHeader
+          title="My Interviews"
+          description="Everything you're scheduled for, live in, or have completed."
+          actions={
+            <Link
+              to="/candidate/sessions"
+              className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-4 py-2.5 transition-colors"
+              style={{ background: THEME.ink, color: THEME.surface }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              My Interviews
-            </h1>
-            <p className="text-slate-500 mt-2">
-              Everything you're scheduled for, live in, or have completed.
-            </p>
-          </div>
-
-          <Link
-            to="/candidate/sessions"
-            className="flex items-center gap-2 rounded-xl font-semibold text-white px-5 py-3 text-sm transition-colors"
-            style={{ background: "#2563EB" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#1D4ED8")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
-          >
-            Browse Available Sessions
-            <ArrowRightIcon size={15} />
-          </Link>
-        </div>
+              Browse Available Sessions
+              <ArrowRightIcon size={15} />
+            </Link>
+          }
+        />
 
         {/* Upcoming / live */}
         <div>
@@ -131,7 +120,7 @@ const MyInterviews = () => {
           )}
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 };
 

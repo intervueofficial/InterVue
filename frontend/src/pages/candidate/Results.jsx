@@ -8,21 +8,17 @@ import {
 } from "lucide-react";
 
 import { useMyRecentSessions } from "../../hooks/useSessions";
-import Navbar from "../../components/Navbar";
+import AppShell from "../../components/AppShell";
+import PageHeader from "../../components/PageHeader";
 import StatCard from "../admin/StatCard";
-
-const DIFF = {
-  easy: { text: "#059669", bg: "#ECFDF5", border: "rgba(5,150,105,0.18)" },
-  medium: { text: "#D97706", bg: "#FFFBEB", border: "rgba(217,119,6,0.18)" },
-  hard: { text: "#DC2626", bg: "#FEF2F2", border: "rgba(220,38,38,0.18)" },
-};
+import { THEME, DIFFICULTY } from "../../constants/theme";
 
 function DifficultyBadge({ difficulty }) {
-  const d = DIFF[difficulty?.toLowerCase()] || DIFF.medium;
+  const d = DIFFICULTY[difficulty?.toLowerCase()] || DIFFICULTY.medium;
   return (
     <span
       className="text-[10.5px] font-semibold px-2 py-0.5 rounded-md"
-      style={{ background: d.bg, color: d.text, border: `1px solid ${d.border}` }}
+      style={{ background: d.bg, color: d.text, boxShadow: `inset 0 0 0 1px ${d.border}` }}
     >
       {difficulty}
     </span>
@@ -38,13 +34,15 @@ function ResultCard({ session }) {
 
   return (
     <div
-      className="rounded-xl bg-white border p-5"
-      style={{ borderColor: "#E5E9F0" }}
+      className="rounded-xl p-5"
+      style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold text-slate-900">{session.title}</h3>
-          <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-400">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold truncate" style={{ color: THEME.ink }}>
+            {session.title}
+          </h3>
+          <div className="flex items-center gap-2 mt-1.5 text-xs" style={{ color: THEME.inkFaint }}>
             <CalendarIcon size={12} />
             {new Date(session.scheduledAt).toLocaleDateString(undefined, {
               month: "short",
@@ -56,26 +54,26 @@ function ResultCard({ session }) {
 
         <span
           className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md whitespace-nowrap"
-          style={{ background: "#F1F5F9", color: "#475569", border: "1px solid #E5E9F0" }}
+          style={{ background: THEME.surface2, color: THEME.inkMuted, border: `1px solid ${THEME.border}` }}
         >
           COMPLETED
         </span>
       </div>
 
-      <div className="h-px my-4" style={{ background: "#EEF2F7" }} />
+      <div className="h-px my-4" style={{ background: THEME.border }} />
 
-      <div className="flex items-center gap-2.5 text-sm text-slate-500 mb-4">
-        <UserCheckIcon size={14} color="#94A3B8" />
+      <div className="flex items-center gap-2.5 text-sm mb-4" style={{ color: THEME.inkMuted }}>
+        <UserCheckIcon size={14} color={THEME.inkFaint} />
         Interviewer:
-        <span className="font-medium text-slate-700">
+        <span className="font-medium" style={{ color: THEME.ink }}>
           {session.interviewer?.name || "Unknown"}
         </span>
       </div>
 
       {!hasContent ? (
         <div
-          className="flex items-center gap-2.5 text-sm text-slate-400 rounded-lg px-3.5 py-3"
-          style={{ background: "#F8FAFC" }}
+          className="flex items-center gap-2.5 text-sm rounded-lg px-3.5 py-3"
+          style={{ background: THEME.surface2, color: THEME.inkFaint }}
         >
           <InboxIcon size={15} />
           No problem or quiz was recorded for this session.
@@ -85,10 +83,10 @@ function ResultCard({ session }) {
           {session.activeProblem && (
             <div
               className="flex items-center justify-between rounded-lg px-3.5 py-3"
-              style={{ background: "#F8FAFC" }}
+              style={{ background: THEME.surface2 }}
             >
-              <div className="flex items-center gap-2.5 text-sm text-slate-700 font-medium">
-                <Code2Icon size={14} color="#2563EB" />
+              <div className="flex items-center gap-2.5 text-sm font-medium" style={{ color: THEME.ink }}>
+                <Code2Icon size={14} color={THEME.primary} />
                 {session.activeProblem.title}
               </div>
               {session.activeProblem.difficulty && (
@@ -100,35 +98,35 @@ function ResultCard({ session }) {
           {session.activeQuiz && (
             <div
               className="rounded-lg px-3.5 py-3"
-              style={{ background: "#F8FAFC" }}
+              style={{ background: THEME.surface2 }}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5 text-sm text-slate-700 font-medium">
+                <div className="flex items-center gap-2.5 text-sm font-medium" style={{ color: THEME.ink }}>
                   <HelpCircleIcon size={14} color="#8B5CF6" />
                   {session.activeQuiz.title}
                 </div>
                 {quizPct !== null ? (
-                  <span className="text-sm font-bold text-slate-900">
+                  <span className="text-sm font-bold" style={{ color: THEME.ink }}>
                     {session.quizResult.score}/{session.quizResult.total}
-                    <span className="text-xs text-slate-400 font-medium ml-1">
+                    <span className="text-xs font-medium ml-1" style={{ color: THEME.inkFaint }}>
                       ({quizPct}%)
                     </span>
                   </span>
                 ) : (
-                  <span className="text-xs text-slate-400 font-medium">Not attempted</span>
+                  <span className="text-xs font-medium" style={{ color: THEME.inkFaint }}>Not attempted</span>
                 )}
               </div>
 
               {quizPct !== null && (
                 <div
                   className="h-1.5 rounded-full mt-2.5 overflow-hidden"
-                  style={{ background: "#E2E8F0" }}
+                  style={{ background: THEME.border }}
                 >
                   <div
                     className="h-full rounded-full"
                     style={{
                       width: `${quizPct}%`,
-                      background: quizPct >= 70 ? "#10B981" : quizPct >= 40 ? "#F59E0B" : "#DC2626",
+                      background: quizPct >= 70 ? THEME.success : quizPct >= 40 ? THEME.warning : THEME.danger,
                     }}
                   />
                 </div>
@@ -144,17 +142,17 @@ function ResultCard({ session }) {
 function EmptyResults() {
   return (
     <div
-      className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-xl border"
-      style={{ borderColor: "#E5E9F0", background: "#fff" }}
+      className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-xl"
+      style={{ border: `1px solid ${THEME.border}`, background: THEME.surface }}
     >
       <div
         className="w-11 h-11 rounded-lg flex items-center justify-center"
-        style={{ background: "#F1F5F9" }}
+        style={{ background: THEME.surface2 }}
       >
-        <BarChart3Icon size={20} color="#94A3B8" strokeWidth={2} />
+        <BarChart3Icon size={20} color={THEME.inkFaint} strokeWidth={2} />
       </div>
-      <h2 className="text-sm font-semibold text-slate-800 mt-4">No results yet</h2>
-      <p className="text-sm text-slate-400 mt-1 max-w-xs">
+      <h2 className="text-sm font-semibold mt-4" style={{ color: THEME.ink }}>No results yet</h2>
+      <p className="text-sm mt-1 max-w-xs" style={{ color: THEME.inkFaint }}>
         Once you complete an interview, it'll show up here with whatever problem or quiz you were given.
       </p>
     </div>
@@ -181,36 +179,27 @@ const Results = () => {
   const problemsGiven = sessions.filter((s) => s.activeProblem).length;
 
   return (
-    <div className="min-h-screen bg-[#EFF6FF]">
-      <Navbar />
+    <AppShell scope="candidate">
+      <div className="space-y-10">
+        <PageHeader
+          title="My Results"
+          description="A record of every interview you've completed."
+        />
 
-      <div className="max-w-7xl mx-auto p-8 space-y-10">
-        <div>
-          <h1
-            className="text-4xl font-bold"
-            style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
-          >
-            My Results
-          </h1>
-          <p className="text-slate-500 mt-2">
-            A record of every interview you've completed.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard
             title="Interviews Completed"
             value={sessions.length}
             subtitle="All-time"
             icon={UserCheckIcon}
-            color="#2563EB"
+            color={THEME.primary}
           />
           <StatCard
             title="Coding Problems Given"
             value={problemsGiven}
             subtitle="Across all sessions"
             icon={Code2Icon}
-            color="#10B981"
+            color={THEME.success}
           />
           <StatCard
             title="Avg Quiz Score"
@@ -231,14 +220,14 @@ const Results = () => {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="rounded-xl bg-white border animate-pulse"
-                  style={{ borderColor: "#E5E9F0", minHeight: 220 }}
+                  className="rounded-xl animate-pulse"
+                  style={{ background: THEME.surface, border: `1px solid ${THEME.border}`, minHeight: 220 }}
                 >
                   <div className="p-5 space-y-4">
-                    <div className="h-5 w-2/3 rounded bg-slate-100" />
-                    <div className="h-3 w-1/3 rounded bg-slate-100" />
-                    <div className="h-px my-2 bg-slate-100" />
-                    <div className="h-10 w-full rounded bg-slate-100" />
+                    <div className="h-5 w-2/3 rounded" style={{ background: THEME.surface2 }} />
+                    <div className="h-3 w-1/3 rounded" style={{ background: THEME.surface2 }} />
+                    <div className="h-px my-2" style={{ background: THEME.surface2 }} />
+                    <div className="h-10 w-full rounded" style={{ background: THEME.surface2 }} />
                   </div>
                 </div>
               ))}
@@ -254,7 +243,7 @@ const Results = () => {
           )}
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 };
 

@@ -83,6 +83,24 @@ export const createProblem = async (req, res) => {
 // =======================================
 export const updateProblem = async (req, res) => {
   try {
+    const existing = await Problem.findById(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found",
+      });
+    }
+
+    const isOwner = existing.createdBy?.toString() === req.user._id.toString();
+
+    if (req.user.role !== "admin" && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit problems you created",
+      });
+    }
+
     const problem = await Problem.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -91,13 +109,6 @@ export const updateProblem = async (req, res) => {
         runValidators: true,
       }
     );
-
-    if (!problem) {
-      return res.status(404).json({
-        success: false,
-        message: "Problem not found",
-      });
-    }
 
     return res.status(200).json({
       success: true,
@@ -118,14 +129,25 @@ export const updateProblem = async (req, res) => {
 // =======================================
 export const deleteProblem = async (req, res) => {
   try {
-    const problem = await Problem.findByIdAndDelete(req.params.id);
+    const existing = await Problem.findById(req.params.id);
 
-    if (!problem) {
+    if (!existing) {
       return res.status(404).json({
         success: false,
         message: "Problem not found",
       });
     }
+
+    const isOwner = existing.createdBy?.toString() === req.user._id.toString();
+
+    if (req.user.role !== "admin" && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete problems you created",
+      });
+    }
+
+    await Problem.findByIdAndDelete(req.params.id);
 
     return res.status(200).json({
       success: true,

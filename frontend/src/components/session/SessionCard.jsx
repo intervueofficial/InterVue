@@ -10,13 +10,13 @@ import { useNavigate } from "react-router-dom";
 
 import useAuthUser from "../../hooks/useAuthUser";
 import { useDeleteSession, useJoinSession } from "../../hooks/useSessions";
+import { THEME, SESSION_STATUS } from "../../constants/theme";
 
 const SessionCard = ({ session }) => {
   const navigate = useNavigate();
   const { data: authUser } = useAuthUser();
 
   const { mutate: joinSession, isPending: joining } = useJoinSession();
-
   const { mutate: deleteSession, isPending: deleting } = useDeleteSession();
 
   const role = authUser?.role;
@@ -57,80 +57,75 @@ const SessionCard = ({ session }) => {
 
   const handleDelete = () => {
     const confirmDelete = window.confirm(`Delete session "${session.title}" ?`);
-
     if (!confirmDelete) return;
-
     deleteSession(session._id);
   };
 
-  const badgeStyle = {
-    scheduled: { bg: "rgba(37,99,235,0.07)", text: "#2563EB", border: "rgba(37,99,235,0.18)" },
-    waiting: { bg: "rgba(180,83,9,0.07)", text: "#B45309", border: "rgba(180,83,9,0.18)" },
-    live: { bg: "rgba(21,128,61,0.07)", text: "#15803D", border: "rgba(21,128,61,0.18)" },
-    completed: { bg: "#F1F5F9", text: "#475569", border: "#E5E9F0" },
-    cancelled: { bg: "rgba(220,38,38,0.07)", text: "#DC2626", border: "rgba(220,38,38,0.18)" },
-  };
+  const badge = SESSION_STATUS[session.status] || SESSION_STATUS.completed;
 
-  const badge = badgeStyle[session.status] || badgeStyle.completed;
+  const initials = (name) =>
+    name
+      ?.split(" ")
+      .map((p) => p[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?";
 
   return (
     <div
-      className="rounded-xl bg-white border transition-colors duration-150"
-      style={{
-        borderColor: "#E5E9F0",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,23,42,0.05)";
-        e.currentTarget.style.borderColor = "#CBD5E1";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "none";
-        e.currentTarget.style.borderColor = "#E5E9F0";
-      }}
+      className="rounded-xl transition-colors"
+      style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.borderStrong)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = THEME.border)}
     >
       <div className="p-5">
         <div className="flex justify-between items-start gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900 tracking-tight">
+          <div className="min-w-0">
+            <h2
+              className="truncate"
+              style={{ fontFamily: THEME.fontDisplay, fontSize: 15, fontWeight: 600, color: THEME.ink }}
+            >
               {session.title}
             </h2>
 
             {session.sessionCode && (
-              <p className="text-xs text-slate-400 mt-1 font-mono">
+              <p
+                className="mt-1 text-xs"
+                style={{ fontFamily: THEME.fontMono, color: THEME.inkFaint }}
+              >
                 {session.sessionCode}
               </p>
             )}
           </div>
 
           <span
-            className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md whitespace-nowrap"
-            style={{
-              background: badge.bg,
-              color: badge.text,
-              border: `1px solid ${badge.border}`,
-              letterSpacing: "0.04em",
-            }}
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize whitespace-nowrap"
+            style={{ background: badge.bg, color: badge.text, boxShadow: `inset 0 0 0 1px ${badge.border}` }}
           >
-            {session.status.toUpperCase()}
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: badge.dot, animation: isLive ? "sc-pulse 1.6s ease-in-out infinite" : "none" }}
+            />
+            {session.status}
           </span>
         </div>
 
         {session.description && (
-          <p className="mt-2.5 text-sm text-slate-500 leading-relaxed">
+          <p className="mt-2.5 text-sm leading-relaxed" style={{ color: THEME.inkMuted }}>
             {session.description}
           </p>
         )}
 
-        <div className="h-px my-4" style={{ background: "#EEF2F7" }} />
+        <div className="h-px my-4" style={{ background: THEME.border }} />
 
         <div className="flex flex-col gap-2.5">
-          <div className="flex items-center gap-2.5 text-sm text-slate-600">
-            <Calendar size={14} color="#94A3B8" />
+          <div className="flex items-center gap-2.5 text-sm" style={{ color: THEME.ink }}>
+            <Calendar size={14} color={THEME.inkFaint} />
             <span>{new Date(session.scheduledAt).toLocaleDateString()}</span>
           </div>
 
-          <div className="flex items-center gap-2.5 text-sm text-slate-600">
-            <Clock size={14} color="#94A3B8" />
+          <div className="flex items-center gap-2.5 text-sm" style={{ color: THEME.ink }}>
+            <Clock size={14} color={THEME.inkFaint} />
             <span>
               {new Date(session.scheduledAt).toLocaleTimeString([], {
                 hour: "2-digit",
@@ -140,63 +135,65 @@ const SessionCard = ({ session }) => {
           </div>
         </div>
 
-        <div className="h-px my-4" style={{ background: "#EEF2F7" }} />
+        <div className="h-px my-4" style={{ background: THEME.border }} />
 
         <div className="space-y-2.5">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2.5 text-sm text-slate-500">
-              <UserRound size={14} color="#94A3B8" />
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex items-center gap-2.5 text-sm" style={{ color: THEME.inkMuted }}>
+              <UserRound size={14} color={THEME.inkFaint} />
               <span>Candidate</span>
             </div>
 
-            <span
-              className={`text-sm font-medium ${
-                session.candidate ? "text-slate-700" : "text-slate-400"
-              }`}
-            >
-              {session.candidate ? session.candidate.name : "Available"}
-            </span>
+            {session.candidate ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{ width: 22, height: 22, fontSize: 9.5, fontWeight: 700, background: "rgba(23,23,31,0.06)", color: THEME.ink }}
+                >
+                  {initials(session.candidate.name)}
+                </span>
+                <span className="text-sm font-medium truncate" style={{ color: THEME.ink }}>
+                  {session.candidate.name}
+                </span>
+              </div>
+            ) : (
+              <span className="text-sm" style={{ color: THEME.inkFaint }}>Available</span>
+            )}
           </div>
 
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2.5 text-sm text-slate-500">
-              <UserCheck size={14} color="#94A3B8" />
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex items-center gap-2.5 text-sm" style={{ color: THEME.inkMuted }}>
+              <UserCheck size={14} color={THEME.inkFaint} />
               <span>Interviewer</span>
             </div>
 
-            <span
-              className={`text-sm font-medium ${
-                session.interviewer ? "text-slate-700" : "text-slate-400"
-              }`}
-            >
-              {session.interviewer ? session.interviewer.name : "Available"}
-            </span>
+            {session.interviewer ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{ width: 22, height: 22, fontSize: 9.5, fontWeight: 700, background: "rgba(23,23,31,0.06)", color: THEME.ink }}
+                >
+                  {initials(session.interviewer.name)}
+                </span>
+                <span className="text-sm font-medium truncate" style={{ color: THEME.ink }}>
+                  {session.interviewer.name}
+                </span>
+              </div>
+            ) : (
+              <span className="text-sm" style={{ color: THEME.inkFaint }}>Available</span>
+            )}
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-5">
-          {canJoinCandidate && (
+          {(canJoinCandidate || canJoinInterviewer) && (
             <button
               disabled={joining}
               onClick={handleJoin}
-              className="flex items-center gap-2 rounded-lg font-semibold text-white px-3.5 py-2 text-[13px] transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: "#2563EB" }}
-              onMouseEnter={(e) => !joining && (e.currentTarget.style.background = "#1D4ED8")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
-            >
-              <Video size={14} />
-              Join
-            </button>
-          )}
-
-          {canJoinInterviewer && (
-            <button
-              disabled={joining}
-              onClick={handleJoin}
-              className="flex items-center gap-2 rounded-lg font-semibold text-white px-3.5 py-2 text-[13px] transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: "#2563EB" }}
-              onMouseEnter={(e) => !joining && (e.currentTarget.style.background = "#1D4ED8")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
+              className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-3.5 py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: THEME.ink, color: THEME.surface }}
+              onMouseEnter={(e) => !joining && (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               <Video size={14} />
               Join
@@ -206,10 +203,10 @@ const SessionCard = ({ session }) => {
           {canEnterInterview && (
             <button
               onClick={handleEnterInterview}
-              className="flex items-center gap-2 rounded-lg font-semibold text-white px-3.5 py-2 text-[13px] transition-colors duration-150"
-              style={{ background: "#15803D" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#116932")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#15803D")}
+              className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-3.5 py-2 transition-colors"
+              style={{ background: THEME.success, color: "#fff" }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               <Video size={14} />
               Enter Interview
@@ -220,18 +217,10 @@ const SessionCard = ({ session }) => {
             <button
               disabled={deleting}
               onClick={handleDelete}
-              className="flex items-center gap-2 rounded-lg font-semibold px-3.5 py-2 text-[13px] border transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{
-                color: "#DC2626",
-                borderColor: "#FECACA",
-                background: "#FFF",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#FEF2F2";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#FFF";
-              }}
+              className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-3.5 py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ color: THEME.danger, border: `1px solid ${THEME.dangerBorder}`, background: THEME.surface }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = THEME.dangerTint)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = THEME.surface)}
             >
               <Trash2 size={14} />
               Delete
@@ -239,6 +228,13 @@ const SessionCard = ({ session }) => {
           )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes sc-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.35; }
+        }
+      `}</style>
     </div>
   );
 };

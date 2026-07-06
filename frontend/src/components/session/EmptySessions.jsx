@@ -1,4 +1,5 @@
 import { CalendarDays } from "lucide-react";
+import { THEME } from "../../constants/theme";
 
 const EmptySessions = ({
   title = "No sessions to show",
@@ -6,19 +7,18 @@ const EmptySessions = ({
 }) => {
   return (
     <div
-      className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-xl border"
-      style={{ borderColor: "#E5E9F0", background: "#fff" }}
+      className="flex flex-col items-center justify-center text-center py-16 px-6 rounded-xl"
+      style={{ border: `1px solid ${THEME.border}`, background: THEME.surface }}
     >
       <div
         className="w-11 h-11 rounded-lg flex items-center justify-center"
-        style={{ background: "#F1F5F9" }}
+        style={{ background: THEME.surface2 }}
       >
-        <CalendarDays size={20} color="#94A3B8" strokeWidth={2} />
+        <CalendarDays size={20} color={THEME.inkFaint} strokeWidth={2} />
       </div>
 
-      <h2 className="text-sm font-semibold text-slate-800 mt-4">{title}</h2>
-
-      <p className="text-sm text-slate-400 mt-1 max-w-xs">{subtitle}</p>
+      <h2 className="text-sm font-semibold mt-4" style={{ color: THEME.ink }}>{title}</h2>
+      <p className="text-sm mt-1 max-w-xs" style={{ color: THEME.inkFaint }}>{subtitle}</p>
     </div>
   );
 };

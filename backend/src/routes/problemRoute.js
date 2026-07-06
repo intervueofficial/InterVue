@@ -22,28 +22,30 @@ router.get("/:id", getProblemById);
 
 /*
 |--------------------------------------------------------------------------
-| Admin Only Routes
+| Admin + Interviewer Routes
+| (interviewer can only edit/delete problems they created — enforced
+|  via ownership check in the controller)
 |--------------------------------------------------------------------------
 */
 
 router.post(
   "/",
   protectRoute,
-  requireRole("admin"),
+  requireRole("admin", "interviewer"),
   createProblem
 );
 
 router.put(
   "/:id",
   protectRoute,
-  requireRole("admin"),
+  requireRole("admin", "interviewer"),
   updateProblem
 );
 
 router.delete(
   "/:id",
   protectRoute,
-  requireRole("admin"),
+  requireRole("admin", "interviewer"),
   deleteProblem
 );
 

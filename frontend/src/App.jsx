@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 
 import useAuthUser from "./hooks/useAuthUser";
 import useSyncRole from "./hooks/useSyncRole";
+import { THEME } from "./constants/theme";
 
 // Landing
 import HomePage from "./pages/HomePage";
@@ -43,30 +44,40 @@ function App() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="loading loading-spinner loading-lg"></span>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: THEME.background }}
+      >
+        <span className="loading loading-spinner loading-lg" style={{ color: THEME.primary }}></span>
       </div>
     );
   }
 
   if (isSignedIn && isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="loading loading-spinner loading-lg"></span>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: THEME.background }}
+      >
+        <span className="loading loading-spinner loading-lg" style={{ color: THEME.primary }}></span>
       </div>
     );
   }
 
   if (isSignedIn && (isError || !authUser)) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <h2 className="text-xl font-semibold">
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-4"
+        style={{ background: THEME.background, fontFamily: THEME.fontSans }}
+      >
+        <h2 style={{ fontFamily: THEME.fontDisplay, fontSize: 20, fontWeight: 600, color: THEME.ink }}>
           Unable to load your account
         </h2>
 
         <button
-          className="btn btn-primary"
           onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
+          style={{ background: THEME.ink, color: THEME.surface }}
         >
           Retry
         </button>
@@ -235,6 +246,15 @@ function App() {
           }
         />
 
+        <Route
+          path="/sessions"
+          element={
+            role === "interviewer"
+              ? <Sessions />
+              : <Navigate replace to={dashboard} />
+          }
+        />
+
         {/* ================= CANDIDATE ================= */}
 
         <Route
@@ -256,6 +276,15 @@ function App() {
         />
 
         <Route
+          path="/candidate/sessions"
+          element={
+            role === "candidate"
+              ? <Sessions />
+              : <Navigate replace to={dashboard} />
+          }
+        />
+
+        <Route
           path="/candidate/results"
           element={
             role === "candidate"
@@ -270,24 +299,6 @@ function App() {
           path="*"
           element={<Navigate replace to="/" />}
         />
-
-        <Route
-    path="/sessions"
-    element={
-        role === "interviewer"
-            ? <Sessions />
-            : <Navigate replace to={dashboard} />
-    }
-/>
-
-<Route
-    path="/candidate/sessions"
-    element={
-        role === "candidate"
-            ? <Sessions />
-            : <Navigate replace to={dashboard} />
-    }
-/>
 
       </Routes>
 

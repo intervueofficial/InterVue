@@ -16,25 +16,25 @@ const router = express.Router();
 router.get("/", getQuizzes);
 router.get("/:id", getQuizById);
 
-// Admin only
+// Admin + Interviewer (interviewer can only edit/delete their own — enforced in controller)
 router.post(
   "/",
   protectRoute,
-  requireRole("admin"),
+  requireRole("admin", "interviewer"),
   createQuiz
 );
 
 router.put(
   "/:id",
   protectRoute,
-  requireRole("admin"),
+  requireRole("admin", "interviewer"),
   updateQuiz
 );
 
 router.delete(
   "/:id",
   protectRoute,
-  requireRole("admin"),
+  requireRole("admin", "interviewer"),
   deleteQuiz
 );
 

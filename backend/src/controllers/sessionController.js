@@ -288,15 +288,6 @@ const populatedSession = await Session.findById(session._id)
     "name"
   );
 
-const channel = chatClient.channel(
-  "messaging",
-  session.callId
-);
-
-await channel.addMembers([
-  req.user.clerkId,
-]);
-
 return res.json({
   success: true,
   session: populatedSession,

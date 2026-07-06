@@ -1,5 +1,26 @@
 import { useForm } from "react-hook-form";
+import { XIcon } from "lucide-react";
 import { useCreateSession } from "../../hooks/useSessions";
+import { THEME } from "../../constants/theme";
+
+const inputStyle = {
+  width: "100%",
+  padding: "9px 12px",
+  borderRadius: 8,
+  border: `1px solid ${THEME.border}`,
+  background: THEME.surface,
+  color: THEME.ink,
+  fontSize: 13.5,
+  outline: "none",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: 12.5,
+  fontWeight: 600,
+  color: THEME.inkMuted,
+  marginBottom: 6,
+};
 
 const CreateSessionModal = ({ isOpen, onClose }) => {
   const { register, handleSubmit, reset } = useForm();
@@ -29,113 +50,82 @@ const CreateSessionModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <dialog className="modal modal-open">
-      <div className="modal-box max-w-2xl">
-
-        <h2 className="font-bold text-2xl mb-6">
-          Create Interview Session
-        </h2>
-
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-5"
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ background: "rgba(23,23,31,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl overflow-hidden"
+        style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: `1px solid ${THEME.border}` }}
         >
+          <h2 style={{ fontFamily: THEME.fontDisplay, fontSize: 17, fontWeight: 600, color: THEME.ink }}>
+            Create Interview Session
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-md" style={{ color: THEME.inkMuted }}>
+            <XIcon size={16} />
+          </button>
+        </div>
 
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
           <div>
-            <label className="label">
-              <span className="label-text">
-                Session Title
-              </span>
-            </label>
-
+            <label style={labelStyle}>Session Title</label>
             <input
               type="text"
               placeholder="Campus Placement Round"
-              className="input input-bordered w-full"
-              {...register("title", {
-                required: true,
-              })}
+              style={inputStyle}
+              {...register("title", { required: true })}
             />
           </div>
 
           <div>
-            <label className="label">
-              <span className="label-text">
-                Description
-              </span>
-            </label>
-
+            <label style={labelStyle}>Description</label>
             <textarea
               rows={4}
-              className="textarea textarea-bordered w-full"
               placeholder="Interview session for campus recruitment..."
-              {...register("description", {
-                required: true,
-              })}
+              style={{ ...inputStyle, resize: "vertical" }}
+              {...register("description", { required: true })}
             />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-5">
-
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">
-                <span className="label-text">
-                  Date
-                </span>
-              </label>
-
-              <input
-                type="date"
-                className="input input-bordered w-full"
-                {...register("date", {
-                  required: true,
-                })}
-              />
+              <label style={labelStyle}>Date</label>
+              <input type="date" style={inputStyle} {...register("date", { required: true })} />
             </div>
 
             <div>
-              <label className="label">
-                <span className="label-text">
-                  Time
-                </span>
-              </label>
-
-              <input
-                type="time"
-                className="input input-bordered w-full"
-                {...register("time", {
-                  required: true,
-                })}
-              />
+              <label style={labelStyle}>Time</label>
+              <input type="time" style={inputStyle} {...register("time", { required: true })} />
             </div>
-
           </div>
 
-          <div className="modal-action">
-
+          <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              className="btn"
               onClick={onClose}
+              className="px-4 py-2 rounded-md text-[13px] font-semibold transition-colors"
+              style={{ border: `1px solid ${THEME.border}`, color: THEME.ink, background: THEME.surface }}
             >
               Cancel
             </button>
 
             <button
-              className="btn btn-primary"
               disabled={isPending}
+              className="px-4 py-2 rounded-md text-[13px] font-semibold transition-colors disabled:opacity-60"
+              style={{ background: THEME.ink, color: THEME.surface }}
             >
-              {isPending
-                ? "Creating..."
-                : "Create Session"}
+              {isPending ? "Creating..." : "Create Session"}
             </button>
-
           </div>
-
         </form>
-
       </div>
-    </dialog>
+    </div>
   );
 };
 
