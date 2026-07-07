@@ -14,6 +14,7 @@ import {
   MenuIcon,
   XIcon,
   SearchIcon,
+  BotIcon,
 } from "lucide-react";
 
 import { THEME } from "../constants/theme";
@@ -60,6 +61,7 @@ const NAV_BY_SCOPE = {
       label: "Candidate",
       items: [
         { to: "/candidate/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
+        { to: "/bot", label: "Mock Interview", icon: BotIcon, external: true },
         { to: "/candidate/interviews", label: "My Interviews", icon: CalendarCheckIcon },
         { to: "/candidate/sessions", label: "Sessions", icon: VideoIcon },
         { to: "/candidate/results", label: "Results", icon: TrophyIcon },
@@ -104,9 +106,14 @@ function QuickSearch({ groups, onNavigate }) {
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && matches.length > 0) {
-      navigate(matches[0].to);
-      setQuery("");
-      onNavigate?.();
+      const match = matches[0];
+      if (match.external) {
+        window.location.href = match.to;
+      } else {
+        navigate(match.to);
+        setQuery("");
+        onNavigate?.();
+      }
     }
     if (e.key === "Escape") {
       setQuery("");
@@ -146,6 +153,10 @@ function QuickSearch({ groups, onNavigate }) {
             <button
               key={item.to}
               onClick={() => {
+                if (item.external) {
+                  window.location.href = item.to;
+                  return;
+                }
                 navigate(item.to);
                 setQuery("");
                 onNavigate?.();
@@ -189,22 +200,51 @@ function NavGroups({ groups, isActive, onNavigate }) {
               const active = isActive(item.to);
               const Icon = item.icon;
 
+              const linkStyle = {
+                background: active ? THEME.ink : "transparent",
+                color: active ? THEME.surface : "rgba(23,23,31,0.72)",
+              };
+
+              const hoverHandlers = {
+                onMouseEnter: (e) => {
+                  if (!active) e.currentTarget.style.background = THEME.surface2;
+                },
+                onMouseLeave: (e) => {
+                  if (!active) e.currentTarget.style.background = "transparent";
+                },
+              };
+
+              // Items marked `external` (e.g. Mock Interview → /bot) need a
+              // real full-page navigation, not client-side routing. /bot is
+              // proxied at the hosting layer (see vercel.json) to a
+              // separately-deployed app — that rewrite only ever fires on
+              // an actual browser request, never on React Router's
+              // client-side <Link> navigation, which doesn't hit the
+              // network at all.
+              if (item.external) {
+                return (
+                  <li key={item.to}>
+                    <a
+                      href={item.to}
+                      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors"
+                      style={linkStyle}
+                      {...hoverHandlers}
+                    >
+                      <Icon size={16} style={{ flexShrink: 0 }} />
+                      <span className="truncate">{item.label}</span>
+                    </a>
+                  </li>
+                );
+              }
+
               return (
                 <li key={item.to}>
                   <Link
                     to={item.to}
                     onClick={onNavigate}
                     className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors"
-                    style={{
-                      background: active ? THEME.ink : "transparent",
-                      color: active ? THEME.surface : "rgba(23,23,31,0.72)",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!active) e.currentTarget.style.background = THEME.surface2;
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!active) e.currentTarget.style.background = "transparent";
-                    }}
+                    style={linkStyle}
+                    {...hoverHandlers}
                   >
                     <Icon size={16} style={{ flexShrink: 0 }} />
                     <span className="truncate">{item.label}</span>

@@ -8,6 +8,7 @@ import { THEME } from "./constants/theme";
 
 // Landing
 import HomePage from "./pages/HomePage";
+import MockInterviewPage from "./pages/MockInterviewPage";
 
 // Interviewer
 import DashboardPage from "./pages/DashboardPage";
@@ -145,6 +146,23 @@ function App() {
             ) : (
               <Navigate replace to={dashboard} />
             )
+          }
+        />
+
+        {/* Mock Interview — in production, /bot is proxied at the Vercel
+            edge (see vercel.json) to a separately-deployed bot app;
+            that rewrite only fires on a genuine full-page navigation,
+            which is why the landing page button and the sidebar link
+            both use a real <a href> instead of client-side routing.
+            This route only ever renders as a fallback when there's no
+            such rewrite in front of it — e.g. running locally with
+            `npm run dev`, where vercel.json has no effect. */}
+        <Route
+          path="/bot"
+          element={
+            isSignedIn
+              ? <MockInterviewPage />
+              : <Navigate replace to="/sign-in" />
           }
         />
 

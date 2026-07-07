@@ -40,6 +40,11 @@ const ProblemPage = () => {
   const queryClient = useQueryClient();
   const { data: authUser } = useAuthUser();
 
+  // This page is shared: interviewers reach it from /problems, and now
+  // candidates can reach it from the Mock Interview practice hub too —
+  // so the sidebar shown around it should match whoever's actually here.
+  const shellScope = authUser?.role === "candidate" ? "candidate" : "interviewer";
+
   const [tab, setTab] = useState("description");
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
@@ -85,10 +90,11 @@ const ProblemPage = () => {
   };
 
   const isOwner = problem?.createdBy?._id === authUser?._id;
+  const backTo = authUser?.role === "candidate" ? "/bot" : "/problems";
 
   if (isLoading) {
     return (
-      <AppShell scope="interviewer">
+      <AppShell scope={shellScope}>
         <div className="flex justify-center py-24">
           <span className="loading loading-spinner loading-lg" style={{ color: THEME.primary }}></span>
         </div>
@@ -98,7 +104,7 @@ const ProblemPage = () => {
 
   if (!problem) {
     return (
-      <AppShell scope="interviewer">
+      <AppShell scope={shellScope}>
         <div className="text-center py-24" style={{ color: THEME.inkMuted }}>
           Problem not found.
         </div>
@@ -107,13 +113,13 @@ const ProblemPage = () => {
   }
 
   return (
-    <AppShell scope="interviewer">
+    <AppShell scope={shellScope}>
       <div className="flex flex-col" style={{ height: "calc(100vh - 112px)" }}>
         {/* Header */}
         <div className="flex items-center justify-between pb-4 flex-shrink-0" style={{ borderBottom: `1px solid ${THEME.border}` }}>
           <div className="flex items-center gap-3 min-w-0">
             <button
-              onClick={() => navigate("/problems")}
+              onClick={() => navigate(backTo)}
               className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
               style={{ border: `1px solid ${THEME.border}`, color: THEME.inkMuted }}
             >
