@@ -16,6 +16,7 @@ import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../admin/StatCard";
 import SessionGrid from "../../components/session/SessionGrid";
+import CandidateDashboardLoading from "./CandidateDashboardLoading";
 import { THEME } from "../../constants/theme";
 
 /* ─── Skeleton for the session grid while loading ───────────────────────── */
@@ -129,6 +130,15 @@ const CandidateDashboard = () => {
       : null;
 
   const firstName = user?.firstName || "there";
+
+  // Full-page skeleton while the primary data this view depends on is loading
+  if (loadingActive || loadingRecent) {
+    return (
+      <AppShell scope="candidate">
+        <CandidateDashboardLoading />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell scope="candidate">

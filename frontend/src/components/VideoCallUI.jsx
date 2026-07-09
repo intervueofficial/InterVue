@@ -58,14 +58,14 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
 
   if (callingState === CallingState.JOINING) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[#f7f8fa]">
-        <div className="flex flex-col items-center gap-4 rounded-2xl bg-white px-8 py-7 shadow-[0_8px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/70">
-          <Loader2Icon className="h-7 w-7 animate-spin text-slate-900" />
+      <div className="flex h-full w-full items-center justify-center bg-[#0B0F17]">
+        <div className="flex flex-col items-center gap-4 rounded-2xl bg-[#141A24] px-8 py-7 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)] ring-1 ring-white/10">
+          <Loader2Icon className="h-7 w-7 animate-spin text-white" />
           <div className="text-center">
-            <p className="text-[13px] font-semibold tracking-tight text-slate-900">
+            <p className="text-[13px] font-semibold tracking-tight text-white">
               Joining your interview
             </p>
-            <p className="mt-0.5 text-[11px] text-slate-500">
+            <p className="mt-0.5 text-[11px] text-white/50">
               Preparing camera, mic and AI assistant
             </p>
           </div>
@@ -80,21 +80,21 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
   });
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#f7f8fa] text-slate-900 antialiased">
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#0B0F17] text-white antialiased">
       {/* ===== Top Bar ===== */}
-      <header className="z-20 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-3">
+      <header className="z-20 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#0F141D] px-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-white">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-[#0B0F17] ring-1 ring-white/20">
             <span className="text-[12px] font-bold tracking-tight">I</span>
           </div>
           <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-[12px] font-semibold tracking-tight text-slate-900">
+            <span className="truncate text-[12px] font-semibold tracking-tight text-white">
               {session?.title || "Interview Session"}
             </span>
-            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-500">
+            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-white/60">
               <CircleDotIcon className="h-2 w-2 text-red-500" />
-              <span className="font-medium">Recording</span>
-              <span className="text-slate-300">•</span>
+              <span className="font-medium text-white/80">Recording</span>
+              <span className="text-white/20">•</span>
               <span>{timeLabel}</span>
             </div>
           </div>
@@ -102,17 +102,17 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
 
         <div className="flex shrink-0 items-center gap-1.5">
           <div
-            className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 ring-1 ring-emerald-100 xl:flex"
+            className="hidden items-center gap-1.5 rounded-full bg-white/5 px-2 py-1 ring-1 ring-emerald-400/30 xl:flex"
             title="AI Face Recognition Active"
           >
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-medium text-emerald-700">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="text-[10px] font-medium text-emerald-300">
               AI Active
             </span>
           </div>
 
-          <div className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700">
-            <UsersIcon className="h-3 w-3 text-slate-500" />
+          <div className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[11px] font-medium text-white ring-1 ring-white/10">
+            <UsersIcon className="h-3 w-3 text-white/70" />
             <span>{participantCount}</span>
           </div>
 
@@ -120,10 +120,10 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
             <button
               type="button"
               onClick={() => setIsChatOpen((v) => !v)}
-              className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+              className={`flex h-7 w-7 items-center justify-center rounded-full ring-1 transition ${
                 isChatOpen
-                  ? "bg-slate-900 text-white hover:bg-slate-800"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "bg-white text-[#0B0F17] ring-white/20 hover:bg-white/90"
+                  : "bg-white/10 text-white ring-white/15 hover:bg-white/20"
               }`}
               aria-label="Toggle chat"
             >
@@ -137,20 +137,20 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
       <div className="relative flex min-h-0 flex-1">
         {/* Stage */}
         <main className="relative flex min-w-0 flex-1 flex-col p-2">
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl bg-slate-900 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.4)] ring-1 ring-slate-200">
-            <div className="str-video absolute inset-0 pb-20">
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl bg-[#111826] shadow-[0_10px_40px_-20px_rgba(0,0,0,0.7)] ring-1 ring-white/10">
+            <div className="str-video str-video--dark-controls-theme absolute inset-0 pb-20">
               <SpeakerLayout participantsBarPosition="bottom" />
             </div>
 
             {/* Floating LIVE badge */}
-            <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white backdrop-blur-md">
+            <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white ring-1 ring-white/15 backdrop-blur-md">
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
               LIVE
             </div>
 
-            {/* Floating Controls Bar — overlays inside stage so it never gets clipped */}
+            {/* Floating Controls Bar */}
             <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
-              <div className="str-video pointer-events-auto flex max-w-full items-center justify-center rounded-full bg-white/95 px-2 py-1.5 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.4)] ring-1 ring-black/5 backdrop-blur-md">
+              <div className="str-video str-video--dark-controls-theme pointer-events-auto flex max-w-full items-center justify-center rounded-full bg-black/70 px-2 py-1.5 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)] ring-1 ring-white/15 backdrop-blur-md">
                 <CallControls onLeave={handleLeave} />
               </div>
             </div>
@@ -159,20 +159,20 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
 
         {/* Chat Panel */}
         {chatClient && channel && isChatOpen && (
-          <aside className="absolute inset-y-0 right-0 z-30 flex w-full max-w-[340px] flex-col border-l border-slate-200 bg-white shadow-2xl sm:relative sm:shadow-none">
-            <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-200 px-3">
+          <aside className="absolute inset-y-0 right-0 z-30 flex w-full max-w-[340px] flex-col border-l border-white/10 bg-[#0F141D] shadow-2xl sm:relative sm:shadow-none">
+            <div className="flex h-12 shrink-0 items-center justify-between border-b border-white/10 px-3">
               <div className="flex min-w-0 flex-col leading-tight">
-                <h3 className="truncate text-[12px] font-semibold tracking-tight text-slate-900">
+                <h3 className="truncate text-[12px] font-semibold tracking-tight text-white">
                   In-call messages
                 </h3>
-                <p className="truncate text-[10px] text-slate-500">
+                <p className="truncate text-[10px] text-white/50">
                   Visible to everyone in this room
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsChatOpen(false)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white/70 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
                 aria-label="Close chat"
               >
                 <XIcon className="h-4 w-4" />
@@ -180,7 +180,7 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col">
-              <Chat client={chatClient} theme="str-chat__theme-light">
+              <Chat client={chatClient} theme="str-chat__theme-dark">
                 <Channel channel={channel}>
                   <Window>
                     <MessageList />
@@ -193,6 +193,43 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
           </aside>
         )}
       </div>
+
+      {/* ===== Stream SDK dark-theme + icon overrides ===== */}
+      <style>{`
+        .str-video--dark-controls-theme .str-video__call-controls__button {
+          background: rgba(255, 255, 255, 0.08) !important;
+          border: 1px solid rgba(255, 255, 255, 0.35) !important;
+          color: #ffffff !important;
+        }
+        .str-video--dark-controls-theme .str-video__call-controls__button svg {
+          color: #ffffff !important;
+          fill: #ffffff !important;
+        }
+        .str-video--dark-controls-theme .str-video__call-controls__button:hover {
+          background: rgba(255, 255, 255, 0.16) !important;
+        }
+        /* Disabled / off state (mic muted, camera off) keeps red fill, white icon+border */
+        .str-video--dark-controls-theme .str-video__call-controls__button--variant-danger {
+          background: rgba(222, 53, 11, 0.9) !important;
+          border: 1px solid rgba(255, 255, 255, 0.5) !important;
+        }
+        .str-video--dark-controls-theme .str-video__call-controls__button--variant-danger svg {
+          color: #ffffff !important;
+          fill: #ffffff !important;
+        }
+        /* Participant name labels / call stats text */
+        .str-video--dark-controls-theme .str-video__participant-details__name,
+        .str-video--dark-controls-theme .str-video__participant-details,
+        .str-video--dark-controls-theme .str-video__participant-view__label {
+          color: #ffffff !important;
+        }
+        /* Camera-off placeholder circle: neutral dark ring instead of flat blue */
+        .str-video--dark-controls-theme .str-video__avatar-fallback {
+          background: #1E2A3D !important;
+          color: #ffffff !important;
+          border: 2px solid rgba(255, 255, 255, 0.25) !important;
+        }
+      `}</style>
     </div>
   );
 }
