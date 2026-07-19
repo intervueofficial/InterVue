@@ -2,13 +2,7 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const roles = [
-  {
-    id: "admin",
-    title: "Administrator",
-    description:
-      "Manage users, interview schedules, coding problems, quizzes and platform analytics.",
-    initials: "AD",
-  },
+ 
   {
     id: "interviewer",
     title: "Interviewer",

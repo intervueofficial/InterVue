@@ -10,6 +10,12 @@ import {
   XCircle,
   Loader2,
   X,
+  Clock,
+  AlertCircle,
+  ChevronRight,
+  GraduationCap,
+  Layers,
+  Building2,
 } from "lucide-react";
 
 import { jobApi } from "../../api/jobApi";
@@ -17,70 +23,501 @@ import { applicationApi } from "../../api/applicationApi";
 import useAuthUser from "../../hooks/useAuthUser";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
+import { THEME } from "../../constants/theme";
 
-const STATUS_LABEL = {
-  applied: { text: "Applied — awaiting review", cls: "bg-blue-50 text-blue-700" },
-  not_eligible: { text: "Not Eligible", cls: "bg-red-50 text-red-600" },
-  selected: { text: "Selected 🎉", cls: "bg-green-50 text-green-700" },
-  rejected: { text: "Not Selected", cls: "bg-slate-100 text-slate-500" },
+/* ─── Status badge config — data-driven, no hardcoded copy in JSX ───────── */
+const STATUS_CONFIG = {
+  applied: {
+    label: "Awaiting Review",
+    bg: "#EFF6FF",
+    text: "#1D4ED8",
+    border: "#BFDBFE",
+    dot: "#2563EB",
+  },
+  not_eligible: {
+    label: "Not Eligible",
+    bg: "#FEF2F2",
+    text: "#B91C1C",
+    border: "#FECACA",
+    dot: "#DC2626",
+  },
+  selected: {
+    label: "Selected",
+    bg: "#F0FDF4",
+    text: "#15803D",
+    border: "#BBF7D0",
+    dot: "#16A34A",
+  },
+  rejected: {
+    label: "Not Selected",
+    bg: "#F8FAFC",
+    text: "#475569",
+    border: "#E2E8F0",
+    dot: "#64748B",
+  },
 };
 
+function StatusBadge({ status }) {
+  const config = STATUS_CONFIG[status];
+  if (!config) return null;
+
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
+      style={{ background: config.bg, color: config.text, boxShadow: `inset 0 0 0 1px ${config.border}` }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: config.dot }} />
+      {config.label}
+    </span>
+  );
+}
+
+/* ─── Eligibility result modal ───────────────────────────────────────────── */
 const EligibilityModal = ({ result, onClose }) => {
   if (!result) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
-      <div className="relative bg-white rounded-3xl w-full max-w-md shadow-2xl p-8 text-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: "rgba(15, 23, 42, 0.45)" }}
+    >
+      <div
+        className="relative w-full max-w-md rounded-2xl bg-white"
+        style={{ border: `1px solid ${THEME.border}`, boxShadow: "0 20px 60px rgba(15,23,42,0.25)" }}
+      >
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center"
+          className="absolute top-5 right-5 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+          style={{ color: THEME.inkFaint }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
-          <X size={18} />
+          <X size={16} />
         </button>
 
-        {result.isEligible ? (
-          <>
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-green-50 flex items-center justify-center mb-4">
-              <CheckCircle2 className="text-green-600" size={32} />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900">You're Eligible!</h2>
-            <p className="text-slate-500 mt-2 text-sm">
-              Your application has been sent to the interviewer for review.
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-red-50 flex items-center justify-center mb-4">
-              <XCircle className="text-red-600" size={32} />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900">Not Eligible</h2>
-            <p className="text-slate-500 mt-2 text-sm mb-3">
-              Your profile doesn't match this job's criteria:
-            </p>
-            <ul className="text-left text-sm text-red-600 space-y-1 bg-red-50 rounded-xl p-4">
-              {result.failedCriteria.map((reason, i) => (
-                <li key={i}>• {reason}</li>
-              ))}
-            </ul>
-          </>
-        )}
+        <div className="p-8">
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+            style={{
+              background: result.isEligible ? "#F0FDF4" : "#FEF2F2",
+            }}
+          >
+            {result.isEligible ? (
+              <CheckCircle2 size={22} color="#16A34A" strokeWidth={2} />
+            ) : (
+              <XCircle size={22} color="#DC2626" strokeWidth={2} />
+            )}
+          </div>
 
-        <button
-          onClick={onClose}
-          className="mt-6 w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white py-3 font-medium"
-        >
-          Got it
-        </button>
+          <h2
+            style={{ fontFamily: THEME.fontDisplay, fontSize: 18, fontWeight: 600, color: THEME.ink }}
+          >
+            {result.isEligible ? "Application submitted" : "Criteria not met"}
+          </h2>
+
+          {result.isEligible ? (
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: THEME.inkMuted }}>
+              Your application has been sent to the interviewer for review. You'll be notified
+              once a decision has been made.
+            </p>
+          ) : (
+            <>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: THEME.inkMuted }}>
+                Your profile does not currently meet the requirements for this role:
+              </p>
+              <ul
+                className="mt-4 rounded-xl p-4 space-y-2 text-sm"
+                style={{ background: THEME.surface2, color: THEME.ink }}
+              >
+                {(result.failedCriteria || []).map((reason, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 rounded-full flex-shrink-0" style={{ background: THEME.inkFaint }} />
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <button
+            onClick={onClose}
+            className="mt-6 w-full rounded-lg py-2.5 text-sm font-semibold transition-colors"
+            style={{ background: THEME.ink, color: THEME.surface }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
+/* ─── Job details modal ──────────────────────────────────────────────────── */
+const JobDetailsModal = ({ job, onClose, profileComplete, onApply, isApplying }) => {
+  if (!job) return null;
+
+  const status = job.applicationStatus;
+  const criteria = job.criteria || {};
+  const hasCriteria =
+    (criteria.requiredDegrees && criteria.requiredDegrees.length > 0) ||
+    (criteria.requiredSkills && criteria.requiredSkills.length > 0) ||
+    (criteria.minExperience && criteria.minExperience > 0) ||
+    criteria.qualificationNote;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: "rgba(15, 23, 42, 0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl bg-white"
+        style={{ border: `1px solid ${THEME.border}`, boxShadow: "0 20px 60px rgba(15,23,42,0.25)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 w-8 h-8 rounded-lg flex items-center justify-center transition-colors z-10"
+          style={{ color: THEME.inkFaint, background: THEME.surface }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = THEME.surface)}
+        >
+          <X size={16} />
+        </button>
+
+        <div className="p-8">
+          <div className="flex items-start gap-4">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: THEME.surface2 }}
+            >
+              <Briefcase size={20} color={THEME.inkMuted} strokeWidth={2} />
+            </div>
+
+            <div className="min-w-0 flex-1 pr-8">
+              <h2
+                style={{ fontFamily: THEME.fontDisplay, fontSize: 19, fontWeight: 600, color: THEME.ink }}
+              >
+                {job.title}
+              </h2>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-xs" style={{ color: THEME.inkFaint }}>
+                {job.location && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin size={12} />
+                    {job.location}
+                  </span>
+                )}
+                {job.employmentType && (
+                  <span className="flex items-center gap-1.5">
+                    <Clock size={12} />
+                    {job.employmentType}
+                  </span>
+                )}
+                {job.department && (
+                  <span className="flex items-center gap-1.5">
+                    <Building2 size={12} />
+                    {job.department}
+                  </span>
+                )}
+              </div>
+
+              {status && (
+                <div className="mt-3">
+                  <StatusBadge status={status} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {job.description && (
+            <div className="mt-6">
+              <p
+                className="text-xs font-semibold uppercase tracking-wide mb-2"
+                style={{ color: THEME.inkFaint, letterSpacing: "0.04em" }}
+              >
+                About the role
+              </p>
+              <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: THEME.inkMuted }}>
+                {job.description}
+              </p>
+            </div>
+          )}
+
+          {hasCriteria && (
+            <div className="mt-6">
+              <p
+                className="text-xs font-semibold uppercase tracking-wide mb-3"
+                style={{ color: THEME.inkFaint, letterSpacing: "0.04em" }}
+              >
+                Requirements
+              </p>
+
+              <div className="space-y-3">
+                {criteria.requiredDegrees && criteria.requiredDegrees.length > 0 && (
+                  <div
+                    className="flex items-start gap-3 rounded-lg px-3.5 py-3"
+                    style={{ background: THEME.surface2 }}
+                  >
+                    <GraduationCap size={16} className="flex-shrink-0 mt-0.5" color={THEME.inkFaint} />
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: THEME.ink }}>
+                        Accepted degrees
+                      </p>
+                      <p className="text-sm mt-0.5" style={{ color: THEME.inkMuted }}>
+                        {criteria.requiredDegrees.join(", ")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {criteria.minExperience > 0 && (
+                  <div
+                    className="flex items-start gap-3 rounded-lg px-3.5 py-3"
+                    style={{ background: THEME.surface2 }}
+                  >
+                    <Clock size={16} className="flex-shrink-0 mt-0.5" color={THEME.inkFaint} />
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: THEME.ink }}>
+                        Minimum experience
+                      </p>
+                      <p className="text-sm mt-0.5" style={{ color: THEME.inkMuted }}>
+                        {criteria.minExperience} {criteria.minExperience === 1 ? "year" : "years"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {criteria.requiredSkills && criteria.requiredSkills.length > 0 && (
+                  <div
+                    className="flex items-start gap-3 rounded-lg px-3.5 py-3"
+                    style={{ background: THEME.surface2 }}
+                  >
+                    <Layers size={16} className="flex-shrink-0 mt-0.5" color={THEME.inkFaint} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold" style={{ color: THEME.ink }}>
+                        Required skills
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {criteria.requiredSkills.map((skill, i) => (
+                          <span
+                            key={i}
+                            className="text-xs px-2 py-1 rounded-md"
+                            style={{ background: THEME.surface, color: THEME.ink, border: `1px solid ${THEME.border}` }}
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {criteria.qualificationNote && (
+                  <div
+                    className="flex items-start gap-3 rounded-lg px-3.5 py-3"
+                    style={{ background: THEME.surface2 }}
+                  >
+                    <AlertCircle size={16} className="flex-shrink-0 mt-0.5" color={THEME.inkFaint} />
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: THEME.ink }}>
+                        Additional note
+                      </p>
+                      <p className="text-sm mt-0.5" style={{ color: THEME.inkMuted }}>
+                        {criteria.qualificationNote}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8 flex items-center gap-3">
+            {job.hasApplied ? (
+              <button
+                disabled
+                className="flex-1 rounded-lg py-2.5 text-sm font-semibold cursor-not-allowed"
+                style={{ background: THEME.surface2, color: THEME.inkFaint }}
+              >
+                Already Applied
+              </button>
+            ) : (
+              <button
+                disabled={!profileComplete || isApplying}
+                onClick={onApply}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: THEME.ink, color: THEME.surface }}
+                onMouseEnter={(e) => !isApplying && (e.currentTarget.style.opacity = "0.88")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                {isApplying ? <Loader2 className="animate-spin" size={14} /> : null}
+                {isApplying ? "Applying" : "Apply for this role"}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-lg py-2.5 px-5 text-sm font-semibold transition-colors"
+              style={{ background: THEME.surface, color: THEME.ink, border: `1px solid ${THEME.border}` }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = THEME.surface)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Loading skeleton ───────────────────────────────────────────────────── */
+function JobListSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="rounded-xl p-5 animate-pulse"
+          style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg" style={{ background: THEME.surface2 }} />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/3 rounded" style={{ background: THEME.surface2 }} />
+              <div className="h-3 w-1/4 rounded" style={{ background: THEME.surface2 }} />
+            </div>
+            <div className="h-8 w-20 rounded-lg" style={{ background: THEME.surface2 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────────── */
+function EmptyState() {
+  return (
+    <div
+      className="rounded-xl p-12 text-center"
+      style={{ background: THEME.surface, border: `1px dashed ${THEME.border}` }}
+    >
+      <div
+        className="w-11 h-11 mx-auto rounded-xl flex items-center justify-center mb-3"
+        style={{ background: THEME.surface2 }}
+      >
+        <Briefcase size={18} color={THEME.inkFaint} />
+      </div>
+      <p className="text-sm font-semibold" style={{ color: THEME.ink }}>
+        No open roles right now
+      </p>
+      <p className="text-sm mt-1" style={{ color: THEME.inkFaint }}>
+        New openings will appear here as soon as they're published.
+      </p>
+    </div>
+  );
+}
+
+/* ─── Single job row ─────────────────────────────────────────────────────── */
+function JobRow({ job, profileComplete, onApply, isApplying, onOpenDetails }) {
+  const status = job.applicationStatus;
+
+  return (
+    <div
+      className="rounded-xl transition-colors cursor-pointer"
+      style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.borderStrong)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = THEME.border)}
+      onClick={onOpenDetails}
+    >
+      <div className="p-5 flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: THEME.surface2 }}
+        >
+          <Briefcase size={18} color={THEME.inkMuted} strokeWidth={2} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <h3
+              style={{ fontFamily: THEME.fontDisplay, fontSize: 15, fontWeight: 600, color: THEME.ink }}
+            >
+              {job.title}
+            </h3>
+            {status && <StatusBadge status={status} />}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-xs" style={{ color: THEME.inkFaint }}>
+            {job.location && (
+              <span className="flex items-center gap-1.5">
+                <MapPin size={12} />
+                {job.location}
+              </span>
+            )}
+            {job.employmentType && (
+              <span className="flex items-center gap-1.5">
+                <Clock size={12} />
+                {job.employmentType}
+              </span>
+            )}
+            {job.department && (
+              <span className="flex items-center gap-1.5">
+                <ChevronRight size={12} />
+                {job.department}
+              </span>
+            )}
+          </div>
+
+          {job.description && (
+            <p className="mt-2.5 text-sm leading-relaxed line-clamp-2" style={{ color: THEME.inkMuted }}>
+              {job.description}
+            </p>
+          )}
+
+          {job.criteria?.qualificationNote && (
+            <div
+              className="mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs"
+              style={{ background: THEME.surface2, color: THEME.inkMuted }}
+            >
+              <AlertCircle size={13} className="flex-shrink-0 mt-0.5" color={THEME.inkFaint} />
+              <span>{job.criteria.qualificationNote}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-shrink-0 md:pt-0.5">
+          {job.hasApplied ? null : (
+            <button
+              disabled={!profileComplete || isApplying}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApply();
+              }}
+              className="flex items-center gap-2 rounded-lg font-semibold text-[13px] px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: THEME.ink, color: THEME.surface }}
+              onMouseEnter={(e) => !isApplying && (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              {isApplying ? <Loader2 className="animate-spin" size={14} /> : null}
+              {isApplying ? "Applying" : "Apply"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main page ───────────────────────────────────────────────────────────── */
 const CandidateJobs = () => {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { data: authUser } = useAuthUser();
   const [eligibilityResult, setEligibilityResult] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["open-jobs"],
@@ -89,95 +526,89 @@ const CandidateJobs = () => {
 
   const jobs = data?.jobs || [];
   const profileComplete = authUser?.candidateProfile?.isComplete;
+  const selectedJob = jobs.find((j) => j._id === selectedJobId) || null;
 
   const applyMutation = useMutation({
     mutationFn: async (jobId) => applicationApi.applyToJob(jobId, await getToken()),
     onSuccess: (res) => {
+      setSelectedJobId(null);
       setEligibilityResult(res);
       queryClient.invalidateQueries({ queryKey: ["open-jobs"] });
     },
-    onError: (e) => toast.error(e.response?.data?.message || "Failed to apply"),
+    onError: (e) => toast.error(e.response?.data?.message || "Failed to submit application"),
   });
+
+  const notAppliedCount = jobs.filter((j) => !j.hasApplied).length;
+  const appliedCount = jobs.length - notAppliedCount;
 
   return (
     <AppShell scope="candidate">
-      <PageHeader
-        eyebrow="Candidate"
-        title="Jobs Board"
-        description="Browse open roles and apply. We'll check your profile against the criteria instantly."
-      />
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Candidate"
+          title="Jobs Board"
+          description="Browse open roles. Your profile is checked against each role's criteria automatically when you apply."
+        />
 
-      {!profileComplete && (
-        <div className="mt-6 rounded-xl bg-amber-50 text-amber-700 text-sm px-4 py-3 flex items-center justify-between">
-          <span>Complete your profile before applying to jobs.</span>
-          <Link to="/candidate/profile" className="font-semibold underline">
-            Go to Profile
-          </Link>
-        </div>
-      )}
-
-      <div className="mt-6 space-y-4">
-        {isLoading ? (
-          <div className="p-12 text-center text-slate-400">Loading jobs...</div>
-        ) : jobs.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
-            No open jobs right now. Check back soon.
+        {!profileComplete && (
+          <div
+            className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-4"
+            style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
+          >
+            <div className="flex items-center gap-2.5 text-sm" style={{ color: "#92400E" }}>
+              <AlertCircle size={16} />
+              <span>Complete your profile before applying to a role.</span>
+            </div>
+            <Link
+              to="/candidate/profile"
+              className="text-sm font-semibold whitespace-nowrap"
+              style={{ color: "#92400E" }}
+            >
+              Complete Profile
+            </Link>
           </div>
+        )}
+
+        {!isLoading && jobs.length > 0 && (
+          <div className="flex items-center gap-2 text-sm" style={{ color: THEME.inkFaint }}>
+            <span className="font-semibold" style={{ color: THEME.ink }}>{jobs.length}</span>
+            <span>{jobs.length === 1 ? "role listed" : "roles listed"}</span>
+            <span>·</span>
+            <span className="font-semibold" style={{ color: THEME.ink }}>{appliedCount}</span>
+            <span>applied</span>
+            <span>·</span>
+            <span className="font-semibold" style={{ color: THEME.ink }}>{notAppliedCount}</span>
+            <span>not applied yet</span>
+          </div>
+        )}
+
+        {isLoading ? (
+          <JobListSkeleton />
+        ) : jobs.length === 0 ? (
+          <EmptyState />
         ) : (
-          jobs.map((job) => {
-            const status = job.applicationStatus && STATUS_LABEL[job.applicationStatus];
-
-            return (
-              <div
+          <div className="space-y-3">
+            {jobs.map((job) => (
+              <JobRow
                 key={job._id}
-                className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <Briefcase className="text-blue-600" size={24} />
-                </div>
-
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-slate-900">{job.title}</h3>
-                  <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <MapPin size={14} /> {job.location}
-                    </span>
-                    <span>{job.employmentType}</span>
-                  </div>
-                  {job.description && (
-                    <p className="text-sm text-slate-600 mt-2 line-clamp-2">{job.description}</p>
-                  )}
-                  {job.criteria?.qualificationNote && (
-                    <p className="text-xs text-slate-400 mt-2 italic">
-                      {job.criteria.qualificationNote}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  {job.hasApplied ? (
-                    <span className={`text-xs font-semibold px-3 py-2 rounded-full ${status?.cls}`}>
-                      {status?.text}
-                    </span>
-                  ) : (
-                    <button
-                      disabled={!profileComplete || applyMutation.isPending}
-                      onClick={() => applyMutation.mutate(job._id)}
-                      className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 font-medium disabled:opacity-40 flex items-center gap-2"
-                    >
-                      {applyMutation.isPending && applyMutation.variables === job._id ? (
-                        <Loader2 className="animate-spin" size={16} />
-                      ) : (
-                        "Apply"
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
+                job={job}
+                profileComplete={profileComplete}
+                isApplying={applyMutation.isPending && applyMutation.variables === job._id}
+                onApply={() => applyMutation.mutate(job._id)}
+                onOpenDetails={() => setSelectedJobId(job._id)}
+              />
+            ))}
+          </div>
         )}
       </div>
+
+      <JobDetailsModal
+        job={selectedJob}
+        onClose={() => setSelectedJobId(null)}
+        profileComplete={profileComplete}
+        isApplying={applyMutation.isPending && applyMutation.variables === selectedJobId}
+        onApply={() => selectedJobId && applyMutation.mutate(selectedJobId)}
+      />
 
       <EligibilityModal result={eligibilityResult} onClose={() => setEligibilityResult(null)} />
     </AppShell>

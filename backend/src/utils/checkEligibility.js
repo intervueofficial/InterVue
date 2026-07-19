@@ -1,55 +1,121 @@
 /**
- * Strict eligibility check: every criterion on the job must be
- * satisfied by the candidate's profile, or the application is
- * marked not eligible with the specific reasons listed.
+ * Strict eligibility check:
+ * Every required criterion must be satisfied.
+ * Skill comparison is case-insensitive and supports
+ * common naming variations (React ↔ React.js, Node ↔ Node.js, etc.).
  */
+
+const skillAliases = {
+  "react.js": "react",
+  reactjs: "react",
+  react: "react",
+
+  "node.js": "node",
+  nodejs: "node",
+  node: "node",
+
+  "express.js": "express",
+  expressjs: "express",
+  express: "express",
+
+  mongodb: "mongo",
+  "mongo db": "mongo",
+  mongo: "mongo",
+
+  "next.js": "next",
+  nextjs: "next",
+  next: "next",
+
+  javascript: "javascript",
+  js: "javascript",
+
+  typescript: "typescript",
+  ts: "typescript",
+
+  html5: "html",
+  css3: "css",
+
+  "machine-learning": "machine learning",
+  ml: "machine learning",
+
+  ai: "artificial intelligence",
+};
+
+function normalizeSkill(skill = "") {
+  let normalized = skill
+    .trim()
+    .toLowerCase()
+    .replace(/[._-]/g, " ")
+    .replace(/\s+/g, " ");
+
+  return skillAliases[normalized] || normalized;
+}
+
+function skillsMatch(requiredSkill, candidateSkill) {
+  const required = normalizeSkill(requiredSkill);
+  const candidate = normalizeSkill(candidateSkill);
+
+  return (
+    required === candidate ||
+    required.includes(candidate) ||
+    candidate.includes(required)
+  );
+}
+
 export function checkEligibility(job, profile) {
   const failedCriteria = [];
 
   const criteria = job.criteria || {};
-  const requiredDegrees = (criteria.requiredDegrees || []).map((d) =>
-    d.trim().toLowerCase()
-  );
-  const requiredSkills = (criteria.requiredSkills || []).map((s) =>
-    s.trim().toLowerCase()
-  );
-  const minExperience = criteria.minExperience || 0;
 
-  // Degree — must exactly match one of the accepted degrees
+  const requiredDegrees = (criteria.requiredDegrees || []).map((degree) =>
+    degree.trim().toLowerCase()
+  );
+
+  const requiredSkills = criteria.requiredSkills || [];
+
+  const minExperience = Number(criteria.minExperience || 0);
+
+  // Degree Check
   if (requiredDegrees.length > 0) {
-    const candidateDegree = (profile.degree || "").trim().toLowerCase();
+    const candidateDegree = (profile.degree || "")
+      .trim()
+      .toLowerCase();
 
-    if (!requiredDegrees.includes(candidateDegree)) {
+    const degreeMatched = requiredDegrees.some(
+      (degree) => degree === candidateDegree
+    );
+
+    if (!degreeMatched) {
       failedCriteria.push(
         `Degree must be one of: ${criteria.requiredDegrees.join(", ")}`
       );
     }
   }
 
-  // Experience — must meet or exceed minimum
-  if (minExperience > 0) {
-    const candidateExperience = profile.experienceYears || 0;
+  // Experience Check
+  const candidateExperience = Number(
+    profile.experienceYears || 0
+  );
 
-    if (candidateExperience < minExperience) {
-      failedCriteria.push(
-        `Requires at least ${minExperience} year(s) of experience`
-      );
-    }
+  if (candidateExperience < minExperience) {
+    failedCriteria.push(
+      `Requires at least ${minExperience} year(s) of experience`
+    );
   }
 
-  // Skills — every required skill must be present (strict match)
-  if (requiredSkills.length > 0) {
-    const candidateSkills = (profile.skills || []).map((s) =>
-      s.trim().toLowerCase()
-    );
+  // Skills Check
+  const candidateSkills = profile.skills || [];
 
-    const missingSkills = requiredSkills.filter(
-      (skill) => !candidateSkills.includes(skill)
+  const missingSkills = requiredSkills.filter((requiredSkill) => {
+    return !candidateSkills.some((candidateSkill) =>
+      skillsMatch(requiredSkill, candidateSkill)
     );
+  });
 
-    if (missingSkills.length > 0) {
-      failedCriteria.push(`Missing required skill(s): ${missingSkills.join(", ")}`);
-    }
+  if (missingSkills.length > 0) {
+    failedCriteria.push(
+      `Missing required skill(s): ${missingSkills.join(", ")}`
+    );
   }
 
   return {

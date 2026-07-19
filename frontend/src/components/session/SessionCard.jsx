@@ -25,25 +25,33 @@ const SessionCard = ({ session }) => {
   const isCandidate = role === "candidate";
   const isInterviewer = role === "interviewer";
 
+  const isNotFinished =
+    session.status !== "completed" && session.status !== "cancelled";
+
+  // Sessions created by the recruitment flow (interviewer accepts an
+  // applicant) already have both `candidate` and `interviewer` set on
+  // creation, so "join an open slot" never applies to them — the assigned
+  // interviewer/candidate should be able to enter directly instead.
+  const isAssignedCandidate =
+    session.candidate?._id?.toString() === authUser?._id?.toString();
+
+  const isAssignedInterviewer =
+    session.interviewer?._id?.toString() === authUser?._id?.toString();
+
   const canJoinCandidate =
-    isCandidate &&
-    !session.candidate &&
-    session.status !== "completed" &&
-    session.status !== "cancelled";
+    isCandidate && !session.candidate && isNotFinished;
 
   const canJoinInterviewer =
-    isInterviewer &&
-    !session.interviewer &&
-    session.status !== "completed" &&
-    session.status !== "cancelled";
+    isInterviewer && !session.interviewer && isNotFinished;
 
   const isLive = session.status === "live";
   const isWaiting = session.status === "waiting";
+  const isScheduled = session.status === "scheduled";
 
   const canEnterInterview =
-    (isLive || isWaiting) &&
-    (session.candidate?._id?.toString() === authUser?._id?.toString() ||
-      session.interviewer?._id?.toString() === authUser?._id?.toString());
+    (isLive || isWaiting || isScheduled) &&
+    isNotFinished &&
+    (isAssignedCandidate || isAssignedInterviewer);
 
   const handleJoin = () => {
     joinSession(session._id, {
@@ -52,7 +60,13 @@ const SessionCard = ({ session }) => {
   };
 
   const handleEnterInterview = () => {
-    navigate(`/session/${session._id}`);
+    // Re-run join even for an already-assigned user: it's a no-op on the
+    // assignment itself but is what flips status scheduled -> waiting/live
+    // and records startedAt once both sides are present.
+    joinSession(session._id, {
+      onSuccess: () => navigate(`/session/${session._id}`),
+      onError: () => navigate(`/session/${session._id}`),
+    });
   };
 
   const handleDelete = () => {

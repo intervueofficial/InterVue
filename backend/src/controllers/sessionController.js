@@ -77,8 +77,23 @@ export async function createSession(req, res) {
   }
 }
 
-export async function getActiveSessions(_, res) {
+export async function getActiveSessions(req, res) {
   try {
+    const { role, _id } = req.user;
+
+    // Admins manage the whole pipeline, so they can see every active
+    // session. Interviewers and candidates must only ever see sessions
+    // they are actually a party to — otherwise every interviewer/candidate
+    // would see every other candidate's private interview on this screen.
+    const scopeFilter =
+      role === "admin"
+        ? {}
+        : role === "interviewer"
+        ? { interviewer: _id }
+        : role === "candidate"
+        ? { candidate: _id }
+        : { _id: null }; // unknown role → no sessions
+
     const sessions = await Session.find({
       status: {
         $in: [
@@ -87,6 +102,7 @@ export async function getActiveSessions(_, res) {
           "live",
         ],
       },
+      ...scopeFilter,
     })
       .populate(
         "candidate",
