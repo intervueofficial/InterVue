@@ -46,4 +46,27 @@ export const applicationApi = {
     );
     return data;
   },
+
+  // Post-interview decision flow
+  getApplicationBySession: async (sessionId, token) => {
+    const { data } = await axiosInstance.get(
+      `/applications/by-session/${sessionId}`,
+      authHeader(token)
+    );
+    return data;
+  },
+
+  submitDecision: async (applicationId, decision, feedback, token) => {
+    const { data } = await axiosInstance.patch(
+      `/applications/${applicationId}/decision`,
+      { decision, feedback },
+      authHeader(token)
+    );
+    return data;
+  },
+
+  getWaitlist: async (token) => {
+    const { data } = await axiosInstance.get("/applications/waitlist", authHeader(token));
+    return data;
+  },
 };

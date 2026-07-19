@@ -37,6 +37,7 @@ import CandidateProfile from "./pages/candidate/Profile";
 
 // Interviewer (job applicants)
 import Applicants from "./pages/interviewer/Applicants";
+import Waitlist from "./pages/interviewer/Waitlist";
 
 function App() {
   const { isLoaded, isSignedIn } = useUser();
@@ -289,6 +290,15 @@ function App() {
           element={
             role === "interviewer"
               ? <Applicants />
+              : <Navigate replace to={dashboard} />
+          }
+        />
+
+        <Route
+          path="/waitlist"
+          element={
+            role === "interviewer"
+              ? <Waitlist />
               : <Navigate replace to={dashboard} />
           }
         />

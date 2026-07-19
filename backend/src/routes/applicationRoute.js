@@ -8,6 +8,9 @@ import {
   getApplicantsForJob,
   selectApplicant,
   rejectApplicant,
+  getApplicationBySession,
+  submitDecision,
+  getWaitlist,
 } from "../controllers/applicationController.js";
 
 const router = express.Router();
@@ -47,6 +50,28 @@ router.patch(
   protectRoute,
   requireRole("interviewer", "admin"),
   rejectApplicant
+);
+
+// Post-interview decision flow
+router.get(
+  "/by-session/:sessionId",
+  protectRoute,
+  requireRole("interviewer", "admin"),
+  getApplicationBySession
+);
+
+router.patch(
+  "/:id/decision",
+  protectRoute,
+  requireRole("interviewer", "admin"),
+  submitDecision
+);
+
+router.get(
+  "/waitlist",
+  protectRoute,
+  requireRole("interviewer", "admin"),
+  getWaitlist
 );
 
 export default router;

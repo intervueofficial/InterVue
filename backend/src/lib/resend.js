@@ -192,6 +192,7 @@ export async function sendRejectionEmail({
   to,
   name,
   jobTitle,
+  feedback,
 }) {
   return resend.send({
     to,
@@ -228,7 +229,7 @@ Application Update
 </p>
 
 <h2 style="margin:0;color:#111827;font-size:24px;">
-Thank you for applying
+Thank you for interviewing with us
 </h2>
 
 <p style="margin-top:28px;color:#374151;font-size:15px;line-height:28px;">
@@ -237,19 +238,141 @@ Dear ${name},
 
 <p style="color:#4b5563;font-size:15px;line-height:28px;">
 Thank you for your interest in the position of
-<strong>${jobTitle}</strong> and for taking the time to submit your application.
+<strong>${jobTitle}</strong> and for taking the time to interview with our team.
 </p>
 
 <p style="color:#4b5563;font-size:15px;line-height:28px;">
 After careful consideration, we have decided to move forward with other candidates whose qualifications more closely match the current requirements of this role.
 </p>
 
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
+${
+  feedback
+    ? `<table width="100%" cellpadding="14" cellspacing="0" style="margin-top:10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+<tr>
+<td>
+<p style="margin:0;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+Feedback from your interviewer
+</p>
+<p style="margin:6px 0 0;color:#374151;font-size:14px;line-height:24px;">
+${feedback}
+</p>
+</td>
+</tr>
+</table>`
+    : ""
+}
+
+<p style="color:#4b5563;font-size:15px;line-height:28px;margin-top:25px;">
 This decision does not diminish the effort you invested in your application, and we sincerely appreciate your interest in joining our organization.
 </p>
 
 <p style="color:#4b5563;font-size:15px;line-height:28px;">
 We encourage you to stay connected with InterVue and apply for future opportunities that align with your skills and experience.
+</p>
+
+<hr style="margin:35px 0;border:none;border-top:1px solid #e5e7eb;">
+
+<p style="color:#111827;font-size:15px;line-height:26px;">
+Kind regards,<br>
+InterVue Recruitment Team
+</p>
+
+</td>
+</tr>
+
+<tr>
+<td style="background:#f9fafb;padding:22px;text-align:center;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb;">
+&copy; ${new Date().getFullYear()} InterVue. All rights reserved.
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`,
+  });
+}
+
+export async function sendHiredEmail({
+  to,
+  name,
+  jobTitle,
+  feedback,
+}) {
+  return resend.send({
+    to,
+    subject: `Congratulations! You've been selected | ${jobTitle} | InterVue`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>You're Hired</title>
+</head>
+
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Segoe UI,Arial,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+<tr>
+<td align="center">
+
+<table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
+
+<tr>
+<td style="background:#065f46;padding:24px 36px;">
+<span style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
+InterVue
+</span>
+</td>
+</tr>
+
+<tr>
+<td style="padding:40px;">
+
+<p style="margin:0 0 6px;color:#059669;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">
+Final Decision
+</p>
+
+<h2 style="margin:0;color:#111827;font-size:24px;">
+Congratulations, you've been selected! 🎉
+</h2>
+
+<p style="margin-top:28px;color:#374151;font-size:15px;line-height:28px;">
+Dear ${name},
+</p>
+
+<p style="color:#4b5563;font-size:15px;line-height:28px;">
+We are delighted to inform you that, following your interview, you have been selected for the position of <strong>${jobTitle}</strong>.
+</p>
+
+<p style="color:#4b5563;font-size:15px;line-height:28px;">
+Our team was impressed with your performance and believes you'll be a great fit. Our HR team will reach out shortly with next steps and onboarding details.
+</p>
+
+${
+  feedback
+    ? `<table width="100%" cellpadding="14" cellspacing="0" style="margin-top:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;">
+<tr>
+<td>
+<p style="margin:0;color:#065f46;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+Feedback from your interviewer
+</p>
+<p style="margin:6px 0 0;color:#065f46;font-size:14px;line-height:24px;">
+${feedback}
+</p>
+</td>
+</tr>
+</table>`
+    : ""
+}
+
+<p style="margin-top:25px;color:#4b5563;font-size:15px;line-height:28px;">
+Congratulations once again, and welcome aboard!
 </p>
 
 <hr style="margin:35px 0;border:none;border-top:1px solid #e5e7eb;">

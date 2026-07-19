@@ -3,7 +3,7 @@ import Job from "../models/Job.js";
 import Session from "../models/Session.js";
 import { streamClient, chatClient } from "../lib/stream.js";
 import { checkEligibility } from "../utils/checkEligibility.js";
-import { sendSelectionEmail, sendRejectionEmail } from "../lib/resend.js";
+import { sendSelectionEmail, sendRejectionEmail, sendHiredEmail } from "../lib/resend.js";
 import { ENV } from "../lib/env.js";
 
 // ==========================
@@ -212,6 +212,111 @@ export async function rejectApplicant(req, res) {
     return res.json({ success: true, application });
   } catch (error) {
     console.error("rejectApplicant:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
+
+// ==========================
+// Interviewer: look up the application tied to a session
+// (used right after a call ends to trigger the decision popup —
+// returns null if this session wasn't created from a job application,
+// e.g. an ad-hoc/practice session)
+// ==========================
+export async function getApplicationBySession(req, res) {
+  try {
+    const { sessionId } = req.params;
+
+    const application = await Application.findOne({ session: sessionId })
+      .populate("job", "title")
+      .populate("candidate", "name email");
+
+    if (!application) {
+      return res.json({ success: true, application: null });
+    }
+
+    return res.json({ success: true, application });
+  } catch (error) {
+    console.error("getApplicationBySession:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
+
+// ==========================
+// Interviewer: submit a post-interview decision
+// (hired / rejected / waitlisted), with feedback or a custom
+// message. Only "hired" and "rejected" trigger an email —
+// "waitlisted" just parks the candidate for a later decision.
+// ==========================
+export async function submitDecision(req, res) {
+  try {
+    const { decision, feedback } = req.body;
+
+    if (!["hired", "rejected", "waitlisted"].includes(decision)) {
+      return res.status(400).json({
+        success: false,
+        message: "Decision must be one of: hired, rejected, waitlisted",
+      });
+    }
+
+    const application = await Application.findById(req.params.id)
+      .populate("job")
+      .populate("candidate");
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
+
+    application.finalDecision = decision;
+    application.feedback = feedback || "";
+    application.decidedBy = req.user._id;
+    application.decidedAt = new Date();
+    application.decisionHistory.push({
+      decision,
+      feedback: feedback || "",
+      decidedBy: req.user._id,
+      decidedAt: new Date(),
+    });
+
+    await application.save();
+
+    if (decision === "hired") {
+      await sendHiredEmail({
+        to: application.candidate.email,
+        name: application.candidate.name,
+        jobTitle: application.job.title,
+        feedback: feedback || "",
+      });
+    } else if (decision === "rejected") {
+      await sendRejectionEmail({
+        to: application.candidate.email,
+        name: application.candidate.name,
+        jobTitle: application.job.title,
+        feedback: feedback || "",
+      });
+    }
+    // "waitlisted" -> no email, candidate just appears in the waitlist
+
+    return res.json({ success: true, application });
+  } catch (error) {
+    console.error("submitDecision:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
+
+// ==========================
+// Interviewer/Admin: list all currently waitlisted candidates
+// ==========================
+export async function getWaitlist(req, res) {
+  try {
+    const applications = await Application.find({ finalDecision: "waitlisted" })
+      .populate("job", "title department location")
+      .populate("candidate", "name email")
+      .populate("session")
+      .sort({ decidedAt: -1 });
+
+    return res.json({ success: true, applications });
+  } catch (error) {
+    console.error("getWaitlist:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 }

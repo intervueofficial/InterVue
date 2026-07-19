@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { useAuth } from "@clerk/clerk-react";
 import {
   Channel,
   Chat,
@@ -24,12 +25,15 @@ import {
 import toast from "react-hot-toast";
 
 import { useEndSession } from "../hooks/useSessions";
+import { applicationApi } from "../api/applicationApi";
+import SessionDecisionModal from "./SessionDecisionModal";
 
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import "stream-chat-react/dist/css/v2/index.css";
 
 function VideoCallUI({ chatClient, channel, session, isHost }) {
   const navigate = useNavigate();
+  const { getToken } = useAuth();
   const endSessionMutation = useEndSession();
 
   const { useCallCallingState, useParticipantCount } = useCallStateHooks();
@@ -38,6 +42,10 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [time, setTime] = useState(new Date());
+
+  const [decisionApplication, setDecisionApplication] = useState(null);
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+  const [submittingDecision, setSubmittingDecision] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000 * 30);
@@ -48,12 +56,64 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
     try {
       if (isHost) {
         await endSessionMutation.mutateAsync(session._id);
+
+        // Check whether this session came from the job application flow.
+        // If so, prompt the interviewer for a hire/reject/wait decision
+        // before leaving. Ad-hoc sessions with no linked application
+        // skip straight to the dashboard.
+        try {
+          const token = await getToken();
+          const { application } = await applicationApi.getApplicationBySession(
+            session._id,
+            token
+          );
+
+          if (application && application.finalDecision === "pending") {
+            setDecisionApplication(application);
+            setDecisionModalOpen(true);
+            return;
+          }
+        } catch (lookupErr) {
+          console.error("getApplicationBySession:", lookupErr);
+        }
       }
+
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Failed to end session");
     }
+  };
+
+  const handleDecisionSubmit = async (decision, feedback) => {
+    try {
+      setSubmittingDecision(true);
+      const token = await getToken();
+      await applicationApi.submitDecision(
+        decisionApplication._id,
+        decision,
+        feedback,
+        token
+      );
+
+      toast.success(
+        decision === "waitlisted"
+          ? "Candidate moved to waitlist"
+          : "Decision recorded — email sent to candidate"
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to submit decision");
+    } finally {
+      setSubmittingDecision(false);
+      setDecisionModalOpen(false);
+      navigate("/dashboard");
+    }
+  };
+
+  const handleDecisionSkip = () => {
+    setDecisionModalOpen(false);
+    navigate("/dashboard");
   };
 
   if (callingState === CallingState.JOINING) {
@@ -230,6 +290,14 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
           border: 2px solid rgba(255, 255, 255, 0.25) !important;
         }
       `}</style>
+
+      <SessionDecisionModal
+        open={decisionModalOpen}
+        application={decisionApplication}
+        onSubmit={handleDecisionSubmit}
+        onSkip={handleDecisionSkip}
+        loading={submittingDecision}
+      />
     </div>
   );
 }

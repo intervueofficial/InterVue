@@ -17,6 +17,7 @@ import {
   BotIcon,
   BriefcaseIcon,
   UserCheckIcon,
+  ClockIcon,
   UserCircleIcon,
 } from "lucide-react";
 
@@ -58,6 +59,7 @@ const NAV_BY_SCOPE = {
         { to: "/problems", label: "Problems", icon: Code2Icon },
         { to: "/quiz", label: "Quiz", icon: ClipboardListIcon },
         { to: "/applicants", label: "Applicants", icon: UserCheckIcon },
+        { to: "/waitlist", label: "Waitlist", icon: ClockIcon },
       ],
     },
   ],

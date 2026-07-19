@@ -65,6 +65,54 @@ const applicationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // ==========================
+    // Post-interview decision
+    // (set after the interviewer ends the video session)
+    // ==========================
+    finalDecision: {
+      type: String,
+      enum: ["pending", "hired", "rejected", "waitlisted"],
+      default: "pending",
+    },
+
+    // Latest feedback / custom message from the interviewer,
+    // used as the body of the email sent for the current decision.
+    feedback: {
+      type: String,
+      default: "",
+    },
+
+    decidedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    decidedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Full audit trail — a candidate can be waitlisted, revisited,
+    // and finally hired/rejected, each step logged here.
+    decisionHistory: {
+      type: [
+        {
+          decision: {
+            type: String,
+            enum: ["hired", "rejected", "waitlisted"],
+          },
+          feedback: String,
+          decidedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+          decidedAt: Date,
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true }
 );
