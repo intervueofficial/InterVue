@@ -21,9 +21,9 @@ router.get(
   getOpenJobs
 );
 
-// Admin CRUD
+// Admin CRUD (interviewer also needs read access for the Applicants dropdown)
 router.post("/", protectRoute, requireRole("admin"), createJob);
-router.get("/", protectRoute, requireRole("admin"), getAllJobs);
+router.get("/", protectRoute, requireRole("admin", "interviewer"), getAllJobs);
 router.patch("/:id", protectRoute, requireRole("admin"), updateJob);
 router.delete("/:id", protectRoute, requireRole("admin"), deleteJob);
 
