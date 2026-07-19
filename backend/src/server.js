@@ -21,6 +21,8 @@ import authRoute from "./routes/authRoute.js";
 import problemRoute from "./routes/problemRoute.js";
 import adminRoute from "./routes/adminRoute.js";
  import quizRoute from "./routes/quizRoute.js"; // Enable after creating Quiz API
+import jobRoute from "./routes/jobRoute.js";
+import applicationRoute from "./routes/applicationRoute.js";
 
 const app = express();
 const __dirname = path.resolve();
@@ -72,6 +74,10 @@ app.use("/api/problems", problemRoute);
 
 // Quiz APIs (Coming Next)
  app.use("/api/quizzes", quizRoute);
+
+// Job Postings & Applications
+app.use("/api/jobs", jobRoute);
+app.use("/api/applications", applicationRoute);
 
 // ================= Health Check =================
 

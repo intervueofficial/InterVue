@@ -28,7 +28,33 @@ const userSchema = new mongoose.Schema(
 isActive: {
     type: Boolean,
     default: true
-}
+},
+
+// ==========================
+// Candidate Profile
+// ==========================
+candidateProfile: {
+  phone: { type: String, default: "" },
+
+  degree: { type: String, default: "" }, // e.g. "B.Tech", "M.Tech", "MCA"
+  fieldOfStudy: { type: String, default: "" }, // e.g. "Computer Science"
+  institution: { type: String, default: "" },
+  yearOfGraduation: { type: Number, default: null },
+
+  experienceYears: { type: Number, default: 0 },
+
+  skills: {
+    type: [String],
+    default: [],
+  },
+
+  resumeUrl: { type: String, default: "" },
+
+  isComplete: {
+    type: Boolean,
+    default: false,
+  },
+},
   },
   { timestamps: true } // createdAt, updatedAt
 );

@@ -59,3 +59,58 @@ export const selectRole = async (req, res) => {
     });
   }
 };
+
+export const updateCandidateProfile = async (req, res) => {
+  try {
+    const {
+      phone,
+      degree,
+      fieldOfStudy,
+      institution,
+      yearOfGraduation,
+      experienceYears,
+      skills,
+      resumeUrl,
+    } = req.body;
+
+    const profile = {
+      phone: phone || "",
+      degree: degree || "",
+      fieldOfStudy: fieldOfStudy || "",
+      institution: institution || "",
+      yearOfGraduation: yearOfGraduation || null,
+      experienceYears:
+        experienceYears === "" || experienceYears == null
+          ? 0
+          : Number(experienceYears),
+      skills: Array.isArray(skills)
+        ? skills.map((s) => s.trim()).filter(Boolean)
+        : [],
+      resumeUrl: resumeUrl || "",
+    };
+
+    // Consider the profile "complete" once the core required fields are filled
+    profile.isComplete = !!(
+      profile.degree &&
+      profile.fieldOfStudy &&
+      profile.yearOfGraduation &&
+      profile.skills.length > 0
+    );
+
+    req.user.candidateProfile = profile;
+
+    await req.user.save();
+
+    return res.status(200).json({
+      success: true,
+      user: req.user,
+    });
+  } catch (error) {
+    console.error("updateCandidateProfile:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};

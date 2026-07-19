@@ -15,6 +15,9 @@ import {
   XIcon,
   SearchIcon,
   BotIcon,
+  BriefcaseIcon,
+  UserCheckIcon,
+  UserCircleIcon,
 } from "lucide-react";
 
 import { THEME } from "../constants/theme";
@@ -35,6 +38,7 @@ const NAV_BY_SCOPE = {
       items: [
         { to: "/admin/problems", label: "Problems", icon: Code2Icon },
         { to: "/admin/quiz", label: "Quizzes", icon: ClipboardListIcon },
+        { to: "/admin/jobs", label: "Jobs", icon: BriefcaseIcon },
       ],
     },
     {
@@ -53,6 +57,7 @@ const NAV_BY_SCOPE = {
         { to: "/sessions", label: "Sessions", icon: VideoIcon },
         { to: "/problems", label: "Problems", icon: Code2Icon },
         { to: "/quiz", label: "Quiz", icon: ClipboardListIcon },
+        { to: "/applicants", label: "Applicants", icon: UserCheckIcon },
       ],
     },
   ],
@@ -61,6 +66,8 @@ const NAV_BY_SCOPE = {
       label: "Candidate",
       items: [
         { to: "/candidate/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
+        { to: "/candidate/jobs", label: "Jobs Board", icon: BriefcaseIcon },
+        { to: "/candidate/profile", label: "My Profile", icon: UserCircleIcon },
         { to: "/bot", label: "Mock Interview", icon: BotIcon, external: true },
         { to: "/candidate/interviews", label: "My Interviews", icon: CalendarCheckIcon },
         { to: "/candidate/sessions", label: "Sessions", icon: VideoIcon },

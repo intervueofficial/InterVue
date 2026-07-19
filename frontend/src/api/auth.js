@@ -14,4 +14,18 @@ export const authApi = {
 
     return data;
   },
+
+  async updateProfile(profile, token) {
+    const { data } = await axios.patch(
+      "/auth/profile",
+      profile,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return data;
+  },
 };

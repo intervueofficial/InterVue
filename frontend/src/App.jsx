@@ -26,11 +26,17 @@ import Users from "./pages/admin/Users";
 import Sessions from "./pages/Sessions";
 import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
+import AdminJobs from "./pages/admin/Jobs";
 
 // Candidate
 import CandidateDashboard from "./pages/candidate/Dashboard";
 import MyInterviews from "./pages/candidate/MyInterviews";
 import Results from "./pages/candidate/Results";
+import CandidateJobs from "./pages/candidate/Jobs";
+import CandidateProfile from "./pages/candidate/Profile";
+
+// Interviewer (job applicants)
+import Applicants from "./pages/interviewer/Applicants";
 
 function App() {
   const { isLoaded, isSignedIn } = useUser();
@@ -215,6 +221,11 @@ function App() {
             path="settings"
             element={<Settings />}
           />
+
+          <Route
+            path="jobs"
+            element={<AdminJobs />}
+          />
         </Route>
 
         {/* ================= INTERVIEWER ================= */}
@@ -273,6 +284,15 @@ function App() {
           }
         />
 
+        <Route
+          path="/applicants"
+          element={
+            role === "interviewer"
+              ? <Applicants />
+              : <Navigate replace to={dashboard} />
+          }
+        />
+
         {/* ================= CANDIDATE ================= */}
 
         <Route
@@ -307,6 +327,24 @@ function App() {
           element={
             role === "candidate"
               ? <Results />
+              : <Navigate replace to={dashboard} />
+          }
+        />
+
+        <Route
+          path="/candidate/jobs"
+          element={
+            role === "candidate"
+              ? <CandidateJobs />
+              : <Navigate replace to={dashboard} />
+          }
+        />
+
+        <Route
+          path="/candidate/profile"
+          element={
+            role === "candidate"
+              ? <CandidateProfile />
               : <Navigate replace to={dashboard} />
           }
         />
