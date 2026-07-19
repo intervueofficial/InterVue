@@ -36,7 +36,7 @@ const DecisionPopover = ({ application, decision, onCancel, onConfirm, loading }
           onChange={(e) => setFeedback(e.target.value)}
           rows={4}
           placeholder="Optional — this is included in the email sent to them"
-          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         <div className="mt-6 flex justify-end gap-3">

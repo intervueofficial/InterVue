@@ -59,13 +59,17 @@ const SessionDecisionModal = ({ open, application, onSubmit, onSkip, loading }) 
                 type="button"
                 onClick={() => setDecision(opt.key)}
                 className={`w-full text-left flex items-start gap-3 rounded-2xl border-2 px-4 py-3 transition-colors ${
-                  active ? opt.activeCls : "border-slate-200 hover:bg-slate-50"
+                  active ? opt.activeCls : "border-slate-200 text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 <Icon className={`shrink-0 mt-0.5 ${active ? "" : opt.iconCls}`} size={20} />
                 <div>
-                  <div className="font-semibold">{opt.label}</div>
-                  <div className="text-xs opacity-80">{opt.desc}</div>
+                  <div className={`font-semibold ${active ? "" : "text-slate-900"}`}>
+                    {opt.label}
+                  </div>
+                  <div className={`text-xs ${active ? "opacity-80" : "text-slate-500"}`}>
+                    {opt.desc}
+                  </div>
                 </div>
               </button>
             );
@@ -87,7 +91,7 @@ const SessionDecisionModal = ({ open, application, onSubmit, onSkip, loading }) 
                 ? "Optional — e.g. what impressed you"
                 : "Optional — note for yourself, not emailed"
             }
-            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -95,7 +99,7 @@ const SessionDecisionModal = ({ open, application, onSubmit, onSkip, loading }) 
           <button
             onClick={onSkip}
             disabled={loading}
-            className="px-5 py-3 rounded-xl border text-sm hover:bg-slate-50"
+            className="px-5 py-3 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50"
           >
             Decide later
           </button>
