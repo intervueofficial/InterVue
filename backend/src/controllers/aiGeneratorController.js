@@ -10,6 +10,17 @@ const FALLBACK_MODELS = [
   "meta-llama/llama-3.3-70b-instruct",
 ];
 
+// --- Startup sanity check ---
+if (!process.env.OPENROUTER_API_KEY) {
+  console.error(
+    "⚠️  OPENROUTER_API_KEY is missing from environment variables. All AI generation requests will fail and fall back to static responses."
+  );
+} else {
+  console.log(
+    `OPENROUTER_API_KEY loaded (starts with: ${process.env.OPENROUTER_API_KEY.slice(0, 8)}...)`
+  );
+}
+
 const RATE_LIMIT_CACHE = new Map();
 const RESPONSE_CACHE = new Map();
 const REQUEST_QUEUE = [];
@@ -18,8 +29,8 @@ const MAX_QUEUE = 50;
 const QUEUE_TIMEOUT = 30000;
 
 const TOKEN_LIMITS = {
-  problem: 1600, // increased from 1200 to reduce truncation
-  quiz: 1800,     // increased from 1400 to reduce truncation
+  problem: 1600,
+  quiz: 1800,
 };
 
 const FALLBACK_RESPONSES = {
@@ -209,6 +220,14 @@ function extractJSON(raw) {
 
 class APIClient {
   static async callOpenRouter(prompt, model, maxTokens = 1400) {
+    if (!process.env.OPENROUTER_API_KEY) {
+      throw {
+        code: "AUTH_ERROR",
+        message: "OPENROUTER_API_KEY is not set in environment variables",
+        retry: false,
+      };
+    }
+
     try {
       const response = await axios.post(
         OPENROUTER_URL,
@@ -239,13 +258,26 @@ class APIClient {
       };
     } catch (error) {
       const status = error.response?.status;
-      const message = error.response?.data?.error?.message || error.message;
+      const data = error.response?.data;
+      const message = data?.error?.message || error.message;
+
+      // Full diagnostic log — this tells you exactly what's wrong
+      console.error(
+        `[OpenRouter Error] model=${model} status=${status || "N/A"} code=${error.code || "N/A"} message=${message}`,
+        data ? JSON.stringify(data) : ""
+      );
 
       if (status === 429) {
         throw { code: "RATE_LIMITED", message: "API rate limit exceeded", retry: true };
       }
       if (status === 401 || status === 403) {
-        throw { code: "AUTH_ERROR", message: "API authentication failed", retry: false };
+        throw { code: "AUTH_ERROR", message: `API authentication failed: ${message}`, retry: false };
+      }
+      if (status === 402) {
+        throw { code: "NO_CREDITS", message: "OpenRouter account has insufficient credits", retry: false };
+      }
+      if (status === 404) {
+        throw { code: "MODEL_NOT_FOUND", message: `Model not found or unavailable: ${model}`, retry: true };
       }
       if (status >= 500) {
         throw { code: "SERVER_ERROR", message: "API server error", retry: true };
@@ -286,7 +318,7 @@ class APIClient {
           continue;
         }
       } catch (error) {
-        console.error(`Attempt ${i + 1} failed with ${model}:`, error.message);
+        console.error(`Attempt ${i + 1} failed with ${model}: [${error.code}] ${error.message}`);
         lastError = error;
 
         if (!error.retry) {
@@ -300,7 +332,7 @@ class APIClient {
     }
 
     throw {
-      code: "ALL_ATTEMPTS_FAILED",
+      code: lastError?.code || "ALL_ATTEMPTS_FAILED",
       message: lastError?.message || "All AI models failed. Using fallback.",
     };
   }
@@ -408,22 +440,21 @@ export const generateQuestions = async (req, res) => {
           remaining: rateLimitCheck.remaining,
         };
       } catch (error) {
-        console.error("Generation error:", error);
+        console.error("Generation error:", `[${error.code}]`, error.message);
 
-        if (error.code === "ALL_ATTEMPTS_FAILED") {
-          const fallback = type === "problem" ? FALLBACK_RESPONSES.problem : FALLBACK_RESPONSES.quiz;
-          ResponseCache.set(cacheKey, fallback);
-          return {
-            success: true,
-            data: fallback,
-            model: "fallback",
-            fallback: true,
-            cached: false,
-            remaining: rateLimitCheck.remaining,
-          };
-        }
-
-        throw error;
+        // Fallback response — includes debugError so you can see the real cause
+        // in the Network tab response body. REMOVE debugError before final production.
+        const fallback = type === "problem" ? FALLBACK_RESPONSES.problem : FALLBACK_RESPONSES.quiz;
+        ResponseCache.set(cacheKey, fallback);
+        return {
+          success: true,
+          data: fallback,
+          model: "fallback",
+          fallback: true,
+          debugError: { code: error.code, message: error.message }, // TEMP — remove after debugging
+          cached: false,
+          remaining: rateLimitCheck.remaining,
+        };
       }
     },
     resolve: (result) => {
