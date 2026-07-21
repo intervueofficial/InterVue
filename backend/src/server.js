@@ -20,9 +20,10 @@ import authRoute from "./routes/authRoute.js";
 // New Routes
 import problemRoute from "./routes/problemRoute.js";
 import adminRoute from "./routes/adminRoute.js";
- import quizRoute from "./routes/quizRoute.js"; // Enable after creating Quiz API
+import quizRoute from "./routes/quizRoute.js";
 import jobRoute from "./routes/jobRoute.js";
 import applicationRoute from "./routes/applicationRoute.js";
+import aiGeneratorRoute from "./routes/aiGeneratorRoute.js";
 
 const app = express();
 const __dirname = path.resolve();
@@ -33,7 +34,8 @@ const allowedOrigins = [
   "https://www.intervue.site",
 ];
 
-// Middleware
+// ================= Core Middleware =================
+
 app.use(express.json());
 
 app.use(
@@ -42,7 +44,6 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-
       return callback(new Error("CORS not allowed"));
     },
     credentials: true,
@@ -72,12 +73,15 @@ app.use("/api/admin", adminRoute);
 // Problems APIs
 app.use("/api/problems", problemRoute);
 
-// Quiz APIs (Coming Next)
- app.use("/api/quizzes", quizRoute);
+// Quiz APIs
+app.use("/api/quizzes", quizRoute);
 
 // Job Postings & Applications
 app.use("/api/jobs", jobRoute);
 app.use("/api/applications", applicationRoute);
+
+// AI Generator API
+app.use("/api/ai", aiGeneratorRoute);
 
 // ================= Health Check =================
 
@@ -94,9 +98,7 @@ if (ENV.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
   app.get("/{*any}", (_, res) => {
-    res.sendFile(
-      path.join(__dirname, "../frontend/dist/index.html")
-    );
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });
 }
 
@@ -107,8 +109,8 @@ const startServer = async () => {
     await connectDB();
 
     app.listen(ENV.PORT, () => {
-      console.log(`🚀 Server running on port ${ENV.PORT}`);
-      console.log(`📡 Health: http://localhost:${ENV.PORT}/health`);
+      console.log(`Server running on port ${ENV.PORT}`);
+      console.log(`Health: http://localhost:${ENV.PORT}/health`);
     });
   } catch (error) {
     console.error("Server startup failed:", error);
@@ -132,7 +134,8 @@ InterVue Progress
 ✓ Admin Sessions
 ✓ Admin Analytics
 ✓ Problem CRUD (Backend)
-⬜ Quiz CRUD
+✓ Quiz CRUD
+✓ AI Generator (Problems + Quiz)
 ⬜ Admin Settings
 ⬜ Reports
 ============================================
