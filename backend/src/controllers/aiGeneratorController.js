@@ -1,24 +1,19 @@
 import axios from "axios";
 import crypto from "crypto";
+import { jsonrepair } from "jsonrepair";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// Faster model first — 70B models are slower and more likely to time out
 const PRIMARY_MODEL = "openai/gpt-3.5-turbo";
 const FALLBACK_MODELS = [
   "mistralai/mistral-7b-instruct",
   "meta-llama/llama-3.3-70b-instruct",
 ];
 
-// --- Startup sanity check ---
 if (!process.env.OPENROUTER_API_KEY) {
-  console.error(
-    "⚠️  OPENROUTER_API_KEY is missing from environment variables. All AI generation requests will fail and fall back to static responses."
-  );
+  console.error("⚠️  OPENROUTER_API_KEY is missing from environment variables.");
 } else {
-  console.log(
-    `OPENROUTER_API_KEY loaded (starts with: ${process.env.OPENROUTER_API_KEY.slice(0, 8)}...)`
-  );
+  console.log(`OPENROUTER_API_KEY loaded (starts with: ${process.env.OPENROUTER_API_KEY.slice(0, 8)}...)`);
 }
 
 const RATE_LIMIT_CACHE = new Map();
@@ -90,11 +85,9 @@ class TokenCounter {
   static estimateTokens(text) {
     return Math.ceil(text.length / 4);
   }
-
   static estimateResponseTokens(type, count = 1) {
     return type === "problem" ? count * 300 : count * 200;
   }
-
   static canFitInLimit(promptTokens, responseTokens, modelLimit = 4096) {
     return promptTokens + responseTokens <= modelLimit * 0.8;
   }
@@ -104,15 +97,12 @@ class RateLimiter {
   static checkLimit(key) {
     const now = Date.now();
     const record = RATE_LIMIT_CACHE.get(key) || { count: 0, resetTime: now + 60000 };
-
     if (now > record.resetTime) {
       record.count = 0;
       record.resetTime = now + 60000;
     }
-
     record.count++;
     RATE_LIMIT_CACHE.set(key, record);
-
     return {
       allowed: record.count <= 10,
       remaining: Math.max(0, 10 - record.count),
@@ -125,7 +115,6 @@ class ResponseCache {
   static generateKey(params) {
     return crypto.createHash("md5").update(JSON.stringify(params)).digest("hex");
   }
-
   static get(key) {
     const cached = RESPONSE_CACHE.get(key);
     if (cached && Date.now() - cached.timestamp < 15 * 60 * 1000) {
@@ -134,7 +123,6 @@ class ResponseCache {
     if (cached) RESPONSE_CACHE.delete(key);
     return null;
   }
-
   static set(key, data) {
     RESPONSE_CACHE.set(key, { data, timestamp: Date.now() });
     if (RESPONSE_CACHE.size > 100) {
@@ -142,7 +130,6 @@ class ResponseCache {
       RESPONSE_CACHE.delete(firstKey);
     }
   }
-
   static clear() {
     RESPONSE_CACHE.clear();
   }
@@ -154,7 +141,13 @@ class PromptOptimizer {
     const skillStr = skills.substring(0, 100);
     const topicStr = topics ? ` Focus: ${topics.substring(0, 50)}.` : "";
 
-    return `Generate 1 coding problem. JSON only.
+    return `Generate 1 coding problem. Respond with STRICT, VALID JSON only — no markdown, no commentary.
+IMPORTANT JSON RULES:
+- Escape all newlines inside string values as \\n (never use literal line breaks inside a string).
+- Use only straight double quotes ("), never curly/smart quotes.
+- No trailing commas.
+- Do not include any text before or after the JSON object.
+
 Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}
 
 {
@@ -177,7 +170,13 @@ Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficul
     const topicStr = topics ? ` Focus: ${topics.substring(0, 50)}.` : "";
     const qCount = Math.min(count, 10);
 
-    return `Generate ${qCount} MCQ questions. JSON array only.
+    return `Generate ${qCount} MCQ questions. Respond with STRICT, VALID JSON array only — no markdown, no commentary.
+IMPORTANT JSON RULES:
+- Escape all newlines inside string values as \\n (never use literal line breaks inside a string).
+- Use only straight double quotes ("), never curly/smart quotes.
+- No trailing commas.
+- Do not include any text before or after the JSON array.
+
 Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}
 
 [
@@ -195,11 +194,9 @@ Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficul
 class ModelSelector {
   static selectModel(attemptIndex = 0) {
     if (attemptIndex === 0) return PRIMARY_MODEL;
-    if (attemptIndex <= FALLBACK_MODELS.length)
-      return FALLBACK_MODELS[attemptIndex - 1];
+    if (attemptIndex <= FALLBACK_MODELS.length) return FALLBACK_MODELS[attemptIndex - 1];
     return null;
   }
-
   static getMaxTokens(model) {
     if (model.includes("gpt-4")) return 8192;
     if (model.includes("gpt-3.5")) return 4096;
@@ -215,17 +212,27 @@ function extractJSON(raw) {
   const objMatch = text.match(/(\{[\s\S]*\})/);
 
   const jsonStr = arrMatch ? arrMatch[1] : objMatch ? objMatch[1] : text;
-  return JSON.parse(jsonStr); // let caller handle parse errors
+
+  // First try a plain parse
+  try {
+    return JSON.parse(jsonStr);
+  } catch (firstError) {
+    // Fall back to auto-repair for common LLM JSON issues:
+    // unescaped newlines/control chars inside strings, trailing commas,
+    // smart quotes, single quotes, etc.
+    try {
+      const repaired = jsonrepair(jsonStr);
+      return JSON.parse(repaired);
+    } catch (repairError) {
+      throw firstError; // surface the original error for logging
+    }
+  }
 }
 
 class APIClient {
   static async callOpenRouter(prompt, model, maxTokens = 1400) {
     if (!process.env.OPENROUTER_API_KEY) {
-      throw {
-        code: "AUTH_ERROR",
-        message: "OPENROUTER_API_KEY is not set in environment variables",
-        retry: false,
-      };
+      throw { code: "AUTH_ERROR", message: "OPENROUTER_API_KEY is not set", retry: false };
     }
 
     try {
@@ -235,7 +242,7 @@ class APIClient {
           model,
           messages: [{ role: "user", content: prompt }],
           max_tokens: maxTokens,
-          temperature: 0.6,
+          temperature: 0.4, // lowered slightly — reduces creative formatting drift
           top_p: 0.9,
         },
         {
@@ -261,30 +268,17 @@ class APIClient {
       const data = error.response?.data;
       const message = data?.error?.message || error.message;
 
-      // Full diagnostic log — this tells you exactly what's wrong
       console.error(
         `[OpenRouter Error] model=${model} status=${status || "N/A"} code=${error.code || "N/A"} message=${message}`,
         data ? JSON.stringify(data) : ""
       );
 
-      if (status === 429) {
-        throw { code: "RATE_LIMITED", message: "API rate limit exceeded", retry: true };
-      }
-      if (status === 401 || status === 403) {
-        throw { code: "AUTH_ERROR", message: `API authentication failed: ${message}`, retry: false };
-      }
-      if (status === 402) {
-        throw { code: "NO_CREDITS", message: "OpenRouter account has insufficient credits", retry: false };
-      }
-      if (status === 404) {
-        throw { code: "MODEL_NOT_FOUND", message: `Model not found or unavailable: ${model}`, retry: true };
-      }
-      if (status >= 500) {
-        throw { code: "SERVER_ERROR", message: "API server error", retry: true };
-      }
-      if (error.code === "ECONNABORTED") {
-        throw { code: "TIMEOUT", message: "Model response timed out", retry: true };
-      }
+      if (status === 429) throw { code: "RATE_LIMITED", message: "API rate limit exceeded", retry: true };
+      if (status === 401 || status === 403) throw { code: "AUTH_ERROR", message: `API authentication failed: ${message}`, retry: false };
+      if (status === 402) throw { code: "NO_CREDITS", message: "OpenRouter account has insufficient credits", retry: false };
+      if (status === 404) throw { code: "MODEL_NOT_FOUND", message: `Model not found: ${model}`, retry: true };
+      if (status >= 500) throw { code: "SERVER_ERROR", message: "API server error", retry: true };
+      if (error.code === "ECONNABORTED") throw { code: "TIMEOUT", message: "Model response timed out", retry: true };
 
       throw { code: "REQUEST_FAILED", message, retry: true };
     }
@@ -309,25 +303,19 @@ class APIClient {
           const parsed = extractJSON(result.content);
           return { ...result, parsed };
         } catch (parseError) {
-          console.error(`Parse failed for ${model}. Raw content:`, result.content);
-          lastError = { code: "PARSE_FAILED", message: "Model returned invalid JSON" };
+          console.error(`Parse failed for ${model}: ${parseError.message}`);
+          console.error(`Raw content from ${model}:`, result.content);
+          lastError = { code: "PARSE_FAILED", message: `Model returned invalid JSON: ${parseError.message}` };
 
-          if (i < maxAttempts - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          }
+          if (i < maxAttempts - 1) await new Promise((resolve) => setTimeout(resolve, 500));
           continue;
         }
       } catch (error) {
         console.error(`Attempt ${i + 1} failed with ${model}: [${error.code}] ${error.message}`);
         lastError = error;
 
-        if (!error.retry) {
-          throw error;
-        }
-
-        if (i < maxAttempts - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
+        if (!error.retry) throw error;
+        if (i < maxAttempts - 1) await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
@@ -340,7 +328,6 @@ class APIClient {
 
 async function processQueue() {
   if (PROCESSING || REQUEST_QUEUE.length === 0) return;
-
   PROCESSING = true;
 
   while (REQUEST_QUEUE.length > 0) {
@@ -388,24 +375,11 @@ export const generateQuestions = async (req, res) => {
 
   const safeCount = Math.min(Math.max(parseInt(count) || 5, 1), type === "quiz" ? 15 : 1);
 
-  const cacheKey = ResponseCache.generateKey({
-    type,
-    role,
-    experience,
-    skills,
-    topics,
-    difficulty,
-    count: safeCount,
-  });
+  const cacheKey = ResponseCache.generateKey({ type, role, experience, skills, topics, difficulty, count: safeCount });
 
   const cached = ResponseCache.get(cacheKey);
   if (cached) {
-    return res.status(200).json({
-      success: true,
-      data: cached,
-      cached: true,
-      remaining: rateLimitCheck.remaining,
-    });
+    return res.status(200).json({ success: true, data: cached, cached: true, remaining: rateLimitCheck.remaining });
   }
 
   const prompt =
@@ -416,9 +390,7 @@ export const generateQuestions = async (req, res) => {
   const promptTokens = TokenCounter.estimateTokens(prompt);
   const responseTokens = TokenCounter.estimateResponseTokens(type, safeCount);
 
-  if (
-    !TokenCounter.canFitInLimit(promptTokens, responseTokens, ModelSelector.getMaxTokens(PRIMARY_MODEL))
-  ) {
+  if (!TokenCounter.canFitInLimit(promptTokens, responseTokens, ModelSelector.getMaxTokens(PRIMARY_MODEL))) {
     return res.status(400).json({
       success: false,
       message: "Request too large for token budget. Try fewer questions or simpler parameters.",
@@ -442,8 +414,6 @@ export const generateQuestions = async (req, res) => {
       } catch (error) {
         console.error("Generation error:", `[${error.code}]`, error.message);
 
-        // Fallback response — includes debugError so you can see the real cause
-        // in the Network tab response body. REMOVE debugError before final production.
         const fallback = type === "problem" ? FALLBACK_RESPONSES.problem : FALLBACK_RESPONSES.quiz;
         ResponseCache.set(cacheKey, fallback);
         return {
@@ -451,7 +421,7 @@ export const generateQuestions = async (req, res) => {
           data: fallback,
           model: "fallback",
           fallback: true,
-          debugError: { code: error.code, message: error.message }, // TEMP — remove after debugging
+          debugError: { code: error.code, message: error.message }, // TEMP — remove after confirming fix works
           cached: false,
           remaining: rateLimitCheck.remaining,
         };
@@ -472,10 +442,7 @@ export const generateQuestions = async (req, res) => {
   };
 
   if (REQUEST_QUEUE.length >= MAX_QUEUE) {
-    return res.status(503).json({
-      success: false,
-      message: "Server queue full. Please try again in a moment.",
-    });
+    return res.status(503).json({ success: false, message: "Server queue full. Please try again in a moment." });
   }
 
   REQUEST_QUEUE.push(queueItem);
@@ -484,10 +451,7 @@ export const generateQuestions = async (req, res) => {
 
 export const clearCache = async (req, res) => {
   ResponseCache.clear();
-  res.status(200).json({
-    success: true,
-    message: "Cache cleared successfully",
-  });
+  res.status(200).json({ success: true, message: "Cache cleared successfully" });
 };
 
 export const getStats = async (req, res) => {
