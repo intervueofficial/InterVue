@@ -128,28 +128,28 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handleAIApply = (data) => {
-    if (!data || typeof data !== "object" || Array.isArray(data)) {
-      toast.error("Unexpected AI response format.");
-      return;
-    }
-    setFormData({
-      title: data.title || "",
-      difficulty: data.difficulty || "Medium",
-      tags: Array.isArray(data.tags) ? data.tags.join(", ") : data.tags || "",
-      description: data.description || "",
-      starterCode: data.starterCode || "",
-      testCases:
-        Array.isArray(data.testCases) && data.testCases.length > 0
-          ? data.testCases
-          : [{ input: "", expectedOutput: "" }],
-      timeLimit: data.timeLimit || 60,
-      complexity: data.complexity || "O(n)",
-      language: data.language || "JavaScript",
-      hints: Array.isArray(data.hints) && data.hints.length > 0 ? data.hints : [""],
-    });
-    toast.success("Form auto-filled by AI!");
-  };
+ const handleAIApply = (data) => {
+  setFormData({
+    title:      data.title      || "",
+    difficulty: data.difficulty || "Medium",
+    tags:       Array.isArray(data.tags) ? data.tags.join(", ") : "",
+    description: data.description || "",
+    starterCode: data.starterCode || "",
+    testCases:
+      Array.isArray(data.testCases) && data.testCases.length > 0
+        ? data.testCases
+        : [{ input: "", expectedOutput: "" }],
+    timeLimit:  data.timeLimit  || 60,
+    complexity: data.complexity || "O(n)",
+    language:   data.language   || "JavaScript",
+    hints:
+      Array.isArray(data.hints) && data.hints.length > 0
+        ? data.hints
+        : [""],
+  });
+  // Expand Basic Information section so the user sees the filled fields immediately
+  setExpandedSection("basic");
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
