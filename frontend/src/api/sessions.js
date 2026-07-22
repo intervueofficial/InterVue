@@ -133,4 +133,27 @@ export const sessionApi = {
     );
     return response.data;
   },
+
+  submitCodeResult: async (id, { passed, total }, token) => {
+    const response = await axiosInstance.patch(
+      `/sessions/${id}/code-result`,
+      { passed, total },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
+
+  downloadReport: async (id, token) => {
+    const response = await axiosInstance.get(`/sessions/${id}/report`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      responseType: "blob",
+    });
+    return response.data;
+  },
 };

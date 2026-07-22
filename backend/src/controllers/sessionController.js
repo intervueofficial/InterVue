@@ -150,6 +150,7 @@ export async function getMyRecentSessions(req, res) {
       .populate("createdBy", "name")
       .populate("activeProblem", "title difficulty tags")
       .populate("activeQuiz", "title difficulty questions")
+      .select("-performanceReport.pdfBase64")
       .sort({ createdAt: -1 })
       .limit(20);
 
@@ -493,6 +494,53 @@ const populateSession = (query) =>
     .populate("activeQuiz");
 
 /**
+ * Persists the candidate's code-grading result (tests passed / total)
+ * for this session, computed client-side by running their code against
+ * every test case on the active problem. Used later for the AI-generated
+ * post-interview performance report.
+ */
+export async function submitCodeResult(req, res) {
+  try {
+    const { id } = req.params;
+    const { passed, total } = req.body;
+
+    if (typeof passed !== "number" || typeof total !== "number") {
+      return res.status(400).json({
+        message: "passed and total are required numbers",
+      });
+    }
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found",
+      });
+    }
+
+    if (
+      !session.candidate ||
+      session.candidate.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Only the candidate on this session can submit a code result",
+      });
+    }
+
+    session.codeResult = { passed, total, submittedAt: new Date() };
+    await session.save();
+
+    return res.json({
+      success: true,
+      codeResult: session.codeResult,
+    });
+  } catch (error) {
+    console.log("Error in submitCodeResult:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+/**
  * Interviewer pushes a coding problem to the candidate.
  * The candidate's client polls the session and shows a popup
  * as soon as `activeProblem` changes.
@@ -657,5 +705,47 @@ export async function clearActiveContent(req, res) {
     return res.status(500).json({
       message: "Internal Server Error",
     });
+  }
+}
+
+/**
+ * Candidate downloads their own AI-generated performance report PDF
+ * for a completed, decided session.
+ */
+export async function downloadPerformanceReport(req, res) {
+  try {
+    const { id } = req.params;
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    const isCandidate =
+      session.candidate && session.candidate.toString() === req.user._id.toString();
+    const isInterviewer =
+      session.interviewer && session.interviewer.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+
+    if (!isCandidate && !isInterviewer && !isAdmin) {
+      return res.status(403).json({ message: "Not authorized to view this report" });
+    }
+
+    if (!session.performanceReport?.pdfBase64) {
+      return res.status(404).json({ message: "No performance report available yet" });
+    }
+
+    const buffer = Buffer.from(session.performanceReport.pdfBase64, "base64");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="performance-report-${id}.pdf"`
+    );
+    return res.send(buffer);
+  } catch (error) {
+    console.log("Error in downloadPerformanceReport:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 }

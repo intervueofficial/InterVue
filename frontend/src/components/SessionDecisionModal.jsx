@@ -40,7 +40,7 @@ const SessionDecisionModal = ({ open, application, onSubmit, onSkip, loading }) 
   if (!open || !application) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[10050] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-8">
         <h2 className="text-xl font-bold text-slate-900">Interview Complete</h2>
         <p className="text-slate-500 text-sm mt-1">

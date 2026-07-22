@@ -1,10 +1,13 @@
 import Application from "../models/Application.js";
 import Job from "../models/Job.js";
 import Session from "../models/Session.js";
+import SessionViolation from "../models/SessionViolation.js";
 import { streamClient, chatClient } from "../lib/stream.js";
 import { checkEligibility } from "../utils/checkEligibility.js";
 import { sendSelectionEmail, sendRejectionEmail, sendHiredEmail } from "../lib/resend.js";
 import { ENV } from "../lib/env.js";
+import { generatePerformanceSummary } from "../utils/generatePerformanceSummary.js";
+import { generatePerformancePdf } from "../utils/generatePerformancePdf.js";
 
 // ==========================
 // Candidate: apply to a job
@@ -247,6 +250,100 @@ export async function getApplicationBySession(req, res) {
 // message. Only "hired" and "rejected" trigger an email —
 // "waitlisted" just parks the candidate for a later decision.
 // ==========================
+/**
+ * Builds the AI performance report for a decided application (hired or
+ * rejected only) from real session data — quiz score, code-grading
+ * result, and proctoring attention flags — plus the interviewer's own
+ * feedback. Saves the PDF + narrative onto the Session document and
+ * returns a Resend-ready attachment object.
+ *
+ * Deliberately non-blocking: any failure here (AI provider down, no
+ * linked session, pdf generation error) is logged and swallowed so the
+ * hire/reject decision + email still goes through without an attachment
+ * rather than failing the whole request.
+ */
+async function generateAndAttachPerformanceReport(application, feedback) {
+  try {
+    if (!application.session) return null;
+
+    const session = await Session.findById(application.session);
+    if (!session) return null;
+
+    const candidate = application.candidate;
+
+    const codingScore =
+      session.codeResult?.total > 0
+        ? Math.round((session.codeResult.passed / session.codeResult.total) * 100)
+        : null;
+
+    const quizScore =
+      session.quizResult?.total > 0
+        ? Math.round((session.quizResult.score / session.quizResult.total) * 100)
+        : null;
+
+    const violationCount = candidate?.clerkId
+      ? await SessionViolation.countDocuments({
+          sessionId: session._id,
+          candidateId: candidate.clerkId,
+        })
+      : 0;
+
+    // Simple, explainable heuristic — not a biometric/scientific measure:
+    // start at 100, dock 8 points per logged attention flag, floor at 0.
+    const confidenceScore = Math.max(0, 100 - violationCount * 8);
+
+    const summary = await generatePerformanceSummary({
+      candidateName: candidate?.name || "Candidate",
+      jobTitle: application.job?.title || "the role",
+      codingScore,
+      quizScore,
+      confidenceScore,
+      violationCount,
+      interviewerFeedback: feedback || "",
+    });
+
+    const pdfBuffer = await generatePerformancePdf({
+      candidateName: candidate?.name || "Candidate",
+      jobTitle: application.job?.title || "the role",
+      interviewDate: new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+      codingScore,
+      quizScore,
+      confidenceScore,
+      summary,
+      interviewerComment: feedback || "",
+    });
+
+    const pdfBase64 = pdfBuffer.toString("base64");
+
+    session.performanceReport = {
+      summary: summary.overallSummary,
+      codingFeedback: summary.codingFeedback,
+      quizFeedback: summary.quizFeedback,
+      confidenceFeedback: summary.confidenceFeedback,
+      codingScore,
+      quizScore,
+      confidenceScore,
+      interviewerComment: feedback || "",
+      pdfBase64,
+      generatedAt: new Date(),
+    };
+
+    await session.save();
+
+    return {
+      filename: `${(candidate?.name || "candidate").replace(/\s+/g, "-")}-Performance-Report.pdf`,
+      content: pdfBase64,
+    };
+  } catch (error) {
+    console.error("generateAndAttachPerformanceReport:", error.message);
+    return null;
+  }
+}
+
 export async function submitDecision(req, res) {
   try {
     const { decision, feedback } = req.body;
@@ -280,21 +377,35 @@ export async function submitDecision(req, res) {
     await application.save();
 
     if (decision === "hired") {
+      const reportAttachment = await generateAndAttachPerformanceReport(
+        application,
+        feedback
+      );
+
       await sendHiredEmail({
         to: application.candidate.email,
         name: application.candidate.name,
         jobTitle: application.job.title,
         feedback: feedback || "",
+        reportAttachment,
       });
     } else if (decision === "rejected") {
+      const reportAttachment = await generateAndAttachPerformanceReport(
+        application,
+        feedback
+      );
+
       await sendRejectionEmail({
         to: application.candidate.email,
         name: application.candidate.name,
         jobTitle: application.job.title,
         feedback: feedback || "",
+        reportAttachment,
       });
     }
-    // "waitlisted" -> no email, candidate just appears in the waitlist
+    // "waitlisted" -> no email, no report generated yet — candidate just
+    // appears in the waitlist; a report is generated once a final
+    // hired/rejected decision is made for them later.
 
     return res.json({ success: true, application });
   } catch (error) {

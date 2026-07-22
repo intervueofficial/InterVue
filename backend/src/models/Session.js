@@ -93,6 +93,25 @@ quizResult: {
   submittedAt: { type: Date, default: null },
 },
 
+codeResult: {
+  passed: { type: Number, default: null },
+  total: { type: Number, default: null },
+  submittedAt: { type: Date, default: null },
+},
+
+performanceReport: {
+  summary: { type: String, default: "" },
+  codingFeedback: { type: String, default: "" },
+  quizFeedback: { type: String, default: "" },
+  confidenceFeedback: { type: String, default: "" },
+  codingScore: { type: Number, default: null },
+  quizScore: { type: Number, default: null },
+  confidenceScore: { type: Number, default: null },
+  interviewerComment: { type: String, default: "" },
+  pdfBase64: { type: String, default: "" },
+  generatedAt: { type: Date, default: null },
+},
+
   },
   {
     timestamps: true,

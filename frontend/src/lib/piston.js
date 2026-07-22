@@ -13,7 +13,7 @@ const LANGUAGE_VERSIONS = {
  * @param {string} code - source code to executed
  * @returns {Promise<{success:boolean, output?:string, error?: string}>}
  */
-export async function executeCode(language, code) {
+export async function executeCode(language, code, input = "") {
   try {
     const languageConfig = LANGUAGE_VERSIONS[language];
 
@@ -31,6 +31,7 @@ export async function executeCode(language, code) {
       },
       body: JSON.stringify({
         language: languageConfig.language,
+        stdin: input,
         files: [
           {
             name: `main.${getFileExtension(language)}`,

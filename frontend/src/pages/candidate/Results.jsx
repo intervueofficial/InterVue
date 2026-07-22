@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   CalendarIcon,
   UserCheckIcon,
@@ -5,9 +6,15 @@ import {
   HelpCircleIcon,
   BarChart3Icon,
   InboxIcon,
+  SparklesIcon,
+  DownloadIcon,
+  Loader2Icon,
 } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
 
 import { useMyRecentSessions } from "../../hooks/useSessions";
+import { sessionApi } from "../../api/sessions";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../admin/StatCard";
@@ -22,6 +29,101 @@ function DifficultyBadge({ difficulty }) {
     >
       {difficulty}
     </span>
+  );
+}
+
+function DownloadReportButton({ sessionId }) {
+  const { getToken } = useAuth();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      const token = await getToken();
+      const blob = await sessionApi.downloadReport(sessionId, token);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `performance-report-${sessionId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error("Couldn't download the report. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-60"
+      style={{ background: THEME.primary, color: "#fff" }}
+    >
+      {downloading ? (
+        <Loader2Icon size={12} className="animate-spin" />
+      ) : (
+        <DownloadIcon size={12} />
+      )}
+      Download Report (PDF)
+    </button>
+  );
+}
+
+function PerformanceReportSection({ session }) {
+  const report = session.performanceReport;
+  if (!report?.generatedAt) return null;
+
+  const scoreBar = (label, value) => (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span style={{ color: THEME.inkMuted }}>{label}</span>
+        <span className="font-semibold" style={{ color: THEME.ink }}>
+          {value !== null && value !== undefined ? `${value}%` : "N/A"}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: THEME.border }}>
+        {value !== null && value !== undefined && (
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${value}%`,
+              background: value >= 70 ? THEME.success : value >= 40 ? THEME.warning : THEME.danger,
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className="mt-4 rounded-lg p-4"
+      style={{ background: "linear-gradient(135deg, #F5F3FF 0%, #EFF6FF 100%)", border: `1px solid ${THEME.border}` }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <SparklesIcon size={14} color="#8B5CF6" />
+        <span className="text-sm font-semibold" style={{ color: THEME.ink }}>
+          AI Performance Report
+        </span>
+      </div>
+
+      <p className="text-xs leading-relaxed mb-3" style={{ color: THEME.inkMuted }}>
+        {report.summary}
+      </p>
+
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        {scoreBar("Coding", report.codingScore)}
+        {scoreBar("Quiz", report.quizScore)}
+        {scoreBar("Confidence", report.confidenceScore)}
+      </div>
+
+      <DownloadReportButton sessionId={session._id} />
+    </div>
   );
 }
 
@@ -135,6 +237,8 @@ function ResultCard({ session }) {
           )}
         </div>
       )}
+
+      <PerformanceReportSection session={session} />
     </div>
   );
 }

@@ -20,6 +20,9 @@ function CandidateLayout({
   selectedLanguage,
   handleLanguageChange,
   handleRunCode,
+  handleSubmitForGrading,
+  isGrading,
+  gradingResult,
   activePage,
   setActivePage,
   problemData,
@@ -189,6 +192,10 @@ function CandidateLayout({
                             onLanguageChange={handleLanguageChange}
                             onCodeChange={setCode}
                             onRunCode={handleRunCode}
+                            onSubmitForGrading={handleSubmitForGrading}
+                            isGrading={isGrading}
+                            gradingResult={gradingResult}
+                            showGrading={!!problemData}
                           />
                         </div>
                       </div>

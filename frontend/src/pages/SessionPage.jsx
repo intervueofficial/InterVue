@@ -5,6 +5,7 @@ import {
   useEndSession,
   useJoinSession,
   useSessionById,
+  useSubmitCodeResult,
 } from "../hooks/useSessions";
 import useAuthUser from "../hooks/useAuthUser";
 import { executeCode } from "../lib/piston";
@@ -14,6 +15,8 @@ import { useAuth } from "@clerk/clerk-react";
 import useScreenRecorder from "../hooks/session/useScreenRecorder";
 import InterviewerLayout from "../components/session/InterviewerLayout";
 import CandidateLayout from "../components/session/CandidateLayout";
+import { applicationApi } from "../api/applicationApi";
+import SessionDecisionModal from "../components/SessionDecisionModal";
 
 function SessionPage() {
   const navigate = useNavigate();
@@ -34,6 +37,12 @@ function SessionPage() {
   const [lastResult, setLastResult] = useState(null);
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
+  const [isGrading, setIsGrading] = useState(false);
+  const [gradingResult, setGradingResult] = useState(null);
+
+  const [decisionApplication, setDecisionApplication] = useState(null);
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+  const [submittingDecision, setSubmittingDecision] = useState(false);
 
   const recorder = useScreenRecorder();
 
@@ -44,6 +53,7 @@ function SessionPage() {
   } = useSessionById(id);
   const joinSessionMutation = useJoinSession();
   const endSessionMutation = useEndSession();
+  const submitCodeResultMutation = useSubmitCodeResult(id);
 
   const session = sessionData?.session;
 
@@ -152,6 +162,7 @@ function SessionPage() {
     setCode(problemData?.starterCode || "");
     setOutput(null);
     setLastResult(null);
+    setGradingResult(null);
   }, [problemData?._id]);
 
   const handleLanguageChange = (e) => {
@@ -177,20 +188,67 @@ function SessionPage() {
     }
   };
 
+  const handleSubmitForGrading = async () => {
+    const testCases = problemData?.testCases || [];
+
+    if (testCases.length === 0) {
+      setOutput({
+        success: false,
+        error: "This problem has no test cases to grade against.",
+      });
+      return;
+    }
+
+    try {
+      setIsGrading(true);
+
+      let passed = 0;
+
+      for (const tc of testCases) {
+        const result = await executeCode(selectedLanguage, code, tc.input || "");
+
+        const actual = (result?.output || "").trim();
+        const expected = (tc.expectedOutput || "").trim();
+
+        if (result?.success && actual === expected) {
+          passed += 1;
+        }
+      }
+
+      const total = testCases.length;
+      setGradingResult({ passed, total });
+
+      await submitCodeResultMutation.mutateAsync({ passed, total });
+    } catch (err) {
+      console.error("Failed to submit for grading:", err);
+    } finally {
+      setIsGrading(false);
+    }
+  };
+
   const handleEndSession = async () => {
     if (!confirm("End this session?")) return;
-
-    console.log("Starting end session...");
 
     try {
       await endSessionMutation.mutateAsync(id);
 
-      console.log("Mutation finished");
+      // Only the interviewer decides — and only if this session came
+      // from the job-application flow (has a linked Application).
+      // Ad-hoc/practice sessions skip straight to the dashboard.
+      if (role === "interviewer") {
+        try {
+          const token = await getToken();
+          const { application } = await applicationApi.getApplicationBySession(id, token);
 
-      // wait 2 seconds
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Now navigating");
+          if (application && application.finalDecision === "pending") {
+            setDecisionApplication(application);
+            setDecisionModalOpen(true);
+            return;
+          }
+        } catch (lookupErr) {
+          console.error("getApplicationBySession:", lookupErr);
+        }
+      }
 
       navigate("/dashboard");
     } catch (e) {
@@ -198,24 +256,53 @@ function SessionPage() {
     }
   };
 
+  const handleDecisionSubmit = async (decision, feedback) => {
+    try {
+      setSubmittingDecision(true);
+      const token = await getToken();
+      await applicationApi.submitDecision(decisionApplication._id, decision, feedback, token);
+    } catch (err) {
+      console.error("submitDecision:", err);
+    } finally {
+      setSubmittingDecision(false);
+      setDecisionModalOpen(false);
+      navigate("/dashboard");
+    }
+  };
+
+  const handleDecisionSkip = () => {
+    setDecisionModalOpen(false);
+    navigate("/dashboard");
+  };
+
   /* ── INTERVIEWER LAYOUT ── */
   if (role === "interviewer") {
     return (
-      <InterviewerLayout
-        session={session}
-        handleEndSession={handleEndSession}
-        endSessionMutation={endSessionMutation}
-        recorder={recorder}
-        activePage={activePage}
-        setActivePage={setActivePage}
-        streamClient={streamClient}
-        call={call}
-        chatClient={chatClient}
-        channel={channel}
-        isInitializingCall={isInitializingCall}
-        candidateStatus={candidateStatus}
-        isHost={isHost}
-      />
+      <>
+        <InterviewerLayout
+          session={session}
+          handleEndSession={handleEndSession}
+          endSessionMutation={endSessionMutation}
+          recorder={recorder}
+          activePage={activePage}
+          setActivePage={setActivePage}
+          streamClient={streamClient}
+          call={call}
+          chatClient={chatClient}
+          channel={channel}
+          isInitializingCall={isInitializingCall}
+          candidateStatus={candidateStatus}
+          isHost={isHost}
+        />
+
+        <SessionDecisionModal
+          open={decisionModalOpen}
+          application={decisionApplication}
+          onSubmit={handleDecisionSubmit}
+          onSkip={handleDecisionSkip}
+          loading={submittingDecision}
+        />
+      </>
     );
   }
 
@@ -228,6 +315,9 @@ function SessionPage() {
       selectedLanguage={selectedLanguage}
       handleLanguageChange={handleLanguageChange}
       handleRunCode={handleRunCode}
+      handleSubmitForGrading={handleSubmitForGrading}
+      isGrading={isGrading}
+      gradingResult={gradingResult}
       activePage={activePage}
       setActivePage={setActivePage}
       problemData={problemData}

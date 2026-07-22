@@ -215,3 +215,20 @@ export const useSubmitQuizResult = (sessionId) => {
       ),
   });
 };
+
+export const useSubmitCodeResult = (sessionId) => {
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationKey: ["submitCodeResult", sessionId],
+    mutationFn: async ({ passed, total }) => {
+      const token = await getToken();
+      return sessionApi.submitCodeResult(sessionId, { passed, total }, token);
+    },
+    onError: (error) =>
+      console.log(
+        "Failed to save code result:",
+        error.response?.data?.message || error.message
+      ),
+  });
+};

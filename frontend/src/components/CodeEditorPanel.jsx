@@ -1,5 +1,5 @@
 import Editor from "@monaco-editor/react";
-import { Loader2Icon, PlayIcon } from "lucide-react";
+import { Loader2Icon, PlayIcon, CheckCircle2Icon } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/languageConfig";
 
 function CodeEditorPanel({
@@ -9,6 +9,10 @@ function CodeEditorPanel({
   onLanguageChange,
   onCodeChange,
   onRunCode,
+  onSubmitForGrading,
+  isGrading,
+  gradingResult,
+  showGrading = false,
 }) {
   return (
     <div className="h-full bg-white flex flex-col">
@@ -32,19 +36,58 @@ function CodeEditorPanel({
           </select>
         </div>
 
-        <button className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50" disabled={isRunning} onClick={onRunCode}>
-          {isRunning ? (
-            <>
-              <Loader2Icon className="size-4 animate-spin" />
-              Running...
-            </>
-          ) : (
-            <>
-              <PlayIcon className="size-4" />
-              Run Code
-            </>
+        <div className="flex items-center gap-2">
+          {showGrading && gradingResult && (
+            <span
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold ${
+                gradingResult.passed === gradingResult.total
+                  ? "bg-green-50 text-green-700"
+                  : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              <CheckCircle2Icon className="size-3.5" />
+              {gradingResult.passed}/{gradingResult.total} tests passed
+            </span>
           )}
-        </button>
+
+          <button
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+            disabled={isRunning}
+            onClick={onRunCode}
+          >
+            {isRunning ? (
+              <>
+                <Loader2Icon className="size-4 animate-spin" />
+                Running...
+              </>
+            ) : (
+              <>
+                <PlayIcon className="size-4" />
+                Run Code
+              </>
+            )}
+          </button>
+
+          {showGrading && (
+            <button
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              disabled={isGrading}
+              onClick={onSubmitForGrading}
+            >
+              {isGrading ? (
+                <>
+                  <Loader2Icon className="size-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2Icon className="size-4" />
+                  Submit for Grading
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1">

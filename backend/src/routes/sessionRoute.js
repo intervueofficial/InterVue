@@ -14,6 +14,8 @@ import {
   pushQuiz,
   clearActiveContent,
   submitQuizResult,
+  submitCodeResult,
+  downloadPerformanceReport,
 } from "../controllers/sessionController.js";
 
 import SessionViolation from "../models/SessionViolation.js";
@@ -90,6 +92,19 @@ router.patch(
   protectRoute,
   requireRole("candidate"),
   submitQuizResult
+);
+
+router.patch(
+  "/:id/code-result",
+  protectRoute,
+  requireRole("candidate"),
+  submitCodeResult
+);
+
+router.get(
+  "/:id/report",
+  protectRoute,
+  downloadPerformanceReport
 );
 
 router.post(

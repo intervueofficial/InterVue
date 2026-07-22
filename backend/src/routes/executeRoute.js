@@ -10,7 +10,7 @@ const LANGUAGE_MAP = {
 
 router.post("/", async (req, res) => {
   try {
-    const { language, files } = req.body;
+    const { language, files, stdin } = req.body;
 
     const code = files?.[0]?.content;
 
@@ -35,6 +35,7 @@ router.post("/", async (req, res) => {
         script: code,
         language: langConfig.language,
         versionIndex: langConfig.versionIndex,
+        stdin: stdin || "",
       }),
     });
 

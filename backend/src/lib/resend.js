@@ -9,7 +9,7 @@ function ResendSafe() {
   const client = ENV.RESEND_API_KEY ? new Resend(ENV.RESEND_API_KEY) : null;
 
   return {
-    async send({ to, subject, html }) {
+    async send({ to, subject, html, attachments }) {
       if (!client) {
         console.warn(
           `RESEND_API_KEY not set — skipping email to ${to} (subject: "${subject}")`
@@ -23,6 +23,7 @@ function ResendSafe() {
         subject,
         html,
         reply_to: ENV.RESEND_REPLY_TO || undefined,
+        attachments: attachments && attachments.length > 0 ? attachments : undefined,
       });
     },
   };
@@ -193,6 +194,7 @@ export async function sendRejectionEmail({
   name,
   jobTitle,
   feedback,
+  reportAttachment,
 }) {
   return resend.send({
     to,
@@ -295,6 +297,7 @@ InterVue Recruitment Team
 </body>
 </html>
 `,
+    attachments: reportAttachment ? [reportAttachment] : undefined,
   });
 }
 
@@ -303,6 +306,7 @@ export async function sendHiredEmail({
   name,
   jobTitle,
   feedback,
+  reportAttachment,
 }) {
   return resend.send({
     to,
@@ -400,5 +404,6 @@ InterVue Recruitment Team
 </body>
 </html>
 `,
+    attachments: reportAttachment ? [reportAttachment] : undefined,
   });
 }
