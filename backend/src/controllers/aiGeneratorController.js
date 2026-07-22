@@ -4,15 +4,16 @@ import { jsonrepair } from "jsonrepair";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-const PRIMARY_MODEL = "openai/gpt-3.5-turbo";
-const FALLBACK_MODELS = [
-  "mistralai/mistral-7b-instruct",
-  "meta-llama/llama-3.3-70b-instruct",
-];
+const PRIMARY_MODEL = process.env.OPENROUTER_PRIMARY_MODEL || "openai/gpt-4o-mini";
+const FALLBACK_MODELS = process.env.OPENROUTER_FALLBACK_MODELS
+  ? process.env.OPENROUTER_FALLBACK_MODELS.split(",").map((m) => m.trim()).filter(Boolean)
+  : ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-coder:free"];
+
+const IS_PROD = process.env.NODE_ENV === "production";
 
 if (!process.env.OPENROUTER_API_KEY) {
   console.error("⚠️  OPENROUTER_API_KEY is missing from environment variables.");
-} else {
+} else if (!IS_PROD) {
   console.log(`OPENROUTER_API_KEY loaded (starts with: ${process.env.OPENROUTER_API_KEY.slice(0, 8)}...)`);
 }
 
@@ -204,29 +205,60 @@ class ModelSelector {
   }
 }
 
-function extractJSON(raw) {
+function extractJSON(raw, expectArray) {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
   const text = fenced ? fenced[1].trim() : raw.trim();
 
-  const arrMatch = text.match(/(\[[\s\S]*\])/);
-  const objMatch = text.match(/(\{[\s\S]*\})/);
+  const arrMatch = text.match(/\[[\s\S]*\]/);
+  const objMatch = text.match(/\{[\s\S]*\}/);
 
-  const jsonStr = arrMatch ? arrMatch[1] : objMatch ? objMatch[1] : text;
+  // A response can legitimately contain BOTH bracket types — a problem
+  // object has array *fields* (tags, testCases, hints), and a quiz array
+  // has object *elements* with their own "options" array. Blindly
+  // preferring one bracket type over the other (as this used to) means
+  // that for a problem response, the regex slices out just the first
+  // array field instead of the surrounding object — jsonrepair then
+  // "successfully" repairs that fragment into a small, wrong-shaped
+  // array, which used to sail through as a false "success". The correct
+  // top-level value is whichever bracket actually opens first in the text.
+  let candidate;
+  if (arrMatch && objMatch) {
+    candidate = arrMatch.index <= objMatch.index ? arrMatch[0] : objMatch[0];
+  } else {
+    candidate = arrMatch?.[0] || objMatch?.[0] || text;
+  }
 
-  // First try a plain parse
+  let parsed;
   try {
-    return JSON.parse(jsonStr);
+    parsed = JSON.parse(candidate);
   } catch (firstError) {
     // Fall back to auto-repair for common LLM JSON issues:
     // unescaped newlines/control chars inside strings, trailing commas,
     // smart quotes, single quotes, etc.
     try {
-      const repaired = jsonrepair(jsonStr);
-      return JSON.parse(repaired);
+      parsed = JSON.parse(jsonrepair(candidate));
     } catch (repairError) {
       throw firstError; // surface the original error for logging
     }
   }
+
+  // Defense-in-depth: even a "successfully parsed" result can be the
+  // wrong shape if a weaker model doesn't follow the schema, or if the
+  // bracket-selection heuristic above ever picks wrong on malformed
+  // output. Treat a shape mismatch the same as a parse failure so the
+  // caller retries the next model instead of returning bad data to the
+  // client with success: true.
+  const isArrayResult = Array.isArray(parsed);
+
+  if (expectArray && !isArrayResult) {
+    throw new Error("Expected a JSON array but the model returned an object.");
+  }
+
+  if (!expectArray && isArrayResult) {
+    throw new Error("Expected a JSON object but the model returned an array.");
+  }
+
+  return parsed;
 }
 
 class APIClient {
@@ -300,7 +332,7 @@ class APIClient {
         }
 
         try {
-          const parsed = extractJSON(result.content);
+          const parsed = extractJSON(result.content, type === "quiz");
           return { ...result, parsed };
         } catch (parseError) {
           console.error(`Parse failed for ${model}: ${parseError.message}`);
@@ -353,7 +385,7 @@ async function processQueue() {
 }
 
 export const generateQuestions = async (req, res) => {
-  const userId = req.auth?.userId || "anonymous";
+  const userId = req.user?._id?.toString() || req.user?.clerkId || "anonymous";
   const { type, role, experience, skills, topics, difficulty, count = 5 } = req.body;
 
   if (!type || !role || !experience || !skills || !difficulty) {
@@ -421,7 +453,9 @@ export const generateQuestions = async (req, res) => {
           data: fallback,
           model: "fallback",
           fallback: true,
-          debugError: { code: error.code, message: error.message }, // TEMP — remove after confirming fix works
+          ...(!IS_PROD && {
+            debugError: { code: error.code, message: error.message },
+          }),
           cached: false,
           remaining: rateLimitCheck.remaining,
         };
