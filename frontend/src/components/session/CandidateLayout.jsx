@@ -11,6 +11,7 @@ import ContentPushedModal from "./ContentPushedModal";
 import StatusBar from "./StatusBar";
 import CodeEditorPanel from "../CodeEditorPanel";
 import OutputPanel from "../OutputPanel";
+import WhiteboardPanel from "./WhiteboardPanel";
 
 /* ─── Candidate Layout ───────────────────────────────────────────────────────── */
 function CandidateLayout({
@@ -120,7 +121,7 @@ function CandidateLayout({
             {/* LEFT: Problem/Quiz + Code + Output */}
             <Panel defaultSize={52} minSize={36}>
               <div style={{ height: "100%" }}>
-                {activePage === "problem" ? (
+                {activePage === "problem" && (
                   <PanelGroup direction="vertical" style={{ height: "100%" }}>
                     <Panel defaultSize={46} minSize={22}>
                       <ProblemPanel
@@ -207,12 +208,25 @@ function CandidateLayout({
                       <OutputPanel output={output} />
                     </Panel>
                   </PanelGroup>
-                ) : (
+                )}
+
+                {activePage === "quiz" && (
                   <QuizPanel
                     problemData={quizData}
                     session={session}
                     loading={loadingSession}
                   />
+                )}
+
+                {activePage === "whiteboard" && (
+                  <div style={{ height: "100%", padding: 8 }}>
+                    <WhiteboardPanel
+                      session={session}
+                      channel={channel}
+                      currentUser={{ id: chatClient?.userID, name: chatClient?.user?.name }}
+                      permission="candidate"
+                    />
+                  </div>
                 )}
               </div>
             </Panel>

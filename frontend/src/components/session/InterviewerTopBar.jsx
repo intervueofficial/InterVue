@@ -7,6 +7,7 @@ import {
   StopCircleIcon,
   LogOutIcon,
   SendIcon,
+  PenLineIcon,
 } from "lucide-react";
 import { T, DIFF } from "../../constants/sessionTheme";
 import { Badge, SpinnerIcon } from "./SessionUI";
@@ -144,6 +145,33 @@ function InterviewerTopBar({
       <div
         style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}
       >
+        {/* Whiteboard toggle */}
+        <button
+          onClick={() => onPageChange(activePage === "whiteboard" ? "problem" : "whiteboard")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 14px",
+            borderRadius: 4,
+            border: `1px solid ${activePage === "whiteboard" ? "rgba(255,171,0,0.45)" : "rgba(255,255,255,0.1)"}`,
+            background: activePage === "whiteboard" ? "rgba(255,171,0,0.15)" : "rgba(255,255,255,0.05)",
+            color: activePage === "whiteboard" ? "#FFAB00" : "rgba(255,255,255,0.6)",
+            fontSize: 11.5,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+            transition: "all 0.15s",
+          }}
+        >
+          <PenLineIcon size={12} />
+          Whiteboard
+        </button>
+
+        <div
+          style={{ width: 1, height: 18, background: "rgba(255,255,255,0.1)" }}
+        />
+
         {/* Send problem/quiz to candidate */}
         <button
           onClick={onOpenLibrary}

@@ -709,9 +709,90 @@ export async function clearActiveContent(req, res) {
 }
 
 /**
- * Candidate downloads their own AI-generated performance report PDF
- * for a completed, decided session.
+ * Loads the saved whiteboard for a session. Kept as its own endpoint
+ * (rather than folded into getSessionById, which the UI polls every
+ * few seconds) so board data — which can get large — isn't fetched
+ * on every poll, only once when the panel actually opens.
  */
+export async function getWhiteboard(req, res) {
+  try {
+    const { id } = req.params;
+
+    const session = await Session.findById(id).select("whiteboard interviewer candidate");
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    const userId = req.user._id.toString();
+    const isCandidate = session.candidate && session.candidate.toString() === userId;
+    const isInterviewer = session.interviewer && session.interviewer.toString() === userId;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isCandidate && !isInterviewer && !isAdmin) {
+      return res.status(403).json({ message: "Not authorized to view this whiteboard" });
+    }
+
+    return res.json({
+      success: true,
+      whiteboard: session.whiteboard || { elements: [], appState: {}, version: 0 },
+    });
+  } catch (error) {
+    console.log("Error in getWhiteboard:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+/**
+ * Saves the whiteboard — used for both the periodic auto-save and the
+ * explicit "Save" / "Clear" actions. Both the interviewer and the
+ * candidate on a session may save (they can both draw); a plain admin
+ * viewer cannot. `version` is a simple counter so a slow, stale
+ * auto-save request can't clobber a newer one that already landed.
+ */
+export async function saveWhiteboard(req, res) {
+  try {
+    const { id } = req.params;
+    const { elements, appState, version } = req.body;
+
+    const session = await Session.findById(id).select("whiteboard interviewer candidate");
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    const userId = req.user._id.toString();
+    const isCandidate = session.candidate && session.candidate.toString() === userId;
+    const isInterviewer = session.interviewer && session.interviewer.toString() === userId;
+
+    if (!isCandidate && !isInterviewer) {
+      return res.status(403).json({ message: "Not authorized to edit this whiteboard" });
+    }
+
+    // Stale-write guard: ignore a save whose version is behind what's
+    // already stored (e.g. a delayed auto-save landing after a newer one).
+    const currentVersion = session.whiteboard?.version || 0;
+    if (typeof version === "number" && version < currentVersion) {
+      return res.json({ success: true, skipped: true, whiteboard: session.whiteboard });
+    }
+
+    session.whiteboard = {
+      elements: Array.isArray(elements) ? elements : [],
+      appState: appState && typeof appState === "object" ? appState : {},
+      version: currentVersion + 1,
+      updatedAt: new Date(),
+      updatedBy: req.user._id,
+    };
+
+    await session.save();
+
+    return res.json({ success: true, whiteboard: session.whiteboard });
+  } catch (error) {
+    console.log("Error in saveWhiteboard:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
 export async function downloadPerformanceReport(req, res) {
   try {
     const { id } = req.params;

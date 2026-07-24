@@ -21,6 +21,7 @@ import {
   ChevronDownIcon,
   FileTextIcon,
   HelpCircleIcon,
+  PenLineIcon,
 } from "lucide-react";
 import { T } from "../../constants/sessionTheme";
 
@@ -254,33 +255,51 @@ function PageSwitcher({ activePage, onChange, darkMode = false }) {
       color: T.purple,
       desc: "Answer theory & concept questions",
     },
+    {
+      id: "whiteboard",
+      label: "Whiteboard",
+      Icon: PenLineIcon,
+      color: T.amber,
+      desc: "Collaborative drawing — system design, UML, diagrams",
+    },
   ];
 
   const current = pages.find((p) => p.id === activePage) || pages[0];
 
+  const accent =
+    activePage === "quiz" ? T.purple : activePage === "whiteboard" ? T.amber : T.blue;
+  const accentTint =
+    activePage === "quiz" ? T.purpleTint : activePage === "whiteboard" ? T.amberTint : T.blueTint;
+  const accentBorder =
+    activePage === "quiz"
+      ? "rgba(101,84,192,0.3)"
+      : activePage === "whiteboard"
+        ? T.amberBorder
+        : T.border;
+
   const borderColor = darkMode
     ? activePage === "quiz"
       ? "rgba(101,84,192,0.4)"
-      : "rgba(255,255,255,0.12)"
-    : activePage === "quiz"
-      ? "rgba(101,84,192,0.3)"
-      : T.border;
+      : activePage === "whiteboard"
+        ? "rgba(255,171,0,0.4)"
+        : "rgba(255,255,255,0.12)"
+    : accentBorder;
 
   const bgColor = darkMode
     ? activePage === "quiz"
       ? "rgba(101,84,192,0.12)"
-      : "rgba(255,255,255,0.06)"
-    : activePage === "quiz"
-      ? T.purpleTint
-      : T.surface;
+      : activePage === "whiteboard"
+        ? "rgba(255,171,0,0.12)"
+        : "rgba(255,255,255,0.06)"
+    : accentTint;
 
   const textColor = darkMode
     ? activePage === "quiz"
       ? "#A78BFA"
-      : "rgba(255,255,255,0.6)"
-    : activePage === "quiz"
-      ? T.purple
-      : T.body;
+      : activePage === "whiteboard"
+        ? "#FFAB00"
+        : "rgba(255,255,255,0.6)"
+    : accent;
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -339,12 +358,16 @@ function PageSwitcher({ activePage, onChange, darkMode = false }) {
                 ? isActive
                   ? p.id === "quiz"
                     ? "rgba(101,84,192,0.15)"
-                    : "rgba(24,104,219,0.15)"
+                    : p.id === "whiteboard"
+                      ? "rgba(255,171,0,0.15)"
+                      : "rgba(24,104,219,0.15)"
                   : "transparent"
                 : isActive
                   ? p.id === "quiz"
                     ? T.purpleTint
-                    : T.blueTint
+                    : p.id === "whiteboard"
+                      ? T.amberTint
+                      : T.blueTint
                   : "transparent";
               const itemColor = isActive
                 ? p.color

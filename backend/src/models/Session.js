@@ -112,6 +112,23 @@ performanceReport: {
   generatedAt: { type: Date, default: null },
 },
 
+// ==========================
+// Collaborative whiteboard
+// One board per interview session. `elements`/`appState` mirror
+// Excalidraw's own scene format 1:1 (Mixed, since that shape is
+// version-managed by the Excalidraw library itself, not by us) so the
+// saved board can be handed straight back to <Excalidraw /> on reload.
+// `version` is a simple monotonically-increasing save counter used to
+// avoid an older auto-save race overwriting a newer one.
+// ==========================
+whiteboard: {
+  elements: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  appState: { type: mongoose.Schema.Types.Mixed, default: {} },
+  version: { type: Number, default: 0 },
+  updatedAt: { type: Date, default: null },
+  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+},
+
   },
   {
     timestamps: true,

@@ -156,4 +156,26 @@ export const sessionApi = {
     });
     return response.data;
   },
+
+  getWhiteboard: async (id, token) => {
+    const response = await axiosInstance.get(`/sessions/${id}/whiteboard`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  saveWhiteboard: async (id, { elements, appState, version }, token) => {
+    const response = await axiosInstance.patch(
+      `/sessions/${id}/whiteboard`,
+      { elements, appState, version },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  },
 };

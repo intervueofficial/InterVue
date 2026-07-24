@@ -5,6 +5,8 @@ const T = {
   blueTint: "#cfe1fd",
   blueMid: "#4A9EE8",
   amber: "#ffab00",
+  amberTint: "rgba(255,171,0,0.1)",
+  amberBorder: "rgba(255,171,0,0.25)",
   dark: "#1C2B42",
   body: "#44526C",
   muted: "#6B778C",

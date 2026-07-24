@@ -16,6 +16,8 @@ import {
   submitQuizResult,
   submitCodeResult,
   downloadPerformanceReport,
+  getWhiteboard,
+  saveWhiteboard,
 } from "../controllers/sessionController.js";
 
 import SessionViolation from "../models/SessionViolation.js";
@@ -105,6 +107,20 @@ router.get(
   "/:id/report",
   protectRoute,
   downloadPerformanceReport
+);
+
+router.get(
+  "/:id/whiteboard",
+  protectRoute,
+  requireRole("admin", "interviewer", "candidate"),
+  getWhiteboard
+);
+
+router.patch(
+  "/:id/whiteboard",
+  protectRoute,
+  requireRole("interviewer", "candidate"),
+  saveWhiteboard
 );
 
 router.post(

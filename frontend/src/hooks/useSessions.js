@@ -232,3 +232,37 @@ export const useSubmitCodeResult = (sessionId) => {
       ),
   });
 };
+
+// Loads the saved whiteboard once when the panel opens. Not part of the
+// polling useSessionById query on purpose — board data can get large
+// and doesn't need to be re-fetched every 5s along with the session.
+export const useWhiteboardData = (sessionId) => {
+  const { getToken } = useAuth();
+
+  return useQuery({
+    queryKey: ["whiteboard", sessionId],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await sessionApi.getWhiteboard(sessionId, token);
+      return res.whiteboard;
+    },
+    enabled: !!sessionId,
+    staleTime: Infinity, // it's a live-edited document; the socket sync keeps it fresh, not refetching
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Silent, best-effort — used by the whiteboard's auto-save timer, the
+// manual Save button, and Clear. Errors surface via toast in the
+// component itself so callers can tailor the message per-action.
+export const useSaveWhiteboard = (sessionId) => {
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationKey: ["saveWhiteboard", sessionId],
+    mutationFn: async ({ elements, appState, version }) => {
+      const token = await getToken();
+      return sessionApi.saveWhiteboard(sessionId, { elements, appState, version }, token);
+    },
+  });
+};
