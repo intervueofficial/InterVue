@@ -31,6 +31,7 @@ const AUTOSAVE_INTERVAL_MS = 8000;
 function WhiteboardPanel({ session, channel, currentUser, permission }) {
   const excalidrawRef = useRef(null);
   const lastElementsRef = useRef([]);
+  const applyingRemoteUpdateRef = useRef(false); // NEW: guards against onChange loop from our own updateScene()
   const [loadedOnce, setLoadedOnce] = useState(false);
   const [viewState, setViewState] = useState({
     zoom: { value: 1 },
@@ -84,6 +85,9 @@ function WhiteboardPanel({ session, channel, currentUser, permission }) {
   useEffect(() => {
     onRemoteElements((incoming) => {
       if (!excalidrawRef.current) return;
+
+      applyingRemoteUpdateRef.current = true; // NEW: mark next onChange as "not a local edit"
+
       const merged = reconcileElements(
         lastElementsRef.current,
         incoming,
@@ -95,6 +99,7 @@ function WhiteboardPanel({ session, channel, currentUser, permission }) {
 
     onRemoteClear(() => {
       if (!excalidrawRef.current) return;
+      applyingRemoteUpdateRef.current = true; // NEW: same guard applies to clears
       lastElementsRef.current = [];
       excalidrawRef.current.updateScene({ elements: [] });
       toast("Whiteboard was cleared by the interviewer", { icon: "🧹" });
@@ -107,12 +112,54 @@ function WhiteboardPanel({ session, channel, currentUser, permission }) {
      everyone else the same way any other edit does.) */
   const handleChange = useCallback(
     (elements, appState) => {
-      setViewState({
-        zoom: appState.zoom,
-        offsetLeft: appState.offsetLeft,
-        offsetTop: appState.offsetTop,
-        scrollX: appState.scrollX,
-        scrollY: appState.scrollY,
+      // NEW: if this onChange was caused by our own updateScene() call
+      // (from a remote edit/clear), consume the flag and skip re-broadcasting.
+      if (applyingRemoteUpdateRef.current) {
+        applyingRemoteUpdateRef.current = false;
+
+        setViewState((prev) => {
+          const next = {
+            zoom: appState.zoom,
+            offsetLeft: appState.offsetLeft,
+            offsetTop: appState.offsetTop,
+            scrollX: appState.scrollX,
+            scrollY: appState.scrollY,
+          };
+          if (
+            prev.zoom?.value === next.zoom?.value &&
+            prev.offsetLeft === next.offsetLeft &&
+            prev.offsetTop === next.offsetTop &&
+            prev.scrollX === next.scrollX &&
+            prev.scrollY === next.scrollY
+          ) {
+            return prev;
+          }
+          return next;
+        });
+
+        return;
+      }
+
+      // NEW: guarded state update — bail out if nothing actually changed,
+      // so we don't trigger a rerender (and therefore another onChange loop)
+      setViewState((prev) => {
+        const next = {
+          zoom: appState.zoom,
+          offsetLeft: appState.offsetLeft,
+          offsetTop: appState.offsetTop,
+          scrollX: appState.scrollX,
+          scrollY: appState.scrollY,
+        };
+        if (
+          prev.zoom?.value === next.zoom?.value &&
+          prev.offsetLeft === next.offsetLeft &&
+          prev.offsetTop === next.offsetTop &&
+          prev.scrollX === next.scrollX &&
+          prev.scrollY === next.scrollY
+        ) {
+          return prev;
+        }
+        return next;
       });
 
       if (!canEdit) return;

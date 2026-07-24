@@ -1,45 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/*
- * ─── Real-time transport note ──────────────────────────────────────────────
- * InterVue's session page doesn't use Socket.IO — its real-time layer is
- * GetStream (Stream Video for the call, Stream Chat for in-call messages).
- * `channel` here is the same Stream Chat channel instance already created
- * by useStreamClient.js for the chat panel (`messaging:<session.callId>`).
- *
- * Stream Chat channels support arbitrary custom events via
- * `channel.sendEvent()` / `channel.on()`, delivered over the same
- * WebSocket connection already open for chat — this is the "existing
- * real-time connection" this hook reuses for whiteboard sync, playing
- * the same role Socket.IO custom events would in a Socket.IO-based app.
- * ────────────────────────────────────────────────────────────────────────
- */
-
-const BROADCAST_THROTTLE_MS = 200; // batches rapid pen strokes into one event
+const BROADCAST_THROTTLE_MS = 200;
 const CURSOR_THROTTLE_MS = 120;
 const CURSOR_STALE_MS = 4000;
 
-/**
- * @param {object} params
- * @param {import("stream-chat").Channel} params.channel
- * @param {string} params.sessionId
- * @param {string} params.userId - current user's Stream user id (used to ignore our own echoed events)
- * @param {string} params.userName
- * @param {boolean} params.enabled
- */
-export default function useWhiteboardSync({ channel, sessionId, userId, userName, enabled }) {
-  const lastVersionsRef = useRef(new Map()); // elementId -> last broadcast version
-  const pendingBatchRef = useRef(new Map()); // elementId -> element, waiting to flush
+export default function useWhiteboardSync({
+  channel,
+  sessionId,
+  userId,
+  userName,
+  enabled,
+}) {
+  // -------------------------
+  // Refs
+  // -------------------------
+
+  const lastVersionsRef = useRef(new Map());
+  const pendingBatchRef = useRef(new Map());
+
   const throttleTimerRef = useRef(null);
-  const cursorThrottledRef = useRef(false);
+  const cursorThrottleRef = useRef(false);
 
   const remoteElementsHandlerRef = useRef(null);
   const remoteClearHandlerRef = useRef(null);
 
-  const [remoteCursors, setRemoteCursors] = useState({}); // userId -> { x, y, name, t }
+  // -------------------------
+  // State
+  // -------------------------
+
+  const [remoteCursors, setRemoteCursors] = useState({});
   const [isLive, setIsLive] = useState(false);
 
-  /* ── Subscribe to incoming events ───────────────────────────────────── */
+  // -------------------------
+  // Subscribe to Stream events
+  // -------------------------
+
   useEffect(() => {
     if (!channel || !enabled) {
       setIsLive(false);
@@ -48,129 +43,196 @@ export default function useWhiteboardSync({ channel, sessionId, userId, userName
 
     setIsLive(true);
 
-    const belongsToUs = (event) =>
-      (!event.sessionId || event.sessionId === sessionId) && event.user?.id !== userId;
+    const isRemoteEvent = (event) =>
+      (!event.sessionId || event.sessionId === sessionId) &&
+      event.user?.id !== userId;
 
-    const handleUpdate = (event) => {
-      if (!belongsToUs(event)) return;
+    const handleWhiteboardUpdate = (event) => {
+      if (!isRemoteEvent(event)) return;
       remoteElementsHandlerRef.current?.(event.elements || []);
     };
 
-    const handleClear = (event) => {
-      if (!belongsToUs(event)) return;
+    const handleWhiteboardClear = (event) => {
+      if (!isRemoteEvent(event)) return;
       remoteClearHandlerRef.current?.();
     };
 
-    const handleCursor = (event) => {
-      if (!belongsToUs(event)) return;
+    const handleCursorUpdate = (event) => {
+      if (!isRemoteEvent(event)) return;
+
       setRemoteCursors((prev) => ({
         ...prev,
         [event.user.id]: {
           x: event.x,
           y: event.y,
-          name: event.user?.name || "Guest",
+          name: event.user?.name || userName || "Guest",
           t: Date.now(),
         },
       }));
     };
 
-    channel.on("whiteboard_update", handleUpdate);
-    channel.on("whiteboard_clear", handleClear);
-    channel.on("whiteboard_cursor", handleCursor);
+    channel.on("whiteboard_update", handleWhiteboardUpdate);
+    channel.on("whiteboard_clear", handleWhiteboardClear);
+    channel.on("whiteboard_cursor", handleCursorUpdate);
 
     return () => {
-      channel.off("whiteboard_update", handleUpdate);
-      channel.off("whiteboard_clear", handleClear);
-      channel.off("whiteboard_cursor", handleCursor);
+      channel.off("whiteboard_update", handleWhiteboardUpdate);
+      channel.off("whiteboard_clear", handleWhiteboardClear);
+      channel.off("whiteboard_cursor", handleCursorUpdate);
+
       setIsLive(false);
     };
-  }, [channel, enabled, sessionId, userId]);
+  }, [channel, enabled, sessionId, userId, userName]);
 
-  /* ── Drop cursors we haven't heard from in a while ──────────────────── */
+  // -------------------------
+  // Remove stale cursors
+  // -------------------------
+
   useEffect(() => {
-    const id = setInterval(() => {
+    const interval = setInterval(() => {
       setRemoteCursors((prev) => {
         const now = Date.now();
         const next = {};
+
         let changed = false;
-        for (const [uid, c] of Object.entries(prev)) {
-          if (now - c.t < CURSOR_STALE_MS) next[uid] = c;
-          else changed = true;
+
+        for (const [id, cursor] of Object.entries(prev)) {
+          if (now - cursor.t < CURSOR_STALE_MS) {
+            next[id] = cursor;
+          } else {
+            changed = true;
+          }
         }
+
         return changed ? next : prev;
       });
     }, 1500);
-    return () => clearInterval(id);
+
+    return () => clearInterval(interval);
   }, []);
 
-  const onRemoteElements = useCallback((cb) => {
-    remoteElementsHandlerRef.current = cb;
+  // -------------------------
+  // Callback registration
+  // -------------------------
+
+  const onRemoteElements = useCallback((callback) => {
+    remoteElementsHandlerRef.current = callback;
   }, []);
 
-  const onRemoteClear = useCallback((cb) => {
-    remoteClearHandlerRef.current = cb;
+  const onRemoteClear = useCallback((callback) => {
+    remoteClearHandlerRef.current = callback;
   }, []);
 
-  /* ── Broadcast only elements that actually changed (diff by version) ── */
+  // -------------------------
+  // Flush pending updates
+  // -------------------------
+
   const flush = useCallback(() => {
     throttleTimerRef.current = null;
+
     if (!channel || pendingBatchRef.current.size === 0) return;
 
-    const batch = Array.from(pendingBatchRef.current.values());
+    const batch = [...pendingBatchRef.current.values()];
+
     pendingBatchRef.current.clear();
 
-    batch.forEach((el) => lastVersionsRef.current.set(el.id, el.version));
+    batch.forEach((element) => {
+      lastVersionsRef.current.set(element.id, element.version);
+    });
 
-    channel
-      .sendEvent({ type: "whiteboard_update", sessionId, elements: batch })
-      .catch((err) => console.warn("Whiteboard broadcast failed:", err?.message));
+    channel.sendEvent({
+      type: "whiteboard_update",
+      sessionId,
+      elements: batch,
+    }).catch((err) => {
+      console.warn("Whiteboard broadcast failed:", err?.message);
+    });
   }, [channel, sessionId]);
+
+  // -------------------------
+  // Broadcast changed elements
+  // -------------------------
 
   const broadcastElements = useCallback(
     (elements) => {
       if (!channel || !enabled) return;
 
-      for (const el of elements) {
-        const lastVersion = lastVersionsRef.current.get(el.id);
-        if (lastVersion === undefined || el.version > lastVersion) {
-          pendingBatchRef.current.set(el.id, el);
+      elements.forEach((element) => {
+        const lastVersion = lastVersionsRef.current.get(element.id);
+
+        if (
+          lastVersion === undefined ||
+          element.version > lastVersion
+        ) {
+          pendingBatchRef.current.set(element.id, element);
         }
-      }
+      });
 
       if (pendingBatchRef.current.size === 0) return;
       if (throttleTimerRef.current) return;
 
-      throttleTimerRef.current = setTimeout(flush, BROADCAST_THROTTLE_MS);
+      throttleTimerRef.current = setTimeout(
+        flush,
+        BROADCAST_THROTTLE_MS
+      );
     },
     [channel, enabled, flush]
   );
 
+  // -------------------------
+  // Clear whiteboard
+  // -------------------------
+
   const broadcastClear = useCallback(() => {
     if (!channel || !enabled) return;
+
     lastVersionsRef.current.clear();
     pendingBatchRef.current.clear();
-    channel.sendEvent({ type: "whiteboard_clear", sessionId }).catch(() => {});
+
+    channel.sendEvent({
+      type: "whiteboard_clear",
+      sessionId,
+    }).catch(() => {});
   }, [channel, enabled, sessionId]);
+
+  // -------------------------
+  // Send cursor
+  // -------------------------
 
   const sendCursor = useCallback(
     (x, y) => {
-      if (!channel || !enabled || cursorThrottledRef.current) return;
-      cursorThrottledRef.current = true;
+      if (!channel || !enabled) return;
+      if (cursorThrottleRef.current) return;
+
+      cursorThrottleRef.current = true;
+
       setTimeout(() => {
-        cursorThrottledRef.current = false;
+        cursorThrottleRef.current = false;
       }, CURSOR_THROTTLE_MS);
 
-      channel.sendEvent({ type: "whiteboard_cursor", sessionId, x, y }).catch(() => {});
+      channel.sendEvent({
+        type: "whiteboard_cursor",
+        sessionId,
+        x,
+        y,
+      }).catch(() => {});
     },
     [channel, enabled, sessionId]
   );
 
-  // After loading a saved board (or fully reconciling a remote clear),
-  // reset the "last broadcast version" bookkeeping so the next local
-  // edit is diffed against reality instead of re-sending everything.
-  const primeVersions = useCallback((elements) => {
-    lastVersionsRef.current = new Map(elements.map((el) => [el.id, el.version]));
+  // -------------------------
+  // Prime element versions
+  // -------------------------
+
+  const primeVersions = useCallback((elements = []) => {
+    lastVersionsRef.current = new Map(
+      elements.map((element) => [element.id, element.version])
+    );
   }, []);
+
+  // -------------------------
+  // Public API
+  // -------------------------
 
   return {
     isLive,

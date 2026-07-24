@@ -15,6 +15,14 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
   const [isInitializingCall, setIsInitializingCall] = useState(true);
 
   useEffect(() => {
+     console.log("🟢 STREAM EFFECT START", {
+    sessionId: session?._id,
+    callId: session?.callId,
+    status: session?.status,
+    loadingSession,
+    isHost,
+    isParticipant,
+  });
     let videoCall = null;
     let chatClientInstance = null;
     let isMounted = true; // ✅ prevent state updates after unmount
