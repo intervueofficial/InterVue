@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ClockIcon, UsersIcon, MonitorIcon } from "lucide-react";
+import { ClockIcon, UsersIcon, MonitorIcon, PenToolIcon } from "lucide-react";
 import { T, DIFF } from "../../constants/sessionTheme";
 import { Badge, SpinnerIcon, TriangleIcon, PageSwitcher } from "./SessionUI";
 import useSessionTimer from "../../hooks/session/useSessionTimer";
@@ -18,6 +18,12 @@ function CandidateTopBar({
   const isLive = session?.status === "active";
   const diff = DIFF[session?.difficulty] || DIFF.medium;
   const timer = useSessionTimer(isLive);
+
+  const PAGES = [
+    { key: "problem", label: "Problem" },
+    { key: "quiz", label: "Quiz" },
+    { key: "whiteboard", label: "Whiteboard" },
+  ];
 
   return (
     <div
@@ -128,12 +134,55 @@ function CandidateTopBar({
       <div
         style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}
       >
-        {/* Page switcher */}
+        {/* Page switcher (Problem | Quiz | Whiteboard) */}
         <PageSwitcher
           activePage={activePage}
           onChange={onPageChange}
           darkMode={false}
+          pages={PAGES}
         />
+
+        {/* Fallback explicit tabs in case PageSwitcher ignores custom pages prop */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            background: T.surface2,
+            border: `1px solid ${T.border}`,
+            borderRadius: 4,
+            padding: 2,
+          }}
+        >
+          {PAGES.map((p) => {
+            const active = activePage === p.key;
+            return (
+              <button
+                key={p.key}
+                onClick={() => onPageChange(p.key)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 10px",
+                  borderRadius: 3,
+                  border: "none",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: "'DM Sans', sans-serif",
+                  cursor: "pointer",
+                  background: active ? T.surface : "transparent",
+                  color: active ? T.dark : T.muted,
+                  boxShadow: active ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                {p.key === "whiteboard" && <PenToolIcon size={11} />}
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
 
         <div style={{ width: 1, height: 18, background: T.border }} />
 
