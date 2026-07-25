@@ -9,6 +9,8 @@ import {
   ExternalLink,
   Save,
   RotateCcw,
+  AlertTriangle,
+  Calendar,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -89,7 +91,7 @@ const Toggle = ({ checked, onChange }) => {
   );
 };
 
-const SectionCard = ({ icon: Icon, color, title, subtitle, children }) => {
+const SectionCard = ({ icon: Icon, color, title, subtitle, badge, children }) => {
   return (
     <>
       <style>{`
@@ -109,8 +111,16 @@ const SectionCard = ({ icon: Icon, color, title, subtitle, children }) => {
         .settings-card-header{
           display:flex;
           align-items:center;
+          justify-content:space-between;
           gap:14px;
           margin-bottom:22px;
+        }
+
+        .settings-card-header-left{
+          display:flex;
+          align-items:center;
+          gap:14px;
+          min-width:0;
         }
 
         .settings-icon-box{
@@ -133,6 +143,17 @@ const SectionCard = ({ icon: Icon, color, title, subtitle, children }) => {
           font-size:13px;
           color:#94A3B8;
           margin-top:2px;
+        }
+
+        .settings-badge{
+          font-size:10.5px;
+          font-weight:700;
+          text-transform:uppercase;
+          letter-spacing:.4px;
+          padding:5px 10px;
+          border-radius:999px;
+          flex-shrink:0;
+          white-space:nowrap;
         }
 
         .settings-row{
@@ -164,19 +185,23 @@ const SectionCard = ({ icon: Icon, color, title, subtitle, children }) => {
 
       <div className="settings-card">
         <div className="settings-card-header">
-          <div
-            className="settings-icon-box"
-            style={{ background: `${color}15` }}
-          >
-            <Icon color={color} size={22} />
+          <div className="settings-card-header-left">
+            <div
+              className="settings-icon-box"
+              style={{ background: `${color}15` }}
+            >
+              <Icon color={color} size={22} />
+            </div>
+
+            <div className="min-w-0">
+              <div className="settings-card-title">{title}</div>
+              {subtitle && (
+                <div className="settings-card-subtitle">{subtitle}</div>
+              )}
+            </div>
           </div>
 
-          <div>
-            <div className="settings-card-title">{title}</div>
-            {subtitle && (
-              <div className="settings-card-subtitle">{subtitle}</div>
-            )}
-          </div>
+          {badge}
         </div>
 
         {children}
@@ -233,7 +258,7 @@ const Settings = () => {
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      toast.success("Settings saved successfully.");
+      toast.success("Preferences saved on this device.");
       setDirty(false);
     } catch (error) {
       console.error(error);
@@ -376,6 +401,15 @@ const Settings = () => {
           color="#B45309"
           title="Notifications"
           subtitle="Choose what you want to be notified about"
+          badge={
+            <span
+              className="settings-badge"
+              style={{ background: "#94A3B815", color: "#64748B" }}
+              title="Stored on this device only — not yet sent to the backend"
+            >
+              This device
+            </span>
+          }
         >
           <SettingsRow
             label="Email Alerts"
@@ -428,23 +462,51 @@ const Settings = () => {
           color="#7C3AED"
           title="Platform Preferences"
           subtitle="Configure default platform behavior"
+          badge={
+            <span
+              className="settings-badge flex items-center gap-1"
+              style={{ background: "#DC262615", color: "#DC2626" }}
+              title="Not wired to the backend yet — see note below"
+            >
+              <AlertTriangle size={11} />
+              Not enforced
+            </span>
+          }
         >
+          <div
+            className="flex items-start gap-2.5 rounded-xl px-4 py-3 mb-1 text-xs"
+            style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}
+          >
+            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+            <span>
+              These currently save to your browser only. Session creation, interviewer
+              sign-up, and platform access don't read them yet — treat them as drafts
+              until a backend settings endpoint exists.
+            </span>
+          </div>
+
           <SettingsRow
             label="Default Session Duration"
-            description="Applied when creating new interview sessions"
+            description="Suggested duration when creating new interview sessions"
             control={
-              <select
-                value={settings.platform.defaultSessionDuration}
-                onChange={(e) =>
-                  updatePlatform("defaultSessionDuration", e.target.value)
-                }
-                className={inputStyle}
-              >
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">60 minutes</option>
-                <option value="90">90 minutes</option>
-              </select>
+              <div className="relative">
+                <Calendar
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
+                <select
+                  value={settings.platform.defaultSessionDuration}
+                  onChange={(e) =>
+                    updatePlatform("defaultSessionDuration", e.target.value)
+                  }
+                  className={`${inputStyle} pl-9`}
+                >
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
+                  <option value="90">90 minutes</option>
+                </select>
+              </div>
             }
           />
 

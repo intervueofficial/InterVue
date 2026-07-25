@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 
 import useAuthUser from "../hooks/useAuthUser";
 import { useActiveSessions } from "../hooks/useSessions";
@@ -10,24 +10,52 @@ import SessionGrid from "../components/session/SessionGrid";
 import CreateSessionModal from "../components/session/CreateSessionModal";
 import { THEME } from "../constants/theme";
 
-const SessionsContent = ({ authUser, sessions, isLoading, showModal, setShowModal }) => (
+const SessionsContent = ({
+  authUser,
+  sessions,
+  isLoading,
+  isFetching,
+  onRefresh,
+  showModal,
+  setShowModal,
+}) => (
   <div className="space-y-8">
     <PageHeader
       title="Interview Sessions"
       description="Manage and join scheduled interviews."
       actions={
-        authUser?.role === "admin" && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-4 py-2.5 transition-colors"
-            style={{ background: THEME.ink, color: THEME.surface }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+            onClick={onRefresh}
+            disabled={isFetching}
+            className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-4 py-2.5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              background: THEME.surface,
+              color: THEME.ink,
+              border: `1px solid ${THEME.border}`,
+            }}
+            onMouseEnter={(e) => {
+              if (!isFetching) e.currentTarget.style.opacity = "0.85";
+            }}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
-            <Plus size={16} />
-            Create Session
+            <RefreshCw size={16} className={isFetching ? "animate-spin" : ""} />
+            Refresh
           </button>
-        )
+
+          {authUser?.role === "admin" && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-4 py-2.5 transition-colors"
+              style={{ background: THEME.ink, color: THEME.surface }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              <Plus size={16} />
+              Create Session
+            </button>
+          )}
+        </div>
       }
     />
 
@@ -45,7 +73,7 @@ const SessionsContent = ({ authUser, sessions, isLoading, showModal, setShowModa
 
 const Sessions = () => {
   const { data: authUser } = useAuthUser();
-  const { data, isLoading } = useActiveSessions();
+  const { data, isLoading, isFetching, refetch } = useActiveSessions();
   const [showModal, setShowModal] = useState(false);
 
   const sessions = data?.sessions || [];
@@ -55,6 +83,8 @@ const Sessions = () => {
       authUser={authUser}
       sessions={sessions}
       isLoading={isLoading}
+      isFetching={isFetching}
+      onRefresh={refetch}
       showModal={showModal}
       setShowModal={setShowModal}
     />

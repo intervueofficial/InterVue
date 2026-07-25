@@ -1,9 +1,15 @@
+import { useState } from "react";
 import {
   CalendarClock,
   CheckCircle2,
   Clock,
   MonitorPlay,
+  RefreshCw,
+  TrendingUp,
+  Zap,
+  AlertTriangle,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useAdminAnalytics } from "../../hooks/useAdmin";
 import StatCard from "./StatCard";
@@ -263,10 +269,126 @@ const BreakdownCard = ({ title, subtitle, entries, meta, total }) => {
   );
 };
 
+/* ─── Health signal strip: derived, from the same analytics payload ────────
+   No new endpoint — these are ratios computed client-side from fields
+   the controller already returns (sessionsByStatus, completionRate). ── */
+function HealthStrip({ sessionsByStatus, totalSessions, completionRate }) {
+  const cancelled = sessionsByStatus.cancelled || 0;
+  const cancelRate = totalSessions > 0 ? Math.round((cancelled / totalSessions) * 100) : 0;
+  const live = sessionsByStatus.live || 0;
+  const waiting = sessionsByStatus.waiting || 0;
+
+  const items = [
+    {
+      icon: Zap,
+      label: "In progress",
+      value: live + waiting,
+      detail: `${live} live · ${waiting} waiting`,
+      color: "#15803D",
+    },
+    {
+      icon: TrendingUp,
+      label: "Completion rate",
+      value: `${completionRate}%`,
+      detail: "of all sessions ever created",
+      color: "#2563EB",
+    },
+    {
+      icon: AlertTriangle,
+      label: "Cancellation rate",
+      value: `${cancelRate}%`,
+      detail: `${cancelled} cancelled total`,
+      color: cancelRate > 20 ? "#DC2626" : "#94A3B8",
+    },
+  ];
+
+  return (
+    <>
+      <style>{`
+        .health-strip{
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+          gap:1px;
+          background:#E2E8F0;
+          border:1px solid #E2E8F0;
+          border-radius:22px;
+          overflow:hidden;
+        }
+        .health-item{
+          background:#fff;
+          padding:22px 24px;
+          display:flex;
+          align-items:flex-start;
+          gap:14px;
+        }
+        .health-icon{
+          width:38px;
+          height:38px;
+          border-radius:12px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          flex-shrink:0;
+        }
+        .health-value{
+          font-size:22px;
+          font-weight:800;
+          color:#0F172A;
+          letter-spacing:-0.3px;
+          line-height:1.1;
+        }
+        .health-label{
+          font-size:12px;
+          font-weight:600;
+          color:#475569;
+          margin-top:2px;
+        }
+        .health-detail{
+          font-size:11px;
+          color:#94A3B8;
+          margin-top:3px;
+        }
+      `}</style>
+
+      <div className="health-strip">
+        {items.map(({ icon: Icon, label, value, detail, color }) => (
+          <div className="health-item" key={label}>
+            <div className="health-icon" style={{ background: `${color}14` }}>
+              <Icon size={17} color={color} />
+            </div>
+            <div>
+              <div className="health-value">{value}</div>
+              <div className="health-label">{label}</div>
+              <div className="health-detail">{detail}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 const Analytics = () => {
-  const { data, isLoading, isError } = useAdminAnalytics();
+  const { data, isLoading, isError, isFetching, refetch } = useAdminAnalytics();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const analytics = data?.analytics;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      if (typeof refetch === "function") {
+        await refetch();
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const spinning = isRefreshing || isFetching;
 
   if (isLoading) {
     return (
@@ -282,9 +404,20 @@ const Analytics = () => {
   if (isError || !analytics) {
     return (
       <div>
-        <h1 className="text-4xl font-bold" style={{ color: "#2563EB" }}>
-          Analytics
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl font-bold" style={{ color: "#2563EB" }}>
+            Analytics
+          </h1>
+          <button
+            onClick={handleRefresh}
+            disabled={spinning}
+            className="flex items-center gap-2 rounded-full font-semibold text-[13px] px-4 py-2.5 border transition-colors disabled:opacity-60"
+            style={{ borderColor: "#E2E8F0", color: "#334155" }}
+          >
+            <RefreshCw size={14} className={spinning ? "animate-spin" : ""} />
+            Retry
+          </button>
+        </div>
         <p className="text-slate-500 mt-3">
           Couldn't load analytics data. Please try again shortly.
         </p>
@@ -317,17 +450,33 @@ const Analytics = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1
-          className="text-4xl font-bold"
-          style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
-        >
-          Analytics
-        </h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1
+            className="text-4xl font-bold"
+            style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
+          >
+            Analytics
+          </h1>
 
-        <p className="text-slate-500 mt-2">
-          Platform activity and performance at a glance.
-        </p>
+          <p className="text-slate-500 mt-2">
+            Platform activity and performance at a glance.
+          </p>
+        </div>
+
+        <button
+          onClick={handleRefresh}
+          disabled={spinning}
+          className="flex items-center gap-2 rounded-full font-semibold text-[13px] px-4 py-2.5 border transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0"
+          style={{ borderColor: "#E2E8F0", color: "#334155", background: "#fff" }}
+          onMouseEnter={(e) => {
+            if (!spinning) e.currentTarget.style.background = "#F8FAFC";
+          }}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+        >
+          <RefreshCw size={14} className={spinning ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -363,6 +512,13 @@ const Analytics = () => {
           color="#7C3AED"
         />
       </div>
+
+      {/* New: derived health signals — same payload, ratios not shown elsewhere */}
+      <HealthStrip
+        sessionsByStatus={sessionsByStatus}
+        totalSessions={totalSessions}
+        completionRate={completionRate}
+      />
 
       <AnalyticsChart
         data={sessionsOverTime}
