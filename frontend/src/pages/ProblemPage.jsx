@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AppLoader from "../components/AppLoader";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
@@ -96,7 +97,7 @@ const ProblemPage = () => {
     return (
       <AppShell scope={shellScope}>
         <div className="flex justify-center py-24">
-          <span className="loading loading-spinner loading-lg" style={{ color: THEME.primary }}></span>
+          <AppLoader />
         </div>
       </AppShell>
     );

@@ -67,7 +67,7 @@ const KANBAN_COLS = [
     { title: "Implement OAuth2 flow", tag: "Auth", priority: "low", assignee: "AL" },
     { title: "Rate limiting strategy", tag: "Infra", priority: "med", assignee: "SR" },
   ]},
-  { label: "In Progress", color: "#2563eb", tasks: [
+  { label: "In Progress", color: "#7185b0", tasks: [
     { title: "WebSocket reconnect logic", tag: "Backend", priority: "high", assignee: "MK" },
     { title: "Collaborative cursor sync", tag: "Frontend", priority: "high", assignee: "JP" },
   ]},
@@ -363,9 +363,9 @@ function AnalyticsMock() {
         <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80 }}>
           {bars.map((h, i) => (
             <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: i * 0.04, duration: 0.5, ease: "easeOut" }}
-              style={{ flex: 1, background: i === 5 ? "#2563eb" : "#dbeafe", borderRadius: "3px 3px 0 0", position: "relative" }}>
+              style={{ flex: 1, background: i === 5 ? "#626f8c" : "#dbeafe", borderRadius: "3px 3px 0 0", position: "relative" }}>
               {i === 5 && (
-                <div style={{ position: "absolute", top: -22, left: "50%", transform: "translateX(-50%)", background: "#1e40af", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 4px", borderRadius: 3, whiteSpace: "nowrap" }}>95</div>
+                <div style={{ position: "absolute", top: -22, left: "50%", transform: "translateX(-50%)", background: "#5d6787", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 4px", borderRadius: 3, whiteSpace: "nowrap" }}>95</div>
               )}
             </motion.div>
           ))}
@@ -422,7 +422,15 @@ const [selectedRole, setSelectedRole] = useState("");
   }, []);
 
   return (
-    <div style={{ fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif", background: "#DEEBFF", color: "#0f172a", overflowX: "hidden" }}>
+    <div style={{
+  fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif",
+  backgroundColor: "#efefe8",
+  backgroundImage:
+    "radial-gradient(circle at center, #fafaf7 0%, #efefe8 40%, #d8d8d1 75%, #a6a69e 100%)",
+  color: "#0f172a",
+  overflowX: "hidden",
+  minHeight: "100vh",
+}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -430,12 +438,12 @@ const [selectedRole, setSelectedRole] = useState("");
         a { text-decoration: none; color: inherit; }
         .nav-link { font-size:14px; font-weight:500; color:#475569; padding:6px 10px; border-radius:6px; transition:background 0.15s,color 0.15s; cursor:pointer; }
         .nav-link:hover { background:#f1f5f9; color:#0f172a; }
-        .btn-primary { background:#2563eb; color:#fff; border:none; font-size:15px; font-weight:600; padding:13px 26px; border-radius:9px; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:8px; transition:background 0.15s,transform 0.12s; }
-        .btn-primary:hover { background:#1d4ed8; transform:translateY(-1px); }
+        .btn-primary { background:#1F1F1F; color:#fff; border:none; font-size:15px; font-weight:600; padding:13px 26px; border-radius:9px; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:8px; transition:background 0.15s,transform 0.12s; }
+        .btn-primary:hover { background:#5a678e; transform:translateY(-1px); }
         .btn-secondary { background:transparent; color:#0f172a; border:1px solid #e2e8f0; font-size:15px; font-weight:500; padding:13px 22px; border-radius:9px; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:8px; transition:all 0.15s; }
         .btn-secondary:hover { border-color:#94a3b8; transform:translateY(-1px); }
         .social-btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0; border:1.5px solid #e2e8f0; border-radius:7px; background:#fff; font-family:inherit; font-size:14px; font-weight:500; color:#0f172a; cursor:pointer; width:100%; transition:border-color 0.15s,background 0.15s; }
-        .social-btn:hover { border-color:#2563eb; background:#f0f6ff; }
+        .social-btn:hover { border-color:#67779b; background:#f0f6ff; }
         .integration-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:18px 16px; display:flex; align-items:center; gap:12px; transition:box-shadow 0.2s,transform 0.15s; cursor:pointer; }
         .integration-card:hover { box-shadow:0 4px 16px rgba(37,99,235,0.1); transform:translateY(-2px); }
         .comparison-row { display:grid; grid-template-columns:1fr 1fr 1fr; padding:14px 24px; border-bottom:1px solid #f1f5f9; transition:background 0.15s; }
@@ -443,99 +451,198 @@ const [selectedRole, setSelectedRole] = useState("");
       `}</style>
 
       {/* ── NAVBAR ── */}
-      <nav style={{
-        borderBottom: scrollY > 20 ? "1px solid #e2e8f0" : "1px solid transparent",
-        background: scrollY > 20 ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.8)",
-        backdropFilter: "blur(14px)",
-        position: "sticky", top: 0, zIndex: 100,
-        transition: "border-color 0.2s, background 0.2s",
-      }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px", height: 60, display: "flex", alignItems: "center", gap: 40 }}>
-         <a
-  href="/"
+<nav
   style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 7,
-    textDecoration: "none",
+    position: "sticky",
+    top: 12,
+    zIndex: 100,
+
+    width: "calc(100% - 32px)",
+    maxWidth: 1320,
+    margin: "12px auto 0",
+
+    borderRadius: 18,
+
+    backdropFilter: "blur(32px) saturate(200%)",
+    WebkitBackdropFilter: "blur(32px) saturate(200%)",
+
+    background:
+      scrollY > 20
+        ? "rgba(255,255,255,0.62)"
+        : "rgba(255,255,255,0.42)",
+
+    border: "1px solid rgba(255,255,255,0.32)",
+
+    boxShadow:
+      scrollY > 20
+        ? `
+          0 10px 40px rgba(0,0,0,.08),
+          inset 0 1px 0 rgba(255,255,255,.65)
+        `
+        : `
+          0 6px 24px rgba(0,0,0,.05),
+          inset 0 1px 0 rgba(255,255,255,.75)
+        `,
+
+    transition: "all .35s cubic-bezier(.4,0,.2,1)",
+    overflow: "hidden",
   }}
 >
+  {/* Glass Highlight */}
+<div
+  style={{
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+
+    background: `
+      linear-gradient(
+        180deg,
+        rgba(255,255,255,0.55) 0%,
+        rgba(255,255,255,0.25) 18%,
+        rgba(255,255,255,0.10) 45%,
+        rgba(255,255,255,0.04) 70%,
+        rgba(255,255,255,0) 100%
+      )
+    `,
+
+    opacity: 0.9,
+  }}
+/>
+
   <div
     style={{
-      width: 36,
-      height: 36,
-      borderRadius: 8,
-      overflow: "hidden",
+      position: "relative",
+      maxWidth: 1280,
+      margin: "0 auto",
+      padding: "0 32px",
+      height: 68,
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
+      gap: 40,
     }}
   >
-    <img
-      src="/logo.png"
-      alt="InterVue"
+    <a
+      href="/"
       style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        display: "block",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        textDecoration: "none",
       }}
-    />
-  </div>
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          background: "rgba(255,255,255,.45)",
+          border: "1px solid rgba(255,255,255,.35)",
+        }}
+      >
+        <img
+          src="/logo.png"
+          alt="InterVue"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      </div>
 
-  <span
-    style={{
-      fontSize: 20,
-      fontWeight: 700,
-      color: "#0f172a",
-      letterSpacing: "-0.5px",
-      lineHeight: 1,
-    }}
-  >
-    InterVue
-  </span>
-</a>
-    
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-            <button
-              onClick={() => window.location.href = "/bot"}
-              style={{
-                background: "transparent", border: "none", fontSize: 14, fontWeight: 500,
-                color: "#475569", cursor: "pointer", padding: "6px 10px", borderRadius: 6,
-                transition: "background 0.15s", fontFamily: "inherit",
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              Mock Interview Bot
-            </button>
-            {/* Clerk Sign In */}
-            <SignInButton mode="modal">
-              <button style={{ background: "transparent", border: "none", fontSize: 14, fontWeight: 500, color: "#475569", cursor: "pointer", padding: "6px 10px", borderRadius: 6, transition: "background 0.15s", fontFamily: "inherit" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                Sign in
-              </button>
-            </SignInButton>
-            {/* Clerk Get Started */}
-<button
-  className="btn-primary"
-  style={{
-    padding: "8px 18px",
-    fontSize: 14,
-    borderRadius: 7,
-  }}
-  onClick={() => {
-  setSelectedRole("");
-  setShowRoleModal(true);
-}}
->
-  Get started free <Icon.ArrowRight />
-</button>
-          </div>
-        </div>
-      </nav>
+      <span
+        style={{
+          fontSize: 22,
+          fontWeight: 700,
+          color: "#111827",
+          letterSpacing: "-0.5px",
+        }}
+      >
+        InterVue
+      </span>
+    </a>
+
+    <div
+      style={{
+        marginLeft: "auto",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <button
+        onClick={() => (window.location.href = "/bot")}
+        style={{
+          background: "transparent",
+          border: "none",
+          fontSize: 14,
+          fontWeight: 500,
+          color: "#475569",
+          cursor: "pointer",
+          padding: "8px 12px",
+          borderRadius: 10,
+          transition: "all .2s ease",
+          fontFamily: "inherit",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,.35)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+        }}
+      >
+        Mock Interview Bot
+      </button>
+
+      <SignInButton mode="modal">
+        <button
+          style={{
+            background: "transparent",
+            border: "none",
+            fontSize: 14,
+            fontWeight: 500,
+            color: "#475569",
+            cursor: "pointer",
+            padding: "8px 12px",
+            borderRadius: 10,
+            transition: "all .2s ease",
+            fontFamily: "inherit",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,.35)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          Sign in
+        </button>
+      </SignInButton>
+
+      <button
+        className="btn-primary"
+        style={{
+          padding: "10px 20px",
+          fontSize: 14,
+          borderRadius: 12,
+        }}
+        onClick={() => {
+          setSelectedRole("");
+          setShowRoleModal(true);
+        }}
+      >
+        Get started free <Icon.ArrowRight />
+      </button>
+    </div>
+  </div>
+</nav>
 
       {/* ── HERO ── */}
       <section style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px 60px" }}>
@@ -545,13 +652,13 @@ const [selectedRole, setSelectedRole] = useState("");
           <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.07 } } }}>
             <motion.div variants={fadeUp}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid #bfdbfe", background: "#eff6ff", borderRadius: 20, padding: "4px 12px 4px 6px", marginBottom: 24 }}>
-                <span style={{ background: "#2563eb", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 12, letterSpacing: "0.05em", textTransform: "uppercase" }}>New</span>
-                <span style={{ fontSize: 13, color: "#1d4ed8", fontWeight: 500 }}>AI-powered Transparent Interviewing</span>
+                <span style={{ background: "#434751", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 12, letterSpacing: "0.05em", textTransform: "uppercase" }}>New</span>
+                <span style={{ fontSize: 13, color: "#5c6377", fontWeight: 500 }}>AI-powered Transparent Interviewing</span>
               </div>
             </motion.div>
 
             <motion.h1 variants={fadeUp} style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.08, letterSpacing: "-1.5px", color: "#0f172a", marginBottom: 24 }}>
-              Technical interviews<br />that actually <span style={{ color: "#2563eb" }}>work.</span>
+              Technical interviews<br />that actually <span style={{ color: "#4b515f" }}>work.</span>
             </motion.h1>
 
             <motion.p variants={fadeUp} style={{ fontSize: 17, lineHeight: 1.65, color: "#475569", marginBottom: 28, maxWidth: 460, fontWeight: 400 }}>
@@ -686,7 +793,7 @@ const [selectedRole, setSelectedRole] = useState("");
           <section key={feat.tag} style={{ background: idx % 2 === 1 ? "#f8fafc" : "#fff", borderTop: "1px solid #f1f5f9" }}>
             <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px", display: "grid", gridTemplateColumns: "0.95fr 1.25fr", gap: 80, alignItems: "center" }}>
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} style={{ order: isEven ? 0 : 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>{feat.tag}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#636b7d", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>{feat.tag}</div>
                 <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.8px", color: "#0f172a", lineHeight: 1.15, marginBottom: 16 }}>{feat.title}</h2>
                 <p style={{ fontSize: 16, color: "#475569", lineHeight: 1.7, marginBottom: 28, fontWeight: 400 }}>{feat.body}</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -699,7 +806,7 @@ const [selectedRole, setSelectedRole] = useState("");
                     </div>
                   ))}
                 </div>
-                <a href="#" style={{ fontSize: 14, fontWeight: 600, color: "#2563eb", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginTop: 28 }}>
+                <a href="#" style={{ fontSize: 14, fontWeight: 600, color: "#7382a0", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, marginTop: 28 }}>
                   Learn more <Icon.ChevronRight />
                 </a>
               </motion.div>
@@ -717,7 +824,7 @@ const [selectedRole, setSelectedRole] = useState("");
       <section style={{ borderTop: "1px solid #f1f5f9" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px" }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} style={{ textAlign: "center", marginBottom: 48 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>WHY INTERVUE</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#616d85", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>WHY INTERVUE</div>
             <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.8px", color: "#0f172a", marginBottom: 14 }}>Traditional process vs InterVue</h2>
             <p style={{ fontSize: 16, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.65 }}>See why engineering teams are moving their hiring to InterVue.</p>
           </motion.div>
@@ -725,7 +832,7 @@ const [selectedRole, setSelectedRole] = useState("");
             <div style={{ display: "grid", gridTemplateColumns: "0.95fr 1.25fr 1.25fr", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", padding: "14px 24px" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#475569", letterSpacing: "0.06em", textTransform: "uppercase" }}>Feature</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase" }}>Traditional</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#2563eb", letterSpacing: "0.06em", textTransform: "uppercase" }}>InterVue</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#6e7a93", letterSpacing: "0.06em", textTransform: "uppercase" }}>InterVue</span>
             </div>
             {COMPARISON.map((row, i) => (
               <div key={row.label} className="comparison-row" style={{ borderBottom: i < COMPARISON.length - 1 ? "1px solid #f1f5f9" : "none" }}>
@@ -746,7 +853,7 @@ const [selectedRole, setSelectedRole] = useState("");
       <section style={{ borderTop: "1px solid #f1f5f9", background: "#f8fafc" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px" }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>INTEGRATIONS</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#707fa1", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>INTEGRATIONS</div>
             <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.8px", color: "#0f172a", marginBottom: 14 }}>Plugs into your existing stack</h2>
             <p style={{ fontSize: 16, color: "#475569", maxWidth: 520, margin: "0 auto", lineHeight: 1.65, fontWeight: 400 }}>Connect InterVue with the tools your team already uses. Setup takes minutes, not weeks.</p>
           </motion.div>
@@ -811,7 +918,7 @@ const [selectedRole, setSelectedRole] = useState("");
                 <motion.div key={plan.plan} whileHover={{ scale: 1.01 }}
                   style={{ background: plan.highlight ? "#fff" : "rgba(255,255,255,0.06)", border: `1px solid ${plan.highlight ? "#fff" : "rgba(255,255,255,0.1)"}`, borderRadius: 10, padding: "20px 22px", display: "flex", alignItems: "center", gap: 20 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: plan.highlight ? "#2563eb" : "#64748b", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>{plan.plan}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: plan.highlight ? "#73809c" : "#64748b", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>{plan.plan}</div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
                       <span style={{ fontSize: 26, fontWeight: 800, color: plan.highlight ? "#0f172a" : "#e2e8f0", letterSpacing: "-0.5px" }}>{plan.price}</span>
                       <span style={{ fontSize: 12, color: plan.highlight ? "#64748b" : "#475569" }}>{plan.sub}</span>
@@ -826,7 +933,7 @@ const [selectedRole, setSelectedRole] = useState("");
                   </div>
                   {/* Clerk-powered plan CTA */}
                   <SignUpButton mode="modal">
-                    <button style={{ background: plan.highlight ? "#2563eb" : "rgba(255,255,255,0.1)", border: "none", fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer", padding: "10px 18px", borderRadius: 7, whiteSpace: "nowrap", transition: "opacity 0.15s", fontFamily: "inherit" }}
+                    <button style={{ background: plan.highlight ? "#67779b" : "rgba(255,255,255,0.1)", border: "none", fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer", padding: "10px 18px", borderRadius: 7, whiteSpace: "nowrap", transition: "opacity 0.15s", fontFamily: "inherit" }}
                       onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                       onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                       {plan.cta}

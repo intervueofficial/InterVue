@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Tag,
 } from "lucide-react";
+import AppLoader from "../../components/AppLoader";
 
 import EmptyState from "./EmptyState";
 
@@ -39,7 +40,7 @@ const ProblemTable = ({
   if (loading) {
     return (
       <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center">
-        <span className="loading loading-spinner loading-lg"></span>
+        <AppLoader />
       </div>
     );
   }

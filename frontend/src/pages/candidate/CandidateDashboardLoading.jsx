@@ -59,6 +59,22 @@ function SessionCardSkeleton({ delay = 0 }) {
   );
 }
 
+function ActivityRowSkeleton({ delay = 0 }) {
+  return (
+    <div
+      className="flex items-center gap-4 py-3.5 animate-[fadeIn_0.4s_ease-out_both]"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <Shimmer className="w-9 h-9 shrink-0" rounded="rounded-full" />
+      <div className="flex-1 space-y-2">
+        <Shimmer className="h-3.5 w-1/3" />
+        <Shimmer className="h-3 w-1/5" />
+      </div>
+      <Shimmer className="h-5 w-16 shrink-0" rounded="rounded-full" />
+    </div>
+  );
+}
+
 function QuickLinkSkeleton({ delay = 0 }) {
   return (
     <div
@@ -89,7 +105,7 @@ const CandidateDashboardLoading = () => {
         <Shimmer className="w-80 max-w-full h-4" />
       </div>
 
-      {/* Stat cards row */}
+      {/* Primary stat cards row */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCardSkeleton delay={0} />
         <StatCardSkeleton delay={60} />
@@ -97,24 +113,61 @@ const CandidateDashboardLoading = () => {
         <StatCardSkeleton delay={180} />
       </div>
 
+      {/* Secondary stat cards row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCardSkeleton delay={220} />
+        <StatCardSkeleton delay={260} />
+        <StatCardSkeleton delay={300} />
+        <StatCardSkeleton delay={340} />
+      </div>
+
       {/* Upcoming interviews section */}
       <div>
         <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5 animate-[fadeIn_0.4s_ease-out_both]" style={{ animationDelay: "220ms" }}>
+          <div className="flex items-center gap-2.5 animate-[fadeIn_0.4s_ease-out_both]" style={{ animationDelay: "380ms" }}>
             <Shimmer className="w-[18px] h-[18px]" rounded="rounded-sm" />
             <Shimmer className="w-40 h-5" />
             <Shimmer className="w-8 h-5" rounded="rounded-full" />
           </div>
           <Shimmer
             className="w-16 h-4 animate-[fadeIn_0.4s_ease-out_both]"
-            style={{ animationDelay: "220ms" }}
+            style={{ animationDelay: "380ms" }}
           />
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          <SessionCardSkeleton delay={260} />
-          <SessionCardSkeleton delay={320} />
-          <SessionCardSkeleton delay={380} />
+          <SessionCardSkeleton delay={420} />
+          <SessionCardSkeleton delay={460} />
+          <SessionCardSkeleton delay={500} />
+        </div>
+      </div>
+
+      {/* Two-column: recent sessions + activity/readiness */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="xl:col-span-2">
+          <div className="flex items-center gap-2.5 mb-5 animate-[fadeIn_0.4s_ease-out_both]" style={{ animationDelay: "540ms" }}>
+            <Shimmer className="w-[18px] h-[18px]" rounded="rounded-sm" />
+            <Shimmer className="w-36 h-5" />
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <SessionCardSkeleton delay={580} />
+            <SessionCardSkeleton delay={620} />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2.5 mb-5 animate-[fadeIn_0.4s_ease-out_both]" style={{ animationDelay: "540ms" }}>
+            <Shimmer className="w-[18px] h-[18px]" rounded="rounded-sm" />
+            <Shimmer className="w-32 h-5" />
+          </div>
+          <div
+            className="rounded-xl px-5 animate-[fadeIn_0.4s_ease-out_both]"
+            style={{ background: THEME.surface, border: `1px solid ${THEME.border}`, animationDelay: "580ms" }}
+          >
+            <ActivityRowSkeleton delay={620} />
+            <ActivityRowSkeleton delay={660} />
+            <ActivityRowSkeleton delay={700} />
+          </div>
         </div>
       </div>
 
@@ -122,12 +175,14 @@ const CandidateDashboardLoading = () => {
       <div>
         <Shimmer
           className="w-32 h-5 mb-5 animate-[fadeIn_0.4s_ease-out_both]"
-          style={{ animationDelay: "420ms" }}
+          style={{ animationDelay: "740ms" }}
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <QuickLinkSkeleton delay={460} />
-          <QuickLinkSkeleton delay={500} />
-          <QuickLinkSkeleton delay={540} />
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          <QuickLinkSkeleton delay={780} />
+          <QuickLinkSkeleton delay={820} />
+          <QuickLinkSkeleton delay={860} />
+          <QuickLinkSkeleton delay={900} />
+          <QuickLinkSkeleton delay={940} />
         </div>
       </div>
 
@@ -145,4 +200,3 @@ const CandidateDashboardLoading = () => {
 };
 
 export default CandidateDashboardLoading;
-//done

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AppLoader from "../components/AppLoader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
@@ -297,7 +298,7 @@ const QuizePage = () => {
 
         {isLoading ? (
           <div className="flex justify-center py-20">
-            <span className="loading loading-spinner loading-lg" style={{ color: THEME.primary }}></span>
+            <AppLoader />
           </div>
         ) : filtered.length === 0 ? (
           <div

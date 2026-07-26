@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import useAuthUser from "./hooks/useAuthUser";
 import useSyncRole from "./hooks/useSyncRole";
 import { THEME } from "./constants/theme";
+import AppLoader from "./components/AppLoader";
 
 // Landing
 import HomePage from "./pages/HomePage";
@@ -51,25 +52,11 @@ function App() {
   } = useAuthUser();
 
   if (!isLoaded) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: THEME.background }}
-      >
-        <span className="loading loading-spinner loading-lg" style={{ color: THEME.primary }}></span>
-      </div>
-    );
+    return <AppLoader fullScreen label="" />;
   }
 
   if (isSignedIn && isLoading) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: THEME.background }}
-      >
-        <span className="loading loading-spinner loading-lg" style={{ color: THEME.primary }}></span>
-      </div>
-    );
+    return <AppLoader fullScreen label="" />;
   }
 
   if (isSignedIn && (isError || !authUser)) {
