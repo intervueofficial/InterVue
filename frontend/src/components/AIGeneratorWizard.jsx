@@ -9,14 +9,13 @@ import toast from "react-hot-toast";
 import { aiGeneratorApi } from "../api/aiGeneratorApi";
 
 const inputCls =
-  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-sm";
+  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200 text-sm";
 
 const selectCls =
-  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-sm";
+  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200 text-sm";
 
 const STEPS = ["Configure", "Preview & Apply"];
 
-// Normalizes any AI response shape into the exact object ProblemForm.handleAIApply expects
 function normalizeProblem(raw) {
   const p = raw?.problem || raw;
   if (!p || typeof p !== "object" || Array.isArray(p)) {
@@ -38,7 +37,6 @@ function normalizeProblem(raw) {
   };
 }
 
-// Normalizes quiz response
 function normalizeQuiz(raw) {
   const arr = Array.isArray(raw)
     ? raw
@@ -59,6 +57,36 @@ function normalizeResult(type, raw) {
   return type === "problem" ? normalizeProblem(raw) : normalizeQuiz(raw);
 }
 
+function LogoMark({ size = 36 }) {
+  const [failed, setFailed] = useState(false);
+  const logoUrl = "/logo.png";
+
+  if (failed) {
+    return (
+      <div
+        className="rounded-xl bg-white/15 flex items-center justify-center"
+        style={{ width: size, height: size }}
+      >
+        <Sparkles size={18} className="text-white" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-xl bg-white flex items-center justify-center overflow-hidden p-1.5"
+      style={{ width: size, height: size }}
+    >
+      <img
+        src={logoUrl}
+        alt="Logo"
+        className="w-full h-full object-contain"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
 const AIGeneratorWizard = ({ type, onClose, onApply }) => {
   const { getToken } = useAuth();
   const [step, setStep]               = useState(0);
@@ -66,6 +94,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
   const [normalized, setNormalized]   = useState(null);
   const [isFallback, setIsFallback]   = useState(false);
   const [validationError, setValidationError] = useState("");
+  const [closing, setClosing] = useState(false);
 
   const [form, setForm] = useState({
     role:       "Software Engineer",
@@ -121,7 +150,6 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
       const response = await aiGeneratorApi.generate(payload, token);
       if (!response.success) throw new Error(response.message || "Generation failed.");
 
-      // Normalize here — if it fails, user sees the error on step 0, not after Apply
       const norm = normalizeResult(type, response.data);
       setNormalized(norm);
       setIsFallback(!!response.fallback);
@@ -138,9 +166,8 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
 
   const handleApply = () => {
     if (!normalized) { toast.error("Nothing to apply."); return; }
-    // onApply receives a guaranteed-correct shape — ProblemForm's guard will never fire
     onApply(normalized);
-    onClose();
+    closeWizard();
     toast.success(
       type === "problem"
         ? "Problem applied to form!"
@@ -155,9 +182,19 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
     setValidationError("");
   };
 
-  const handleClose = () => {
+  // Single guarded exit point — prevents onClose from firing more than
+  // once (e.g. backdrop click racing with a button click), which is what
+  // was causing the double-navigation/redirect behavior.
+  const closeWizard = () => {
+    if (closing) return;
+    setClosing(true);
     handleBack();
-    onClose();
+    onClose?.();
+  };
+
+  const handleBackdropClick = () => {
+    if (loading) return; // don't allow closing mid-generation
+    closeWizard();
   };
 
   const questionCount = Array.isArray(normalized) ? normalized.length : 0;
@@ -168,30 +205,36 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={handleClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={handleBackdropClick}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 20 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Header ── */}
-        <div className="bg-gradient-to-r from-blue-600 to-violet-600 px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="bg-[#0A0A0A] px-6 py-5 flex items-center justify-between relative overflow-hidden">
+          <div
+            className="absolute -right-6 -top-10 w-32 h-32 opacity-[0.08] pointer-events-none"
+            style={{
+              background: "#F4F1E8",
+              clipPath: "polygon(30% 0%, 100% 0%, 55% 100%, 20% 65%)",
+            }}
+          />
+
+          <div className="flex items-center gap-3 relative">
             <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center"
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ duration: 2.4, repeat: Infinity }}
             >
-              <Sparkles size={18} className="text-white" />
+              <LogoMark />
             </motion.div>
             <div>
-              <p className="text-white font-semibold text-base leading-tight">Generate with AI</p>
-              <p className="text-blue-100 text-xs mt-0.5">
+              <p className="text-[#F4F1E8] font-semibold text-base leading-tight">Generate with AI</p>
+              <p className="text-[#F4F1E8]/60 text-xs mt-0.5">
                 {type === "problem" ? "Coding Problem" : "Quiz Questions"} • {STEPS[step]}
               </p>
             </div>
@@ -199,34 +242,30 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleClose}
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+            onClick={closeWizard}
+            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition relative"
           >
-            <X size={16} className="text-white" />
+            <X size={16} className="text-[#F4F1E8]" />
           </motion.button>
         </div>
 
-        {/* ── Step indicator ── */}
         <div className="flex gap-1.5 px-6 pt-5 pb-2">
           {STEPS.map((s, i) => (
             <div key={s} className="flex-1 flex flex-col gap-1.5">
               <motion.div
                 animate={{ scaleX: i <= step ? 1 : 0.3 }}
                 transition={{ duration: 0.3 }}
-                className={`h-1 rounded-full origin-left ${i <= step ? "bg-blue-600" : "bg-slate-200"}`}
+                className={`h-1 rounded-full origin-left ${i <= step ? "bg-[#0A0A0A]" : "bg-slate-200"}`}
               />
-              <span className={`text-xs font-medium ${i <= step ? "text-blue-600" : "text-slate-400"}`}>
+              <span className={`text-xs font-medium ${i <= step ? "text-[#0A0A0A]" : "text-slate-400"}`}>
                 {s}
               </span>
             </div>
           ))}
         </div>
 
-        {/* ── Body ── */}
         <div className="px-6 pt-4 pb-6 max-h-[65vh] overflow-y-auto">
           <AnimatePresence mode="wait">
-
-            {/* Step 0 — Configure */}
             {step === 0 && (
               <motion.div
                 key="step0"
@@ -299,7 +338,6 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
               </motion.div>
             )}
 
-            {/* Step 1 — Preview */}
             {step === 1 && normalized && (
               <motion.div
                 key="step1"
@@ -326,7 +364,6 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                   </p>
                 </div>
 
-                {/* Preview the exact data that will be applied */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 max-h-64 overflow-y-auto">
                   <pre className="p-4 text-xs text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">
                     {JSON.stringify(normalized, null, 2)}
@@ -341,12 +378,11 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
           </AnimatePresence>
         </div>
 
-        {/* ── Footer ── */}
         <div className="border-t border-slate-100 px-6 py-4 flex items-center justify-between gap-3 bg-slate-50">
           {step === 0 ? (
             <>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                onClick={handleClose}
+                onClick={closeWizard}
                 className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-100 transition">
                 Cancel
               </motion.button>
@@ -356,7 +392,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                 whileTap={{ scale: loading ? 1 : 0.98 }}
                 onClick={handleGenerate}
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white text-sm font-semibold shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition min-w-[130px] justify-center"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0A0A0A] hover:bg-[#1a1a1a] text-[#F4F1E8] text-sm font-semibold shadow-md shadow-black/20 disabled:opacity-60 disabled:cursor-not-allowed transition min-w-[130px] justify-center"
               >
                 {loading ? (
                   <>
@@ -395,7 +431,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
 
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleApply}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white text-sm font-semibold shadow-md shadow-blue-500/20 transition">
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0A0A0A] hover:bg-[#1a1a1a] text-[#F4F1E8] text-sm font-semibold shadow-md shadow-black/20 transition">
                   <Sparkles size={15} />
                   Apply to Form
                 </motion.button>
