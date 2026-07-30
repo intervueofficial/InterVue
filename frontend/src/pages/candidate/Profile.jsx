@@ -38,6 +38,14 @@ const Profile = () => {
 
   const [skillInput, setSkillInput] = useState("");
 
+  // Cloudinary uploads for a given user often reuse the same public_id
+  // (so old versions get overwritten instead of piling up), which means
+  // the returned URL string can be byte-identical to the previous one.
+  // React re-rendering with "new" data doesn't help in that case — the
+  // <img> tag never changes its src, so the browser just serves the old
+  // cached image. Appending a local version bump forces a real reload.
+  const [photoVersion, setPhotoVersion] = useState(0);
+
   useEffect(() => {
     if (authUser?.candidateProfile) {
       const p = authUser.candidateProfile;
@@ -81,9 +89,13 @@ const Profile = () => {
       const dataUrl = await readFileAsDataUrl(file);
       return authApi.uploadProfileImage(dataUrl, await getToken());
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Profile picture updated");
-      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+      await queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+      // Bump the cache-buster after the refetch resolves so the <img>
+      // src is guaranteed to change even if Cloudinary returned the
+      // exact same URL as before.
+      setPhotoVersion((v) => v + 1);
     },
     onError: (e) =>
       toast.error(e.response?.data?.message || "Failed to upload photo"),
@@ -109,6 +121,10 @@ const Profile = () => {
   const isComplete =
     form.degree && form.fieldOfStudy && form.yearOfGraduation && form.skills.length > 0;
 
+  const photoSrc = authUser?.profileImage
+    ? `${authUser.profileImage}${authUser.profileImage.includes("?") ? "&" : "?"}v=${photoVersion}`
+    : null;
+
   return (
     <AppShell scope="candidate">
       <PageHeader
@@ -133,9 +149,10 @@ const Profile = () => {
             className="relative group w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center overflow-hidden shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
             title="Upload profile picture"
           >
-            {authUser?.profileImage ? (
+            {photoSrc ? (
               <img
-                src={authUser.profileImage}
+                key={photoSrc}
+                src={photoSrc}
                 alt={authUser?.name}
                 className="w-full h-full object-cover"
               />
