@@ -13,6 +13,7 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
   const [chatClient, setChatClient] = useState(null);
   const [channel, setChannel] = useState(null);
   const [isInitializingCall, setIsInitializingCall] = useState(true);
+  const [participantCount, setParticipantCount] = useState(1);
 
   useEffect(() => {
      console.log("🟢 STREAM EFFECT START", {
@@ -133,12 +134,35 @@ await chatChannel.watch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?._id, session?.callId, session?.status, loadingSession, isHost, isParticipant]);
 
+  // Subscribe to Stream's own reactive participant count. `call` is a
+  // plain object sitting in React state — Stream mutates its internals
+  // in place as people join/leave, which never triggers a React
+  // re-render on its own. This subscription is what actually pushes
+  // fresh counts back into React state so consumers re-render.
+  useEffect(() => {
+    if (!call) {
+      setParticipantCount(1);
+      return;
+    }
+
+    // Seed with the current value immediately, in case someone joined
+    // between `join()` resolving and this effect running.
+    setParticipantCount(call.state.participantCount || 1);
+
+    const subscription = call.state.participantCount$.subscribe((count) => {
+      setParticipantCount(count || 1);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [call]);
+
   return {
     streamClient,
     call,
     chatClient,
     channel,
     isInitializingCall,
+    participantCount,
   };
 }
 

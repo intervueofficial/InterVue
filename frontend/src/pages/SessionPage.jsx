@@ -69,10 +69,8 @@ function SessionPage() {
   const isParticipant = !!session?.candidate && session.candidate.clerkId === user?.id;
 
   const { getToken } = useAuth();
-  const { call, channel, chatClient, isInitializingCall, streamClient } =
+  const { call, channel, chatClient, isInitializingCall, streamClient, participantCount } =
     useStreamClient(session, loadingSession, isHost, isParticipant);
-
-  const participantCount = call?.state?.remoteParticipants?.length + 1 || 1;
 
   const candidateStatus = participantCount > 1 ? "Connected" : "Waiting...";
 
