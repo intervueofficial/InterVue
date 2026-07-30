@@ -1,4 +1,4 @@
-import { useUser, SignIn, SignUp } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
@@ -10,6 +10,10 @@ import AppLoader from "./components/AppLoader";
 // Landing
 import HomePage from "./pages/HomePage";
 import MockInterviewPage from "./pages/MockInterviewPage";
+
+// Authentication (custom OTP-gated sign-in/sign-up — see SignInPage/SignUpPage)
+import SignInPage from "./pages/SignInPage";
+import SignUpPage from "./pages/SignUpPage";
 
 // Interviewer
 import DashboardPage from "./pages/DashboardPage";
@@ -110,36 +114,14 @@ function App() {
         <Route
           path="/sign-in/*"
           element={
-            !isSignedIn ? (
-              <div className="min-h-screen flex items-center justify-center">
-                <SignIn
-                  routing="path"
-                  path="/sign-in"
-                  signUpUrl="/sign-up"
-                  forceRedirectUrl={dashboard}
-                />
-              </div>
-            ) : (
-              <Navigate replace to={dashboard} />
-            )
+            !isSignedIn ? <SignInPage /> : <Navigate replace to={dashboard} />
           }
         />
 
         <Route
           path="/sign-up/*"
           element={
-            !isSignedIn ? (
-              <div className="min-h-screen flex items-center justify-center">
-                <SignUp
-                  routing="path"
-                  path="/sign-up"
-                  signInUrl="/sign-in"
-                  forceRedirectUrl={dashboard}
-                />
-              </div>
-            ) : (
-              <Navigate replace to={dashboard} />
-            )
+            !isSignedIn ? <SignUpPage /> : <Navigate replace to={dashboard} />
           }
         />
 

@@ -28,4 +28,18 @@ export const authApi = {
 
     return data;
   },
+
+  async uploadProfileImage(imageDataUrl, token) {
+    const { data } = await axios.post(
+      "/auth/profile-image",
+      { image: imageDataUrl },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return data;
+  },
 };

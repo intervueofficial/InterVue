@@ -202,25 +202,27 @@ function SessionPage() {
     try {
       setIsGrading(true);
 
-      let passed = 0;
+      // Graded server-side: the backend re-runs this exact code against
+      // every test case (verified against the AI-generated reference
+      // solution when the problem was created) and reports back the real
+      // pass/fail result — the candidate can't just report a fake score.
+      const response = await submitCodeResultMutation.mutateAsync({
+        code,
+        language: selectedLanguage,
+      });
 
-      for (const tc of testCases) {
-        const result = await executeCode(selectedLanguage, code, tc.input || "");
-
-        const actual = (result?.output || "").trim();
-        const expected = (tc.expectedOutput || "").trim();
-
-        if (result?.success && actual === expected) {
-          passed += 1;
-        }
+      const codeResult = response?.codeResult;
+      if (codeResult) {
+        setGradingResult({ passed: codeResult.passed, total: codeResult.total });
       }
-
-      const total = testCases.length;
-      setGradingResult({ passed, total });
-
-      await submitCodeResultMutation.mutateAsync({ passed, total });
     } catch (err) {
       console.error("Failed to submit for grading:", err);
+      setOutput({
+        success: false,
+        error:
+          err?.response?.data?.message ||
+          "Failed to grade your submission. Please try again.",
+      });
     } finally {
       setIsGrading(false);
     }

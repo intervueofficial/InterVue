@@ -1,18 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Loader2, Plus, Trash2, UserCircle } from "lucide-react";
+import { Camera, Loader2, Plus, Trash2, UserCircle } from "lucide-react";
 
 import useAuthUser from "../../hooks/useAuthUser";
 import { authApi } from "../../api/auth";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.readAsDataURL(file);
+  });
+
 const Profile = () => {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { data: authUser } = useAuthUser();
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     phone: "",
@@ -62,6 +73,39 @@ const Profile = () => {
     onError: (e) => toast.error(e.response?.data?.message || "Failed to save profile"),
   });
 
+  // Uploads directly to Cloudinary via the backend, then refreshes the
+  // cached user so the new photo shows up everywhere immediately —
+  // including on the profile card an interviewer sees in Applicants.
+  const uploadPhotoMutation = useMutation({
+    mutationFn: async (file) => {
+      const dataUrl = await readFileAsDataUrl(file);
+      return authApi.uploadProfileImage(dataUrl, await getToken());
+    },
+    onSuccess: () => {
+      toast.success("Profile picture updated");
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+    },
+    onError: (e) =>
+      toast.error(e.response?.data?.message || "Failed to upload photo"),
+  });
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Image must be smaller than 5MB.");
+      return;
+    }
+
+    uploadPhotoMutation.mutate(file);
+  };
+
   const isComplete =
     form.degree && form.fieldOfStudy && form.yearOfGraduation && form.skills.length > 0;
 
@@ -81,13 +125,55 @@ const Profile = () => {
           </div>
         )}
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
-            <UserCircle className="text-blue-600" size={28} />
-          </div>
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadPhotoMutation.isPending}
+            className="relative group w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center overflow-hidden shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            title="Upload profile picture"
+          >
+            {authUser?.profileImage ? (
+              <img
+                src={authUser.profileImage}
+                alt={authUser?.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <UserCircle className="text-blue-600" size={32} />
+            )}
+
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+              {uploadPhotoMutation.isPending ? (
+                <Loader2 className="text-white animate-spin" size={20} />
+              ) : (
+                <Camera className="text-white" size={20} />
+              )}
+            </div>
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoSelect}
+          />
+
           <div>
             <h2 className="font-bold text-lg">{authUser?.name}</h2>
             <p className="text-sm text-slate-500">{authUser?.email}</p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadPhotoMutation.isPending}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 mt-1"
+            >
+              {authUser?.profileImage ? "Change photo" : "Add a photo"}
+            </button>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Visible to interviewers on your profile card. Max 5MB.
+            </p>
           </div>
         </div>
 

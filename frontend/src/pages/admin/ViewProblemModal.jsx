@@ -112,6 +112,32 @@ const ViewProblemModal = ({ problem, onClose }) => {
 
             </div>
 
+            {/* Reference Solution */}
+
+            {problem.solution && (
+              <div className="bg-slate-50 rounded-2xl p-6">
+
+                <div className="flex items-center gap-2 mb-5">
+
+                  <FileCode2 className="text-emerald-600"/>
+
+                  <h3 className="text-xl font-semibold">
+                    Reference Solution
+                  </h3>
+
+                </div>
+
+                <pre className="leading-7 whitespace-pre-wrap text-slate-100 bg-slate-900 rounded-xl p-4 text-sm font-mono overflow-x-auto">
+                  {problem.solution}
+                </pre>
+
+                <p className="text-xs text-slate-400 mt-3">
+                  The answer key candidates' submitted code is graded against.
+                </p>
+
+              </div>
+            )}
+
           </div>
 
           {/* RIGHT */}

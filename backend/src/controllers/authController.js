@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import cloudinary, { isCloudinaryConfigured } from "../lib/cloudinary.js";
 
 export const getMe = async (req, res) => {
   try {
@@ -56,6 +57,68 @@ export const selectRole = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+
+// =======================================
+// Upload Candidate Profile Picture (Cloudinary)
+// =======================================
+// The candidate uploads a photo from My Profile. It's stored on the same
+// `profileImage` field the rest of the app already reads (e.g. Stream
+// chat/video, the admin Users table) — so once uploaded it's automatically
+// what an interviewer sees on the candidate's profile card in Applicants.
+export const uploadProfileImage = async (req, res) => {
+  try {
+    if (!isCloudinaryConfigured) {
+      return res.status(503).json({
+        success: false,
+        message:
+          "Image uploads aren't configured yet. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET on the server.",
+      });
+    }
+
+    const { image } = req.body;
+
+    if (!image || typeof image !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "No image provided",
+      });
+    }
+
+    // Expects a data URL (e.g. "data:image/png;base64,...."), which is
+    // what the browser's FileReader.readAsDataURL produces.
+    if (!image.startsWith("data:image/")) {
+      return res.status(400).json({
+        success: false,
+        message: "Only image files are allowed",
+      });
+    }
+
+    const upload = await cloudinary.uploader.upload(image, {
+      folder: "intervue/profile-pictures",
+      public_id: req.user.clerkId,
+      overwrite: true,
+      resource_type: "image",
+      transformation: [
+        { width: 512, height: 512, crop: "fill", gravity: "face" },
+      ],
+    });
+
+    req.user.profileImage = upload.secure_url;
+    await req.user.save();
+
+    return res.status(200).json({
+      success: true,
+      user: req.user,
+    });
+  } catch (error) {
+    console.error("uploadProfileImage:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to upload image. Please try again.",
     });
   }
 };

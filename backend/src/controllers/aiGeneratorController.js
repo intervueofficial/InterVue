@@ -1,6 +1,17 @@
 import axios from "axios";
 import crypto from "crypto";
 import { jsonrepair } from "jsonrepair";
+import { runCode } from "../lib/judge.js";
+
+// Maps the free-text "language" the AI puts on a generated problem
+// (e.g. "JavaScript", "Python 3") to the judge's language keys.
+function toJudgeLanguage(language = "") {
+  const l = language.toLowerCase();
+  if (l.includes("java") && !l.includes("script")) return "java";
+  if (l.includes("python")) return "python";
+  if (l.includes("js") || l.includes("javascript") || l.includes("node")) return "javascript";
+  return null;
+}
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -15,6 +26,48 @@ if (!process.env.OPENROUTER_API_KEY) {
   console.error("⚠️  OPENROUTER_API_KEY is missing from environment variables.");
 } else if (!IS_PROD) {
   console.log(`OPENROUTER_API_KEY loaded (starts with: ${process.env.OPENROUTER_API_KEY.slice(0, 8)}...)`);
+}
+
+/**
+ * The AI writes both the problem AND the reference "answer" (solutionCode)
+ * in the same call, but LLM-guessed expectedOutput strings are frequently
+ * a little off from what real execution actually produces (spacing,
+ * bracket formatting, trailing newlines, etc). Rather than trusting that
+ * guess blindly, we actually execute the generated solutionCode against
+ * every generated test case's input and overwrite expectedOutput with
+ * what the reference answer really outputs — so the candidate's code is
+ * later graded against a verified, real answer instead of an unverified
+ * guess. Best-effort: any execution failure just leaves the AI's
+ * original guess in place instead of blocking generation.
+ */
+async function verifyProblemAgainstItsOwnSolution(problem) {
+  if (!problem?.solutionCode || !Array.isArray(problem.testCases) || problem.testCases.length === 0) {
+    return problem;
+  }
+
+  const judgeLanguage = toJudgeLanguage(problem.language);
+  if (!judgeLanguage) return problem;
+
+  const verifiedTestCases = await Promise.all(
+    problem.testCases.map(async (tc) => {
+      try {
+        const result = await runCode({
+          language: judgeLanguage,
+          code: problem.solutionCode,
+          stdin: tc.input || "",
+        });
+
+        if (result.success && result.output) {
+          return { ...tc, expectedOutput: result.output.trim() };
+        }
+      } catch (_) {
+        // fall through to original test case below
+      }
+      return tc;
+    })
+  );
+
+  return { ...problem, testCases: verifiedTestCases };
 }
 
 const RATE_LIMIT_CACHE = new Map();
@@ -37,6 +90,8 @@ const FALLBACK_RESPONSES = {
     description:
       "Given an array of integers and a target sum, find all unique pairs that add up to the target. Return pairs in sorted order.",
     starterCode: "function findPairs(arr, target) {\n  // your implementation\n}",
+    solutionCode:
+      "function findPairs(arr, target) {\n  const seen = new Set();\n  const pairs = [];\n  const used = new Set();\n  for (const n of arr) {\n    const complement = target - n;\n    const key = [Math.min(n, complement), Math.max(n, complement)].join(',');\n    if (seen.has(complement) && !used.has(key)) {\n      pairs.push([Math.min(n, complement), Math.max(n, complement)]);\n      used.add(key);\n    }\n    seen.add(n);\n  }\n  return pairs.sort((a, b) => a[0] - b[0]);\n}",
     testCases: [
       { input: "[1, 2, 3, 4, 5], 6", expectedOutput: "[[1, 5], [2, 4]]" },
       { input: "[1, 1, 1], 2", expectedOutput: "[[1, 1]]" },
@@ -151,12 +206,18 @@ IMPORTANT JSON RULES:
 
 Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}
 
+Also produce a correct, complete, runnable "solutionCode" that solves the
+problem — this is the reference answer the candidate's submitted code will
+be graded against, so it MUST actually work and read stdin / print stdout
+in the exact same way each "testCases[].input" / "expectedOutput" implies.
+
 {
   "title": "string",
   "difficulty": "${difficulty}",
   "tags": ["tag1","tag2"],
   "description": "2-4 sentences",
   "starterCode": "function signature",
+  "solutionCode": "a full, correct, working reference solution — the answer key",
   "testCases": [{"input": "string", "expectedOutput": "string"}],
   "timeLimit": 60,
   "complexity": "O(n)",
@@ -434,10 +495,16 @@ export const generateQuestions = async (req, res) => {
     process: async () => {
       try {
         const result = await APIClient.callWithFallback(prompt, type);
-        ResponseCache.set(cacheKey, result.parsed);
+
+        const data =
+          type === "problem"
+            ? await verifyProblemAgainstItsOwnSolution(result.parsed)
+            : result.parsed;
+
+        ResponseCache.set(cacheKey, data);
         return {
           success: true,
-          data: result.parsed,
+          data,
           model: result.model,
           usage: result.usage,
           cached: false,

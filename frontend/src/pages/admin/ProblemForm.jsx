@@ -17,6 +17,7 @@ import {
   ChevronDown,
   AlertCircle,
   Copy as CopyIcon,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
@@ -63,6 +64,7 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
     tags: problem?.tags?.join(", ") || "",
     description: problem?.description || "",
     starterCode: problem?.starterCode || "",
+    solution: problem?.solution || "",
     testCases:
       problem?.testCases?.length > 0
         ? problem.testCases
@@ -135,6 +137,7 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
     tags:       Array.isArray(data.tags) ? data.tags.join(", ") : "",
     description: data.description || "",
     starterCode: data.starterCode || "",
+    solution: data.solution || data.solutionCode || "",
     testCases:
       Array.isArray(data.testCases) && data.testCases.length > 0
         ? data.testCases
@@ -168,6 +171,7 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
           .map((tag) => tag.trim())
           .filter(Boolean),
         starterCode: formData.starterCode,
+        solution: formData.solution,
         testCases: formData.testCases.filter(
           (tc) => tc.input.trim() || tc.expectedOutput.trim()
         ),
@@ -481,6 +485,38 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
               <p className="text-sm text-slate-400 mt-2">
                 Optional. Shown in the candidate's code editor when this problem is pushed to a
                 session.
+              </p>
+            </motion.div>
+
+            <motion.div
+              custom={3.5}
+              variants={sectionVariants}
+              initial="hidden"
+              animate="visible"
+              className="bg-slate-50 rounded-2xl p-6 border border-slate-100"
+            >
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <CheckCircle2 size={20} className="text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Reference Solution
+                </h3>
+              </div>
+
+              <textarea
+                rows={8}
+                name="solution"
+                value={formData.solution}
+                onChange={handleChange}
+                className={monoTextareaStyle}
+                placeholder={`A full, correct solution to this problem — the "answer key" candidate code is graded against.`}
+              />
+
+              <p className="text-sm text-slate-400 mt-2">
+                This is the answer the candidate's submitted code will be compared against
+                during grading. When generated with AI, this is produced and verified
+                automatically alongside the test cases.
               </p>
             </motion.div>
 

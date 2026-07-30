@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { CheckCircle2, XCircle, Loader2, Users } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye } from "lucide-react";
 
 import { jobApi } from "../../api/jobApi";
 import { applicationApi } from "../../api/applicationApi";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
+import CandidateProfileModal from "./CandidateProfileModal";
 
 const STATUS_BADGE = {
   applied: "bg-blue-50 text-blue-700",
@@ -21,6 +22,7 @@ const Applicants = () => {
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState("");
   const [actingOn, setActingOn] = useState(null);
+  const [viewingApplication, setViewingApplication] = useState(null);
 
   // Interviewers see all jobs (open + closed) so they can review past postings too
   const { data: jobsData } = useQuery({
@@ -120,8 +122,23 @@ const Applicants = () => {
               {applications.map((app) => (
                 <tr key={app._id} className="hover:bg-slate-50/50">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-slate-900">{app.candidate?.name}</div>
-                    <div className="text-slate-400 text-xs">{app.candidate?.email}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden shrink-0">
+                        {app.candidate?.profileImage ? (
+                          <img
+                            src={app.candidate.profileImage}
+                            alt={app.candidate?.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <UserCircle className="text-blue-600" size={18} />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900">{app.candidate?.name}</div>
+                        <div className="text-slate-400 text-xs">{app.candidate?.email}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-slate-600">
                     {app.profileSnapshot?.degree}
@@ -152,42 +169,50 @@ const Applicants = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {app.status === "applied" ? (
-                      <div className="flex justify-end gap-2">
-                        <button
-                          disabled={actingOn === app._id}
-                          onClick={() => {
-                            setActingOn(app._id);
-                            selectMutation.mutate(app._id);
-                          }}
-                          className="flex items-center gap-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold disabled:opacity-50"
-                        >
-                          {actingOn === app._id && selectMutation.isPending ? (
-                            <Loader2 className="animate-spin" size={14} />
-                          ) : (
-                            <CheckCircle2 size={14} />
-                          )}
-                          Select
-                        </button>
-                        <button
-                          disabled={actingOn === app._id}
-                          onClick={() => {
-                            setActingOn(app._id);
-                            rejectMutation.mutate(app._id);
-                          }}
-                          className="flex items-center gap-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-xs font-semibold disabled:opacity-50"
-                        >
-                          {actingOn === app._id && rejectMutation.isPending ? (
-                            <Loader2 className="animate-spin" size={14} />
-                          ) : (
-                            <XCircle size={14} />
-                          )}
-                          Reject
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400">—</span>
-                    )}
+                    <div className="flex justify-end items-center gap-2">
+                      <button
+                        onClick={() => setViewingApplication(app)}
+                        className="flex items-center gap-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 text-xs font-semibold"
+                      >
+                        <Eye size={14} />
+                        View Profile
+                      </button>
+
+                      {app.status === "applied" && (
+                        <>
+                          <button
+                            disabled={actingOn === app._id}
+                            onClick={() => {
+                              setActingOn(app._id);
+                              selectMutation.mutate(app._id);
+                            }}
+                            className="flex items-center gap-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                          >
+                            {actingOn === app._id && selectMutation.isPending ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : (
+                              <CheckCircle2 size={14} />
+                            )}
+                            Select
+                          </button>
+                          <button
+                            disabled={actingOn === app._id}
+                            onClick={() => {
+                              setActingOn(app._id);
+                              rejectMutation.mutate(app._id);
+                            }}
+                            className="flex items-center gap-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                          >
+                            {actingOn === app._id && rejectMutation.isPending ? (
+                              <Loader2 className="animate-spin" size={14} />
+                            ) : (
+                              <XCircle size={14} />
+                            )}
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -195,6 +220,11 @@ const Applicants = () => {
           </table>
         )}
       </div>
+
+      <CandidateProfileModal
+        application={viewingApplication}
+        onClose={() => setViewingApplication(null)}
+      />
     </AppShell>
   );
 };

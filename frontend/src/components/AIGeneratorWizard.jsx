@@ -27,6 +27,7 @@ function normalizeProblem(raw) {
     tags:        Array.isArray(p.tags) ? p.tags       : [],
     description: p.description || p.problemStatement  || p.statement || "",
     starterCode: p.starterCode || p.starter_code      || p.template  || "",
+    solution:    p.solutionCode || p.solution_code    || p.solution  || "",
     testCases:   Array.isArray(p.testCases)  ? p.testCases
                : Array.isArray(p.test_cases) ? p.test_cases
                : [],
@@ -358,7 +359,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                     {isFallback
                       ? "AI was unavailable — this is a sample problem. Retry for a custom one, or apply as a starting point."
                       : type === "problem"
-                      ? "Problem generated! Click Apply to fill the form automatically."
+                      ? "Problem generated, including a verified reference solution to grade against. Click Apply to fill the form automatically."
                       : `${questionCount} question${questionCount !== 1 ? "s" : ""} generated. Click Apply to fill the quiz.`
                     }
                   </p>

@@ -134,10 +134,10 @@ export const sessionApi = {
     return response.data;
   },
 
-  submitCodeResult: async (id, { passed, total }, token) => {
+  submitCodeResult: async (id, { code, language }, token) => {
     const response = await axiosInstance.patch(
       `/sessions/${id}/code-result`,
-      { passed, total },
+      { code, language },
       {
         headers: {
           Authorization: `Bearer ${token}`,

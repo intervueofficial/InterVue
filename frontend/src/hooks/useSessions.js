@@ -221,9 +221,9 @@ export const useSubmitCodeResult = (sessionId) => {
 
   return useMutation({
     mutationKey: ["submitCodeResult", sessionId],
-    mutationFn: async ({ passed, total }) => {
+    mutationFn: async ({ code, language }) => {
       const token = await getToken();
-      return sessionApi.submitCodeResult(sessionId, { passed, total }, token);
+      return sessionApi.submitCodeResult(sessionId, { code, language }, token);
     },
     onError: (error) =>
       console.log(

@@ -36,7 +36,9 @@ const allowedOrigins = [
 
 // ================= Core Middleware =================
 
-app.use(express.json());
+// Raised from Express's 100kb default so base64-encoded profile picture
+// uploads (see /api/auth/profile-image) fit in a single JSON request.
+app.use(express.json({ limit: "10mb" }));
 
 app.use(
   cors({

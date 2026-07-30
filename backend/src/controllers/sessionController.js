@@ -2,6 +2,7 @@ import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
 import Problem from "../models/Problem.js";
 import Quiz from "../models/Quiz.js";
+import { gradeAgainstTestCases } from "../lib/judge.js";
 
 export async function createSession(req, res) {
   try {
@@ -494,23 +495,34 @@ const populateSession = (query) =>
     .populate("activeQuiz");
 
 /**
- * Persists the candidate's code-grading result (tests passed / total)
- * for this session, computed client-side by running their code against
- * every test case on the active problem. Used later for the AI-generated
- * post-interview performance report.
+ * Grades the candidate's code server-side and persists the result for
+ * this session. Instead of trusting a passed/total pair sent from the
+ * browser (which a candidate could simply fake), this re-runs the
+ * candidate's submitted code against every test case on the active
+ * problem — the same test cases that were checked against the
+ * AI-generated reference solution when the problem was created — and
+ * compares the actual output to the expected answer itself, LeetCode
+ * style. Used later for the AI-generated post-interview performance
+ * report.
  */
 export async function submitCodeResult(req, res) {
   try {
     const { id } = req.params;
-    const { passed, total } = req.body;
+    const { code, language } = req.body;
 
-    if (typeof passed !== "number" || typeof total !== "number") {
+    if (typeof code !== "string" || !code.trim()) {
       return res.status(400).json({
-        message: "passed and total are required numbers",
+        message: "code is required",
       });
     }
 
-    const session = await Session.findById(id);
+    if (typeof language !== "string" || !language.trim()) {
+      return res.status(400).json({
+        message: "language is required",
+      });
+    }
+
+    const session = await Session.findById(id).populate("activeProblem");
 
     if (!session) {
       return res.status(404).json({
@@ -527,12 +539,28 @@ export async function submitCodeResult(req, res) {
       });
     }
 
+    const problem = session.activeProblem;
+    const testCases = problem?.testCases || [];
+
+    if (testCases.length === 0) {
+      return res.status(400).json({
+        message: "This problem has no test cases to grade against",
+      });
+    }
+
+    const { passed, total, results } = await gradeAgainstTestCases({
+      language,
+      code,
+      testCases,
+    });
+
     session.codeResult = { passed, total, submittedAt: new Date() };
     await session.save();
 
     return res.json({
       success: true,
       codeResult: session.codeResult,
+      results,
     });
   } catch (error) {
     console.log("Error in submitCodeResult:", error.message);
