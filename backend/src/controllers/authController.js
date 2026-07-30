@@ -123,6 +123,98 @@ export const uploadProfileImage = async (req, res) => {
   }
 };
 
+// =======================================
+// Upload Candidate Resume (Cloudinary)
+// =======================================
+// The candidate uploads a PDF/Word doc from My Profile. Stored as a raw
+// Cloudinary asset (not an image transform) and saved on
+// `candidateProfile.resumeUrl`, which the resume link/download button and
+// the admin/interviewer Applicants view read from.
+const ALLOWED_RESUME_MIME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+export const uploadProfileResume = async (req, res) => {
+  try {
+    if (!isCloudinaryConfigured) {
+      return res.status(503).json({
+        success: false,
+        message:
+          "File uploads aren't configured yet. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET on the server.",
+      });
+    }
+
+    const { file, fileName } = req.body;
+
+    if (!file || typeof file !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "No file provided",
+      });
+    }
+
+    // Expects a data URL (e.g. "data:application/pdf;base64,....")
+    const mimeMatch = file.match(/^data:([^;]+);base64,/);
+    const mimeType = mimeMatch?.[1];
+
+    if (!mimeType || !ALLOWED_RESUME_MIME_TYPES.includes(mimeType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Only PDF or Word documents are allowed",
+      });
+    }
+
+    // Rough size check on the base64 payload (~10MB limit, matching the UI)
+    const base64Data = file.slice(file.indexOf(",") + 1);
+    const approxBytes = base64Data.length * 0.75;
+    const MAX_BYTES = 10 * 1024 * 1024;
+
+    if (approxBytes > MAX_BYTES) {
+      return res.status(400).json({
+        success: false,
+        message: "File is too large. Max 10MB.",
+      });
+    }
+
+    const upload = await cloudinary.uploader.upload(file, {
+      folder: "intervue/resumes",
+      public_id: req.user.clerkId,
+      overwrite: true,
+      resource_type: "raw",
+      use_filename: true,
+      filename_override: fileName || `${req.user.clerkId}-resume`,
+    });
+
+    req.user.candidateProfile = req.user.candidateProfile || {};
+    req.user.candidateProfile.resumeUrl = upload.secure_url;
+
+    // Re-evaluate profile completeness now that the resume changed
+    const profile = req.user.candidateProfile;
+    profile.isComplete = !!(
+      profile.degree &&
+      profile.fieldOfStudy &&
+      profile.yearOfGraduation &&
+      profile.skills?.length > 0
+    );
+
+    await req.user.save();
+
+    return res.status(200).json({
+      success: true,
+      user: req.user,
+    });
+  } catch (error) {
+    console.error("uploadProfileResume:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to upload resume. Please try again.",
+    });
+  }
+};
+
 export const updateCandidateProfile = async (req, res) => {
   try {
     const {

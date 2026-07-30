@@ -28,6 +28,7 @@ function normalizeProblem(raw) {
     description: p.description || p.problemStatement  || p.statement || "",
     starterCode: p.starterCode || p.starter_code      || p.template  || "",
     solution:    p.solutionCode || p.solution_code    || p.solution  || "",
+    entryPoint:  p.entryPoint || p.entry_point || p.functionName || "",
     testCases:   Array.isArray(p.testCases)  ? p.testCases
                : Array.isArray(p.test_cases) ? p.test_cases
                : [],

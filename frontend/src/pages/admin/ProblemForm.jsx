@@ -65,6 +65,7 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
     description: problem?.description || "",
     starterCode: problem?.starterCode || "",
     solution: problem?.solution || "",
+    entryPoint: problem?.entryPoint || "",
     testCases:
       problem?.testCases?.length > 0
         ? problem.testCases
@@ -138,6 +139,7 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
     description: data.description || "",
     starterCode: data.starterCode || "",
     solution: data.solution || data.solutionCode || "",
+    entryPoint: data.entryPoint || "",
     testCases:
       Array.isArray(data.testCases) && data.testCases.length > 0
         ? data.testCases
@@ -172,6 +174,7 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
           .filter(Boolean),
         starterCode: formData.starterCode,
         solution: formData.solution,
+        entryPoint: formData.entryPoint.trim(),
         testCases: formData.testCases.filter(
           (tc) => tc.input.trim() || tc.expectedOutput.trim()
         ),
@@ -473,6 +476,26 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
                 </h3>
               </div>
 
+              <div className="mb-4">
+                <label className="text-sm font-semibold text-slate-700">
+                  Entry Point <span className="text-slate-400 font-normal">(function name)</span>
+                </label>
+                <input
+                  type="text"
+                  name="entryPoint"
+                  value={formData.entryPoint}
+                  onChange={handleChange}
+                  placeholder="e.g. twoSum"
+                  className="mt-1 w-full font-mono text-sm rounded-xl border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  The exact function name the candidate implements. When set, grading calls this
+                  function directly with each test case's arguments (JSON array) and compares the
+                  return value — LeetCode-style, so any correct approach passes. Leave blank to
+                  fall back to raw stdin/stdout comparison instead.
+                </p>
+              </div>
+
               <textarea
                 rows={8}
                 name="starterCode"
@@ -515,8 +538,9 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
 
               <p className="text-sm text-slate-400 mt-2">
                 This is the answer the candidate's submitted code will be compared against
-                during grading. When generated with AI, this is produced and verified
-                automatically alongside the test cases.
+                during grading — via the Entry Point function above, using each test case's
+                arguments. When generated with AI, this is produced and verified automatically
+                alongside the test cases.
               </p>
             </motion.div>
 
@@ -559,7 +583,7 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
                     >
                       <div>
                         <label className="block mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Input
+                          Arguments (JSON array)
                         </label>
                         <input
                           value={tc.input}
@@ -567,14 +591,14 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
                             handleTestCaseChange(index, "input", e.target.value)
                           }
                           className={inputStyle}
-                          placeholder="nums = [2,7,11,15], target = 9"
+                          placeholder="[[2,7,11,15], 9]"
                         />
                       </div>
 
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <label className="block mb-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                            Expected Output
+                            Expected Return (JSON)
                           </label>
                           <input
                             value={tc.expectedOutput}

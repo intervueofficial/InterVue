@@ -1,7 +1,7 @@
 import axios from "axios";
 import crypto from "crypto";
 import { jsonrepair } from "jsonrepair";
-import { runCode } from "../lib/judge.js";
+import { runCode, buildHarness } from "../lib/judge.js";
 
 // Maps the free-text "language" the AI puts on a generated problem
 // (e.g. "JavaScript", "Python 3") to the judge's language keys.
@@ -32,33 +32,46 @@ if (!process.env.OPENROUTER_API_KEY) {
  * The AI writes both the problem AND the reference "answer" (solutionCode)
  * in the same call, but LLM-guessed expectedOutput strings are frequently
  * a little off from what real execution actually produces (spacing,
- * bracket formatting, trailing newlines, etc). Rather than trusting that
- * guess blindly, we actually execute the generated solutionCode against
- * every generated test case's input and overwrite expectedOutput with
- * what the reference answer really outputs — so the candidate's code is
- * later graded against a verified, real answer instead of an unverified
- * guess. Best-effort: any execution failure just leaves the AI's
- * original guess in place instead of blocking generation.
+ * bracket/array formatting, key order, etc). Rather than trusting that
+ * guess blindly, we actually call solutionCode's entryPoint function with
+ * each test case's arguments — the exact same harness used later to grade
+ * the candidate — and overwrite expectedOutput with what the reference
+ * answer really returns. So the "answer" the candidate is graded against
+ * is a verified, real result, not an LLM's guess at what it should look
+ * like. Best-effort: any execution failure just leaves the AI's original
+ * guess in place instead of blocking generation.
  */
 async function verifyProblemAgainstItsOwnSolution(problem) {
-  if (!problem?.solutionCode || !Array.isArray(problem.testCases) || problem.testCases.length === 0) {
+  if (
+    !problem?.solutionCode ||
+    !problem?.entryPoint ||
+    !Array.isArray(problem.testCases) ||
+    problem.testCases.length === 0
+  ) {
     return problem;
   }
 
   const judgeLanguage = toJudgeLanguage(problem.language);
   if (!judgeLanguage) return problem;
 
+  const harness = buildHarness(judgeLanguage, problem.solutionCode, problem.entryPoint);
+  if (!harness) return problem;
+
   const verifiedTestCases = await Promise.all(
     problem.testCases.map(async (tc) => {
       try {
         const result = await runCode({
           language: judgeLanguage,
-          code: problem.solutionCode,
-          stdin: tc.input || "",
+          code: harness,
+          stdin: tc.input || "[]",
         });
 
         if (result.success && result.output) {
-          return { ...tc, expectedOutput: result.output.trim() };
+          // Round-trip through JSON.parse/stringify to normalize
+          // formatting (whitespace, key order) rather than trusting the
+          // raw printed text verbatim.
+          const parsed = JSON.parse(result.output.trim());
+          return { ...tc, expectedOutput: JSON.stringify(parsed) };
         }
       } catch (_) {
         // fall through to original test case below
@@ -89,12 +102,13 @@ const FALLBACK_RESPONSES = {
     tags: ["array", "mathematics"],
     description:
       "Given an array of integers and a target sum, find all unique pairs that add up to the target. Return pairs in sorted order.",
+    entryPoint: "findPairs",
     starterCode: "function findPairs(arr, target) {\n  // your implementation\n}",
     solutionCode:
       "function findPairs(arr, target) {\n  const seen = new Set();\n  const pairs = [];\n  const used = new Set();\n  for (const n of arr) {\n    const complement = target - n;\n    const key = [Math.min(n, complement), Math.max(n, complement)].join(',');\n    if (seen.has(complement) && !used.has(key)) {\n      pairs.push([Math.min(n, complement), Math.max(n, complement)]);\n      used.add(key);\n    }\n    seen.add(n);\n  }\n  return pairs.sort((a, b) => a[0] - b[0]);\n}",
     testCases: [
-      { input: "[1, 2, 3, 4, 5], 6", expectedOutput: "[[1, 5], [2, 4]]" },
-      { input: "[1, 1, 1], 2", expectedOutput: "[[1, 1]]" },
+      { input: "[[1, 2, 3, 4, 5], 6]", expectedOutput: "[[1,5],[2,4]]" },
+      { input: "[[1, 1, 1], 2]", expectedOutput: "[[1,1]]" },
     ],
     timeLimit: 60,
     complexity: "O(n²)",
@@ -206,19 +220,31 @@ IMPORTANT JSON RULES:
 
 Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}
 
-Also produce a correct, complete, runnable "solutionCode" that solves the
-problem — this is the reference answer the candidate's submitted code will
-be graded against, so it MUST actually work and read stdin / print stdout
-in the exact same way each "testCases[].input" / "expectedOutput" implies.
+Design this as a LeetCode-style function problem, not a stdin/stdout
+program:
+- "entryPoint" is the exact name of the one function/method the
+  candidate implements (must match the function name used in
+  "starterCode" and "solutionCode").
+- "solutionCode" is a correct, complete, working reference implementation
+  of that function — this is the answer key the candidate's own code will
+  be graded against, by calling their function directly with each test
+  case's arguments (any correct approach/imports/logic is accepted — only
+  the returned value is checked).
+- Each testCases[].input is a JSON array of the arguments to pass to
+  entryPoint, e.g. "[[2,7,11,15],9]" for a two-argument call.
+- Each testCases[].expectedOutput is the JSON-encoded return value for
+  those arguments, e.g. "[0,1]". It MUST be exactly what solutionCode
+  actually returns for that input — do not guess formatting.
 
 {
   "title": "string",
   "difficulty": "${difficulty}",
   "tags": ["tag1","tag2"],
   "description": "2-4 sentences",
-  "starterCode": "function signature",
+  "entryPoint": "functionName",
+  "starterCode": "function signature only, matching entryPoint",
   "solutionCode": "a full, correct, working reference solution — the answer key",
-  "testCases": [{"input": "string", "expectedOutput": "string"}],
+  "testCases": [{"input": "JSON array of arguments", "expectedOutput": "JSON-encoded return value"}],
   "timeLimit": 60,
   "complexity": "O(n)",
   "language": "JavaScript",

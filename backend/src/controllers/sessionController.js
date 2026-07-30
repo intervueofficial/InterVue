@@ -552,6 +552,7 @@ export async function submitCodeResult(req, res) {
       language,
       code,
       testCases,
+      entryPoint: problem?.entryPoint,
     });
 
     session.codeResult = { passed, total, submittedAt: new Date() };

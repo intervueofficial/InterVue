@@ -173,3 +173,54 @@ Fixed in `frontend/src/pages/SignUpPage.jsx`:
 
 Sign-in (`SignInPage.jsx`) was already unaffected by this — it uses the
 `email_code` first factor directly and doesn't need a password.
+
+---
+
+## Patch: LeetCode-style function-call grading + JDoodle upgrade
+
+**What changed:**
+
+- **Problem model** (`backend/src/models/Problem.js`) — added `entryPoint`:
+  the exact function/method name the candidate implements (e.g.
+  `twoSum`). When set, grading calls that function directly.
+- **AI generator** — the prompt now asks for a LeetCode-style shape:
+  `entryPoint`, plus `testCases[].input` as a JSON array of arguments
+  (e.g. `"[[2,7,11,15],9]"`) and `testCases[].expectedOutput` as the
+  JSON-encoded return value (e.g. `"[0,1]"`), instead of raw
+  stdin/stdout text.
+- **`backend/src/lib/judge.js`** — added `buildHarness(language, code,
+  entryPoint)`, which wraps a candidate's (or the AI's reference)
+  code with a small driver that reads the arguments from stdin, calls
+  `entryPoint(...args)` — whatever the candidate actually wrote, in
+  whatever style/algorithm/imports they used — and prints the JSON
+  return value. `gradeAgainstTestCases` now deep-compares the parsed
+  JSON return value instead of doing a raw string match, so formatting
+  differences (spacing, key order) never cause a false fail, but any
+  real difference in the answer does. Supported for **JavaScript and
+  Python**. Java problems automatically fall back to the previous
+  full-program stdin/stdout comparison (deriving argument types from
+  JSON alone isn't reliable in Java without knowing the method
+  signature) — their own `import java.util.*;`-style imports at the top
+  of the file are unaffected either way.
+- **Answer verification** (`aiGeneratorController.js`) now runs the AI's
+  own reference solution through this exact harness before saving a
+  generated problem, so the "answer key" test cases are graded against
+  is a verified real result, not an LLM's guess.
+- **JDoodle version upgrade**: `LANGUAGE_MAP` in `judge.js` now uses
+  `versionIndex: "0"` for every language instead of old hardcoded
+  indexes — JDoodle's `"0"` always points at that language's latest
+  supported runtime, so imports / standard library features that didn't
+  exist in the previously pinned older versions now work.
+- **Admin problem form** (`ProblemForm.jsx`) — added an "Entry Point"
+  field, and relabeled test case inputs as "Arguments (JSON array)" /
+  "Expected Return (JSON)". `ViewProblemModal.jsx` shows whether a
+  problem is using function-call grading or the legacy fallback.
+- Fully backward compatible: any existing problem with no `entryPoint`
+  set keeps working exactly as before (raw stdin/stdout comparison).
+
+**Note:** I couldn't execute an end-to-end JDoodle call to verify this
+in my environment (JDoodle's API isn't reachable from my sandbox's
+network egress), so the harness generation itself is unit-tested but
+the live grading path is worth a quick manual test on your end — create
+one AI-generated problem and submit a correct + incorrect solution in a
+session to confirm both the pass and fail cases look right.

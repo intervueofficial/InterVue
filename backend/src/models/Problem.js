@@ -35,6 +35,23 @@ const problemSchema = new mongoose.Schema(
       default: "",
     },
 
+    // The function/method name grading calls directly (LeetCode-style),
+    // e.g. "twoSum". When set, the candidate's code is executed by
+    // calling this function with each test case's arguments and
+    // comparing the *return value* — so any correct implementation
+    // passes, regardless of approach, and no boilerplate stdin/stdout
+    // handling is required from the candidate. testCases[].input is then
+    // a JSON-encoded array of arguments, e.g. "[[2,7,11,15],9]", and
+    // testCases[].expectedOutput is JSON-encoded, e.g. "[0,1]".
+    //
+    // Left blank for legacy problems, which fall back to comparing raw
+    // stdin/stdout text instead.
+    entryPoint: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     testCases: [
       {
         input: String,

@@ -1,5 +1,10 @@
 import { Link } from "react-router";
-import { CalendarClockIcon, CheckCircle2Icon, ArrowRightIcon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  CheckCircle2Icon,
+  ArrowRightIcon,
+  SparklesIcon,
+} from "lucide-react";
 
 import useAuthUser from "../../hooks/useAuthUser";
 import { useActiveSessions, useMyRecentSessions } from "../../hooks/useSessions";
@@ -49,6 +54,37 @@ function SectionHeader({ icon: Icon, title, count }) {
   );
 }
 
+function StatCard({ icon: Icon, label, value, delay }) {
+  return (
+    <div
+      className="group flex items-center gap-4 rounded-xl px-5 py-4 transition-all duration-200 hover:-translate-y-0.5 cursor-default animate-[fadeUp_0.4s_ease-out_both]"
+      style={{
+        background: THEME.surface,
+        border: `1px solid ${THEME.border}`,
+        animationDelay: `${delay}ms`,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)")}
+      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.03)")}
+    >
+      <div
+        className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
+        style={{ background: THEME.primaryTint, border: `1px solid ${THEME.primaryTintBorder}` }}
+      >
+        <Icon size={17} color={THEME.primary} />
+      </div>
+      <div>
+        <p className="text-2xl font-bold leading-none" style={{ color: THEME.ink, fontFamily: THEME.fontDisplay }}>
+          {value}
+        </p>
+        <p className="text-xs mt-1" style={{ color: THEME.inkFaint }}>
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const MyInterviews = () => {
   const { data: authUser } = useAuthUser();
 
@@ -62,28 +98,66 @@ const MyInterviews = () => {
     (s) => s.candidate?._id === authUser?._id
   );
 
+  const firstName = authUser?.name?.split(" ")?.[0];
+
   return (
     <AppShell scope="candidate">
       <div className="space-y-12">
-        <PageHeader
-          title="My Interviews"
-          description="Everything you're scheduled for, live in, or have completed."
-          actions={
+        {/* Hero */}
+        <div
+          className="relative overflow-hidden rounded-2xl px-8 py-9 animate-[fadeUp_0.4s_ease-out_both]"
+          style={{
+            background: `linear-gradient(135deg, ${THEME.ink} 0%, #1f2937 55%, ${THEME.ink} 100%)`,
+          }}
+        >
+          {/* Decorative glow */}
+          <div
+            className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-20 blur-3xl pointer-events-none"
+            style={{ background: THEME.primary }}
+          />
+          <div
+            className="absolute -bottom-20 -left-10 w-56 h-56 rounded-full opacity-10 blur-3xl pointer-events-none"
+            style={{ background: THEME.primary }}
+          />
+
+          <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <SparklesIcon size={15} color={THEME.primary} />
+                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  Candidate Dashboard
+                </span>
+              </div>
+              <h1
+                className="text-2xl md:text-[28px] font-bold tracking-tight"
+                style={{ fontFamily: THEME.fontDisplay, color: "#fff" }}
+              >
+                {firstName ? `Welcome back, ${firstName}` : "My Interviews"}
+              </h1>
+              <p className="text-sm mt-2 max-w-md" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Everything you're scheduled for, live in, or have completed — all in one place.
+              </p>
+            </div>
+
             <Link
               to="/candidate/sessions"
-              className="flex items-center gap-2 rounded-md font-semibold text-[13px] px-4 py-2.5 transition-colors"
-              style={{ background: THEME.ink, color: THEME.surface }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              className="group flex items-center gap-2 rounded-md font-semibold text-[13px] px-5 py-3 transition-all duration-200 hover:-translate-y-0.5 w-fit"
+              style={{ background: "#fff", color: THEME.ink }}
             >
               Browse Available Sessions
-              <ArrowRightIcon size={15} />
+              <ArrowRightIcon size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
-          }
-        />
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 max-w-md">
+          <StatCard icon={CalendarClockIcon} label="Upcoming & live" value={myUpcoming.length} delay={60} />
+          <StatCard icon={CheckCircle2Icon} label="Completed" value={recentSessions.length} delay={120} />
+        </div>
 
         {/* Upcoming / live */}
-        <div>
+        <div className="animate-[fadeUp_0.4s_ease-out_both]" style={{ animationDelay: "160ms" }}>
           <SectionHeader
             icon={CalendarClockIcon}
             title="Upcoming & Live"
@@ -102,7 +176,7 @@ const MyInterviews = () => {
         </div>
 
         {/* Completed */}
-        <div>
+        <div className="animate-[fadeUp_0.4s_ease-out_both]" style={{ animationDelay: "220ms" }}>
           <SectionHeader
             icon={CheckCircle2Icon}
             title="Completed"
@@ -120,6 +194,13 @@ const MyInterviews = () => {
           )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </AppShell>
   );
 };

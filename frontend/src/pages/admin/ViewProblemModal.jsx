@@ -117,13 +117,25 @@ const ViewProblemModal = ({ problem, onClose }) => {
             {problem.solution && (
               <div className="bg-slate-50 rounded-2xl p-6">
 
-                <div className="flex items-center gap-2 mb-5">
+                <div className="flex items-center justify-between mb-5">
 
-                  <FileCode2 className="text-emerald-600"/>
+                  <div className="flex items-center gap-2">
+                    <FileCode2 className="text-emerald-600"/>
 
-                  <h3 className="text-xl font-semibold">
-                    Reference Solution
-                  </h3>
+                    <h3 className="text-xl font-semibold">
+                      Reference Solution
+                    </h3>
+                  </div>
+
+                  {problem.entryPoint ? (
+                    <span className="text-xs font-mono bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
+                      entryPoint: {problem.entryPoint}()
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
+                      legacy stdin/stdout grading
+                    </span>
+                  )}
 
                 </div>
 
@@ -132,7 +144,9 @@ const ViewProblemModal = ({ problem, onClose }) => {
                 </pre>
 
                 <p className="text-xs text-slate-400 mt-3">
-                  The answer key candidates' submitted code is graded against.
+                  {problem.entryPoint
+                    ? `Candidate code is graded by calling ${problem.entryPoint}(...) directly with each test case's arguments and comparing the return value — any correct logic passes.`
+                    : "No entry point set — grading falls back to comparing raw stdin/stdout text."}
                 </p>
 
               </div>

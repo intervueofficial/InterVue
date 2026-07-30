@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { Camera, Loader2, Plus, Trash2, UserCircle } from "lucide-react";
+import { Camera, FileText, Loader2, Plus, Trash2, UploadCloud, UserCircle } from "lucide-react";
 
 import useAuthUser from "../../hooks/useAuthUser";
 import { authApi } from "../../api/auth";
@@ -10,6 +10,13 @@ import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_RESUME_BYTES = 10 * 1024 * 1024; // 10MB
+const RESUME_ACCEPT = ".pdf,.doc,.docx";
+const RESUME_MIME_WHITELIST = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 
 const readFileAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -19,11 +26,22 @@ const readFileAsDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+const fileNameFromUrl = (url) => {
+  if (!url) return "";
+  try {
+    const clean = url.split("?")[0];
+    return decodeURIComponent(clean.substring(clean.lastIndexOf("/") + 1)) || "Resume";
+  } catch {
+    return "Resume";
+  }
+};
+
 const Profile = () => {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const { data: authUser } = useAuthUser();
   const fileInputRef = useRef(null);
+  const resumeInputRef = useRef(null);
 
   const [form, setForm] = useState({
     phone: "",
@@ -101,6 +119,30 @@ const Profile = () => {
       toast.error(e.response?.data?.message || "Failed to upload photo"),
   });
 
+  // Uploads a resume file (PDF/DOC/DOCX) and stores the returned URL in
+  // the same resumeUrl field the manual link input writes to, so both
+  // paths converge on one source of truth.
+  const uploadResumeMutation = useMutation({
+    mutationFn: async (file) => {
+      const dataUrl = await readFileAsDataUrl(file);
+      return authApi.uploadResume(dataUrl, await getToken());
+    },
+    onSuccess: async (data) => {
+      // Response shape assumed — adjust this extraction once the actual
+      // uploadResume controller response is confirmed.
+      const url =
+        data?.resumeUrl ||
+        data?.user?.candidateProfile?.resumeUrl ||
+        data?.url ||
+        "";
+      if (url) update("resumeUrl", url);
+      toast.success("Resume uploaded");
+      await queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+    },
+    onError: (e) =>
+      toast.error(e.response?.data?.message || "Failed to upload resume"),
+  });
+
   const handlePhotoSelect = (e) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file later
@@ -116,6 +158,26 @@ const Profile = () => {
     }
 
     uploadPhotoMutation.mutate(file);
+  };
+
+  const handleResumeSelect = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const looksLikeAllowedType =
+      RESUME_MIME_WHITELIST.includes(file.type) || /\.(pdf|docx?|)$/i.test(file.name);
+
+    if (!looksLikeAllowedType) {
+      toast.error("Please upload a PDF or Word document.");
+      return;
+    }
+    if (file.size > MAX_RESUME_BYTES) {
+      toast.error("Resume must be smaller than 10MB.");
+      return;
+    }
+
+    uploadResumeMutation.mutate(file);
   };
 
   const isComplete =
@@ -282,13 +344,56 @@ const Profile = () => {
         </div>
 
         <div className="mt-4">
-          <label className="text-sm font-semibold text-slate-700">Resume Link (optional)</label>
+          <label className="text-sm font-semibold text-slate-700">Resume</label>
+
+          <div className="mt-1 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => resumeInputRef.current?.click()}
+              disabled={uploadResumeMutation.isPending}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 px-4 py-4 text-sm font-medium text-slate-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+            >
+              {uploadResumeMutation.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" size={16} /> Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadCloud size={16} /> Upload PDF or Word doc (max 10MB)
+                </>
+              )}
+            </button>
+          </div>
+
           <input
-            value={form.resumeUrl}
-            onChange={(e) => update("resumeUrl", e.target.value)}
-            placeholder="Google Drive / Dropbox link"
-            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            ref={resumeInputRef}
+            type="file"
+            accept={RESUME_ACCEPT}
+            className="hidden"
+            onChange={handleResumeSelect}
           />
+
+          {form.resumeUrl && (
+            <a
+              href={form.resumeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:text-blue-700 hover:border-blue-200 transition-colors w-fit"
+            >
+              <FileText size={15} className="text-slate-400" />
+              {fileNameFromUrl(form.resumeUrl)}
+            </a>
+          )}
+
+          <div className="mt-3">
+            <label className="text-xs text-slate-500">Or paste a link instead (Google Drive / Dropbox)</label>
+            <input
+              value={form.resumeUrl}
+              onChange={(e) => update("resumeUrl", e.target.value)}
+              placeholder="https://drive.google.com/..."
+              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         <button

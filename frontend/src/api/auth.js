@@ -42,4 +42,23 @@ export const authApi = {
 
     return data;
   },
+
+  // NOTE: field name ("resume") and response shape are assumed to mirror
+  // uploadProfileImage's ({ image }) pattern, since the uploadResume
+  // controller wasn't available. If the backend expects a different key
+  // or returns the URL under a different path, update the body key below
+  // and the `url` extraction in Profile.jsx's resume mutation to match.
+  async uploadResume(resumeDataUrl, token) {
+    const { data } = await axios.post(
+      "/auth/profile-resume",
+      { resume: resumeDataUrl },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return data;
+  },
 };
