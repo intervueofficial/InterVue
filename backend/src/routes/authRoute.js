@@ -6,6 +6,7 @@ import {
   selectRole,
   updateCandidateProfile,
   uploadProfileImage,
+  uploadProfileResume,
 } from "../controllers/authController.js";
 
 const router = express.Router();
@@ -28,6 +29,12 @@ router.post(
   "/profile-image",
   protectRoute,
   uploadProfileImage
+);
+
+router.post(
+  "/profile-resume",
+  protectRoute,
+  uploadProfileResume
 );
 
 export default router;

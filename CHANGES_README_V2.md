@@ -224,3 +224,98 @@ network egress), so the harness generation itself is unit-tested but
 the live grading path is worth a quick manual test on your end — create
 one AI-generated problem and submit a correct + incorrect solution in a
 session to confirm both the pass and fail cases look right.
+
+---
+
+## Patch: resume upload fixed, profile photo no longer reverts, live profile on interviewer card
+
+**Root causes found and fixed:**
+
+1. **Resume upload was 404ing** — the frontend already called
+   `POST /auth/profile-resume`, but that route was never registered in
+   `authRoute.js`, and the controller that did exist expected the file
+   under a `file` body key while the frontend sends `resume`. Fixed both:
+   route is now registered, and `uploadProfileResume` reads `req.body.resume`.
+2. **Profile picture kept reverting to the Clerk avatar** —
+   `middleware/protectRoute.js` runs on every authenticated request and
+   was unconditionally overwriting `user.profileImage` with Clerk's
+   `imageUrl` any time they differed. So the moment a candidate uploaded
+   a custom photo, the very next request silently reverted it. Removed
+   that overwrite — Clerk's avatar is now only used once, as the default
+   at first signup; from then on, the candidate's own upload (via My
+   Profile) is the only thing that changes it. No more need to change it
+   through a Clerk account page.
+3. **Interviewer's "View Profile" card showed a stale resume/skills** —
+   it only ever read `application.profileSnapshot`, frozen at the moment
+   the candidate applied. `getApplicantsForJob` now also populates the
+   candidate's live `candidateProfile`, and `CandidateProfileModal.jsx`
+   prefers that live data over the snapshot (falling back to the
+   snapshot only for fields the live profile doesn't have) — so a resume
+   uploaded *after* applying still shows up correctly.
+
+No database/schema changes were needed — `candidateProfile.resumeUrl`
+already existed; this was purely a wiring/logic bug, not a missing
+Cloudinary setup on your end (assuming `CLOUDINARY_CLOUD_NAME`,
+`CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` are already set in
+`backend/.env`, which they need to be for either upload to work).
+
+**Also redesigned `candidate/Profile.jsx`** — hero card with a gradient
+banner and overlapping avatar, a live profile-completeness meter,
+sectioned cards (Background / Skills / Resume) with icons, and subtle
+entrance/hover animations via `framer-motion`. All existing
+save/upload logic is unchanged, just the layout.
+
+---
+
+## Patch: Cloudinary CDN cache invalidation on overwrite
+
+Overwriting an existing Cloudinary `public_id` (which both the profile
+photo and resume uploads do, so re-uploads replace the old file instead
+of piling up) does **not** automatically clear Cloudinary's own CDN
+cache. Without `invalidate: true`, the app's database correctly points
+at the new file, but Cloudinary's edge servers can keep serving the old
+cached version for a while regardless. Added `invalidate: true` to both
+upload calls in `authController.js` (`uploadProfileImage` and
+`uploadProfileResume`) so a re-upload is reflected immediately.
+
+**Also confirmed from your screenshot:** the resume-upload 404 against
+`api.intervue.site` means that deployed backend is still running the
+*previous* version of the code — `/auth/profile-resume` genuinely isn't
+registered there yet. This zip has the fix (same as last time), but it
+needs to actually be deployed/restarted on that server for the route to
+exist — pulling the new code alone via `git pull` doesn't take effect
+until the Node process is restarted. The profile picture upload
+succeeding in your screenshot confirms Cloudinary credentials are set up
+correctly there already, so once redeployed the resume upload should
+work the same way.
+
+---
+
+## Patch: resume upload 413 + CORS-masking-a-413 fix
+
+Two real bugs in `backend/src/server.js`, both about how large uploads
+were handled:
+
+1. **`cors()` was registered *after* `express.json()`.** When a request
+   body is too large, Express rejects it during body parsing — before
+   it ever reaches the CORS middleware. So the error response went out
+   with no `Access-Control-Allow-Origin` header, and the browser
+   reported it as a CORS failure instead of showing the real `413`
+   status. Moved `cors()` to run first, so every response — including
+   error responses — carries the right headers and you see the actual
+   error instead of a misleading CORS message.
+2. **The JSON body limit (10mb) was smaller than a 10MB resume actually
+   needs.** Base64-encoding a file inflates its size by ~37%, so a
+   resume right at the app's own 10MB limit becomes ~13-14MB on the
+   wire — bigger than the 10mb cap, so it always failed. Raised the
+   limit to 15mb to leave real headroom.
+
+**One thing I can't verify from here:** some hosting platforms enforce
+their own request size cap independent of Express — e.g. Vercel
+serverless functions hard-cap request bodies around 4.5MB no matter
+what your code says, and some reverse proxies (nginx) need
+`client_max_body_size` raised too. If resumes still 413 after
+redeploying with this fix, check whether `api.intervue.site` is behind
+one of those and whether it needs a platform-level limit increase (not
+an Express one) — let me know what it's hosted on and I can point you
+at the exact setting.

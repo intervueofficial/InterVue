@@ -107,7 +107,7 @@ export async function getApplicantsForJob(req, res) {
     const { jobId } = req.params;
 
     const applications = await Application.find({ job: jobId })
-      .populate("candidate", "name email profileImage")
+      .populate("candidate", "name email profileImage candidateProfile")
       .sort({ isEligible: -1, createdAt: 1 });
 
     return res.json({ success: true, applications });

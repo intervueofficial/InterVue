@@ -100,6 +100,11 @@ export const uploadProfileImage = async (req, res) => {
       folder: "intervue/profile-pictures",
       public_id: req.user.clerkId,
       overwrite: true,
+      // Overwriting a public_id does NOT bust Cloudinary's own CDN cache
+      // by default — without this, the old photo can keep being served
+      // globally for a while even though our DB already points at the
+      // new one.
+      invalidate: true,
       resource_type: "image",
       transformation: [
         { width: 512, height: 512, crop: "fill", gravity: "face" },
@@ -146,9 +151,9 @@ export const uploadProfileResume = async (req, res) => {
       });
     }
 
-    const { file, fileName } = req.body;
+    const { resume, fileName } = req.body;
 
-    if (!file || typeof file !== "string") {
+    if (!resume || typeof resume !== "string") {
       return res.status(400).json({
         success: false,
         message: "No file provided",
@@ -156,7 +161,7 @@ export const uploadProfileResume = async (req, res) => {
     }
 
     // Expects a data URL (e.g. "data:application/pdf;base64,....")
-    const mimeMatch = file.match(/^data:([^;]+);base64,/);
+    const mimeMatch = resume.match(/^data:([^;]+);base64,/);
     const mimeType = mimeMatch?.[1];
 
     if (!mimeType || !ALLOWED_RESUME_MIME_TYPES.includes(mimeType)) {
@@ -167,7 +172,7 @@ export const uploadProfileResume = async (req, res) => {
     }
 
     // Rough size check on the base64 payload (~10MB limit, matching the UI)
-    const base64Data = file.slice(file.indexOf(",") + 1);
+    const base64Data = resume.slice(resume.indexOf(",") + 1);
     const approxBytes = base64Data.length * 0.75;
     const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -178,13 +183,24 @@ export const uploadProfileResume = async (req, res) => {
       });
     }
 
-    const upload = await cloudinary.uploader.upload(file, {
+    const RESUME_EXTENSION_BY_MIME = {
+      "application/pdf": "pdf",
+      "application/msword": "doc",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    };
+
+    const upload = await cloudinary.uploader.upload(resume, {
       folder: "intervue/resumes",
       public_id: req.user.clerkId,
       overwrite: true,
+      invalidate: true,
       resource_type: "raw",
       use_filename: true,
       filename_override: fileName || `${req.user.clerkId}-resume`,
+      // Cloudinary "raw" assets otherwise carry no file extension, which
+      // can leave browsers unsure how to open/download the link — this
+      // keeps it as a proper .pdf/.doc/.docx URL.
+      format: RESUME_EXTENSION_BY_MIME[mimeType],
     });
 
     req.user.candidateProfile = req.user.candidateProfile || {};
@@ -204,6 +220,7 @@ export const uploadProfileResume = async (req, res) => {
     return res.status(200).json({
       success: true,
       user: req.user,
+      resumeUrl: req.user.candidateProfile.resumeUrl,
     });
   } catch (error) {
     console.error("uploadProfileResume:", error);

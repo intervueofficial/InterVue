@@ -43,11 +43,9 @@ export const authApi = {
     return data;
   },
 
-  // NOTE: field name ("resume") and response shape are assumed to mirror
-  // uploadProfileImage's ({ image }) pattern, since the uploadResume
-  // controller wasn't available. If the backend expects a different key
-  // or returns the URL under a different path, update the body key below
-  // and the `url` extraction in Profile.jsx's resume mutation to match.
+  // Uploads a resume (PDF/DOC/DOCX) to Cloudinary via the backend and
+  // returns the updated user, with the new URL at
+  // user.candidateProfile.resumeUrl (and echoed at data.resumeUrl too).
   async uploadResume(resumeDataUrl, token) {
     const { data } = await axios.post(
       "/auth/profile-resume",

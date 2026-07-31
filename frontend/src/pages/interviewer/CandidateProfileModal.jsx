@@ -16,6 +16,21 @@ const CandidateProfileModal = ({ application, onClose }) => {
   const candidate = application.candidate || {};
   const snapshot = application.profileSnapshot || {};
 
+  // The candidate's profile (photo, resume, skills, ...) can change after
+  // they applied. Prefer whatever's live on their account over the
+  // snapshot frozen at application time, falling back to the snapshot
+  // only for fields the live profile doesn't have (e.g. very old
+  // applications from before a field existed).
+  const live = candidate.candidateProfile || {};
+  const info = {
+    ...snapshot,
+    ...Object.fromEntries(
+      Object.entries(live).filter(([, v]) =>
+        Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && v !== ""
+      )
+    ),
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.15s_ease-out]"
@@ -53,9 +68,9 @@ const CandidateProfileModal = ({ application, onClose }) => {
           <p className="text-white/60 text-xs flex items-center justify-center gap-1.5 mt-1.5 break-all">
             <Mail size={12} className="shrink-0" /> {candidate.email}
           </p>
-          {snapshot.phone && (
+          {info.phone && (
             <p className="text-white/60 text-xs flex items-center justify-center gap-1.5 mt-1">
-              <Phone size={12} className="shrink-0" /> {snapshot.phone}
+              <Phone size={12} className="shrink-0" /> {info.phone}
             </p>
           )}
         </div>
@@ -79,12 +94,12 @@ const CandidateProfileModal = ({ application, onClose }) => {
                     Education
                   </p>
                   <p className="text-neutral-800 text-sm mt-0.5">
-                    {snapshot.degree || "—"}
-                    {snapshot.fieldOfStudy ? `, ${snapshot.fieldOfStudy}` : ""}
+                    {info.degree || "—"}
+                    {info.fieldOfStudy ? `, ${info.fieldOfStudy}` : ""}
                   </p>
                   <p className="text-neutral-400 text-xs mt-0.5">
-                    {snapshot.institution}
-                    {snapshot.yearOfGraduation ? ` · Class of ${snapshot.yearOfGraduation}` : ""}
+                    {info.institution}
+                    {info.yearOfGraduation ? ` · Class of ${info.yearOfGraduation}` : ""}
                   </p>
                 </div>
               </div>
@@ -95,11 +110,11 @@ const CandidateProfileModal = ({ application, onClose }) => {
                     Experience
                   </p>
                   <p className="text-neutral-800 text-sm mt-0.5">
-                    {snapshot.experienceYears ?? 0} years
+                    {info.experienceYears ?? 0} years
                   </p>
                 </div>
               </div>
-              {snapshot.resumeUrl && (
+              {info.resumeUrl && (
                 <div className="flex items-start gap-2.5">
                   <FileText size={16} className="text-neutral-400 mt-0.5 shrink-0" />
                   <div>
@@ -107,7 +122,7 @@ const CandidateProfileModal = ({ application, onClose }) => {
                       Resume
                     </p>
                     <a
-                      href={snapshot.resumeUrl}
+                      href={info.resumeUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="text-neutral-900 text-sm font-medium hover:underline mt-0.5 inline-block"
@@ -124,8 +139,8 @@ const CandidateProfileModal = ({ application, onClose }) => {
                 Skills
               </p>
               <div className="flex flex-wrap gap-2">
-                {(snapshot.skills || []).length > 0 ? (
-                  snapshot.skills.map((s, i) => (
+                {(info.skills || []).length > 0 ? (
+                  info.skills.map((s, i) => (
                     <span
                       key={i}
                       className="text-xs font-medium bg-neutral-100 text-neutral-800 px-3 py-1.5 rounded-full border border-neutral-200"

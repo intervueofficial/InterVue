@@ -73,6 +73,14 @@ export const protectRoute = [
       // ===============================
       // KEEP PROFILE SYNCED
       // ===============================
+      // Note: profileImage is intentionally NOT synced here. Candidates
+      // can upload their own photo from My Profile (stored on Cloudinary),
+      // and this endpoint runs on every authenticated request — if it kept
+      // overwriting profileImage from Clerk's imageUrl, any custom photo
+      // would get silently reverted right after being uploaded. Clerk's
+      // avatar is only used once, as the default at account creation
+      // above; from then on this app's own upload is the only thing that
+      // changes it.
 
       let hasChanges = false;
 
@@ -83,11 +91,6 @@ export const protectRoute = [
 
       if (user.email !== email) {
         user.email = email;
-        hasChanges = true;
-      }
-
-      if (user.profileImage !== profileImage) {
-        user.profileImage = profileImage;
         hasChanges = true;
       }
 

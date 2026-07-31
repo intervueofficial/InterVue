@@ -36,10 +36,11 @@ const allowedOrigins = [
 
 // ================= Core Middleware =================
 
-// Raised from Express's 100kb default so base64-encoded profile picture
-// uploads (see /api/auth/profile-image) fit in a single JSON request.
-app.use(express.json({ limit: "10mb" }));
-
+// CORS must run before body parsing — otherwise a request that's
+// rejected for being too large (see below) never reaches this
+// middleware, so its response has no Access-Control-Allow-Origin
+// header, and the browser reports it as a CORS failure instead of the
+// real error (a confusing red herring when debugging uploads).
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -51,6 +52,14 @@ app.use(
     credentials: true,
   })
 );
+
+// Raised from Express's 100kb default so base64-encoded uploads (profile
+// pictures, and resumes up to 10MB — see /api/auth/profile-image and
+// /api/auth/profile-resume) fit in a single JSON request. Base64 encoding
+// itself inflates a file's size by ~37%, so a 10MB resume becomes ~14MB
+// on the wire before the JSON envelope around it — 15mb leaves headroom
+// for that plus the couple of other fields sent alongside it.
+app.use(express.json({ limit: "15mb" }));
 
 app.use(
   "/api/inngest",
