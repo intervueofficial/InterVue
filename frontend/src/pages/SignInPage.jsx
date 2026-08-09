@@ -5,6 +5,9 @@ import { Loader2, Mail, ShieldCheck, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import useAuthUser from "../hooks/useAuthUser";
 
+const ACCENT = "#5a678e";
+const ACCENT_SOFT = "#67779b";
+
 // Security feature: every sign-in — not just the first one — requires a
 // fresh one-time code sent to the account's verified email address. There
 // is no password-only path into any dashboard; direct/blind access is not
@@ -21,6 +24,7 @@ const SignInPage = () => {
   const [error, setError] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [emailAddressId, setEmailAddressId] = useState(null);
+  const [scrollY, setScrollY] = useState(0);
   const otpInputRef = useRef(null);
 
   useEffect(() => {
@@ -32,6 +36,12 @@ const SignInPage = () => {
     const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    const fn = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
 
   if (isSignedIn && !userLoading && user) {
     switch (user.role) {
@@ -140,129 +150,324 @@ const SignInPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-6">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-sm border border-neutral-200 p-8">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-11 h-11 rounded-lg bg-black flex items-center justify-center shrink-0">
-            {step === "otp" ? (
-              <ShieldCheck className="text-white" size={20} />
-            ) : (
-              <Mail className="text-white" size={18} />
-            )}
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-neutral-900 tracking-tight">
-              {step === "email" ? "Sign in" : "Enter your code"}
-            </h1>
-            <p className="text-sm text-neutral-500">
-              {step === "email"
-                ? "We'll email you a one-time code — no password needed."
-                : `Enter the code we sent to ${email}`}
-            </p>
+    <div
+      style={{
+        fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif",
+        backgroundColor: "#efefe8",
+        backgroundImage:
+          "radial-gradient(circle at center, #fafaf7 0%, #efefe8 40%, #d8d8d1 75%, #a6a69e 100%)",
+        color: "#0f172a",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        overflowX: "hidden",
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+        * { box-sizing: border-box; }
+
+        /*
+          Apple-style frosted glass card: very low white tint + heavy
+          blur/saturation so the gradient page behind actually shows
+          through and bleeds real color into the panel, instead of an
+          opaque white card that merely sits on top of the background.
+          Text stays pure black for contrast against whatever comes
+          through.
+        */
+        .iv-glass-card {
+          background: rgba(255, 255, 255, 0.22);
+          backdrop-filter: blur(42px) saturate(190%);
+          -webkit-backdrop-filter: blur(42px) saturate(190%);
+          border: 1px solid rgba(255, 255, 255, 0.55);
+          box-shadow:
+            0 24px 70px -12px rgba(0, 0, 0, 0.25),
+            0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+            0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+        }
+        .iv-glass-chip {
+          background: rgba(255, 255, 255, 0.18);
+          backdrop-filter: blur(20px) saturate(160%);
+          -webkit-backdrop-filter: blur(20px) saturate(160%);
+          border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .iv-btn-primary { background:#000; color:#fff; border:none; font-size:15px; font-weight:600; padding:13px 26px; border-radius:9px; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; justify-content:center; gap:8px; transition:background 0.15s,transform 0.12s; }
+        .iv-btn-primary:hover:not(:disabled) { background:${ACCENT}; transform:translateY(-1px); }
+        .iv-btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+        .iv-nav-link { font-size:14px; font-weight:500; color:#000; opacity:0.65; padding:8px 12px; border-radius:10px; transition:background 0.2s,opacity 0.2s; cursor:pointer; text-decoration:none; }
+        .iv-nav-link:hover { background:rgba(255,255,255,0.35); opacity:1; }
+        .iv-input { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.28); padding:13px 16px 13px 44px; color:#000; font-family:inherit; font-size:14px; transition:border-color 0.15s, box-shadow 0.15s, background 0.15s; }
+        .iv-input::placeholder { color:rgba(0,0,0,0.4); }
+        .iv-input:focus { outline:none; background:rgba(255,255,255,0.4); border-color:${ACCENT_SOFT}; box-shadow:0 0 0 3px rgba(90,103,142,0.15); }
+        .iv-otp-input { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.28); padding:14px; text-align:center; font-size:26px; letter-spacing:0.5em; font-weight:700; color:#000; font-family:inherit; }
+        .iv-otp-input:focus { outline:none; background:rgba(255,255,255,0.4); border-color:${ACCENT_SOFT}; box-shadow:0 0 0 3px rgba(90,103,142,0.15); }
+      `}</style>
+
+      {/* ── NAVBAR — same glass recipe as the homepage ── */}
+      <nav
+        style={{
+          position: "sticky",
+          top: 12,
+          zIndex: 100,
+          width: "calc(100% - 32px)",
+          maxWidth: 1320,
+          margin: "12px auto 0",
+          borderRadius: 18,
+          backdropFilter: "blur(32px) saturate(200%)",
+          WebkitBackdropFilter: "blur(32px) saturate(200%)",
+          background: scrollY > 20 ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.2)",
+          border: "1px solid rgba(255,255,255,0.32)",
+          boxShadow:
+            scrollY > 20
+              ? "0 10px 40px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.65)"
+              : "0 6px 24px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.75)",
+          transition: "all .35s cubic-bezier(.4,0,.2,1)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.2) 18%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.02) 70%, rgba(255,255,255,0) 100%)",
+            opacity: 0.9,
+          }}
+        />
+
+        <div
+          style={{
+            position: "relative",
+            maxWidth: 1280,
+            margin: "0 auto",
+            padding: "0 32px",
+            height: 68,
+            display: "flex",
+            alignItems: "center",
+            gap: 40,
+          }}
+        >
+          <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                background: "rgba(255,255,255,.35)",
+                border: "1px solid rgba(255,255,255,.35)",
+              }}
+            >
+              <img
+                src="/logo.png"
+                alt="InterVue"
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+            <span style={{ fontSize: 22, fontWeight: 700, color: "#000", letterSpacing: "-0.5px" }}>
+              InterVue
+            </span>
+          </Link>
+
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+            <Link to="/mock-interview" className="iv-nav-link">
+              Mock Interview Bot
+            </Link>
+            <Link to="/sign-up" className="iv-nav-link">
+              Sign up
+            </Link>
+            <Link
+              to="/sign-up"
+              className="iv-btn-primary"
+              style={{ padding: "9px 18px", fontSize: 14, textDecoration: "none" }}
+            >
+              Get started free
+              <ArrowLeft size={14} style={{ transform: "rotate(180deg)" }} />
+            </Link>
           </div>
         </div>
+      </nav>
 
-        {error && (
-          <div className="mb-5 rounded-md bg-neutral-900 text-white text-sm px-4 py-3">
-            {error}
+      {/* ── MAIN ── */}
+      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "64px 24px" }}>
+        <div style={{ width: "100%", maxWidth: 440 }}>
+          <div className="iv-glass-card" style={{ position: "relative", borderRadius: 24, overflow: "hidden", padding: 32 }}>
+            {/* glass highlight sheen */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0) 65%)",
+              }}
+            />
+
+            <div style={{ position: "relative" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "#000",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {step === "otp" ? <ShieldCheck size={20} color="#fff" /> : <Mail size={18} color="#fff" />}
+                </div>
+                <div>
+                  <h1 style={{ fontSize: 20, fontWeight: 700, color: "#000", letterSpacing: "-0.3px", margin: 0 }}>
+                    {step === "email" ? "Sign in" : "Enter your code"}
+                  </h1>
+                  <p style={{ fontSize: 13.5, color: "#000", opacity: 0.6, margin: "2px 0 0" }}>
+                    {step === "email"
+                      ? "We'll email you a one-time code — no password needed."
+                      : `Enter the code we sent to ${email}`}
+                  </p>
+                </div>
+              </div>
+
+              {error && (
+                <div
+                  style={{
+                    marginBottom: 20,
+                    borderRadius: 10,
+                    background: "rgba(0,0,0,0.85)",
+                    color: "#fff",
+                    fontSize: 13.5,
+                    padding: "12px 16px",
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+
+              {step === "email" ? (
+                <form onSubmit={handleRequestCode} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#000", opacity: 0.55 }}>
+                      Email address
+                    </label>
+                    <div style={{ position: "relative", marginTop: 8 }}>
+                      <Mail size={17} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(0,0,0,0.4)" }} />
+                      <input
+                        autoFocus
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="iv-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Clerk's CAPTCHA mount point (bot protection for sign-in) */}
+                  <div id="clerk-captcha" />
+
+                  <button type="submit" disabled={submitting} className="iv-btn-primary" style={{ width: "100%", padding: "14px 24px" }}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="animate-spin" size={18} /> Sending code...
+                      </>
+                    ) : (
+                      "Send verification code"
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyCode} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#000", opacity: 0.55 }}>
+                      Verification code
+                    </label>
+                    <input
+                      ref={otpInputRef}
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                      placeholder="123456"
+                      className="iv-otp-input"
+                      style={{ marginTop: 8 }}
+                    />
+                  </div>
+
+                  <button type="submit" disabled={submitting} className="iv-btn-primary" style={{ width: "100%", padding: "14px 24px" }}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="animate-spin" size={18} /> Verifying...
+                      </>
+                    ) : (
+                      "Verify & sign in"
+                    )}
+                  </button>
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13.5, paddingTop: 2 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep("email");
+                        setCode("");
+                        setError("");
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#000",
+                        opacity: 0.6,
+                        fontFamily: "inherit",
+                        fontSize: 13.5,
+                      }}
+                    >
+                      <ArrowLeft size={14} /> Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendCooldown > 0}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        fontFamily: "inherit",
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        color: resendCooldown > 0 ? "rgba(0,0,0,0.35)" : ACCENT,
+                        cursor: resendCooldown > 0 ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <p style={{ textAlign: "center", fontSize: 13.5, color: "#000", opacity: 0.6, marginTop: 28 }}>
+                Don't have an account?{" "}
+                <Link to="/sign-up" style={{ color: "#000", opacity: 1, fontWeight: 700, textDecoration: "none" }}>
+                  Sign up
+                </Link>
+              </p>
+            </div>
           </div>
-        )}
-
-        {step === "email" ? (
-          <form onSubmit={handleRequestCode} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-                Email address
-              </label>
-              <input
-                autoFocus
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-colors"
-              />
-            </div>
-
-            {/* Clerk's CAPTCHA mount point (bot protection for sign-in) */}
-            <div id="clerk-captcha" />
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-black hover:bg-neutral-800 text-white px-6 py-3 font-semibold transition-colors disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} /> Sending code...
-                </>
-              ) : (
-                "Send verification code"
-              )}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyCode} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-                Verification code
-              </label>
-              <input
-                ref={otpInputRef}
-                inputMode="numeric"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="123456"
-                className="mt-2 w-full rounded-md border border-neutral-300 px-4 py-3 text-center text-2xl tracking-[0.5em] font-semibold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-colors"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-black hover:bg-neutral-800 text-white px-6 py-3 font-semibold transition-colors disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} /> Verifying...
-                </>
-              ) : (
-                "Verify & sign in"
-              )}
-            </button>
-
-            <div className="flex items-center justify-between text-sm pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("email");
-                  setCode("");
-                  setError("");
-                }}
-                className="flex items-center gap-1 text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                <ArrowLeft size={14} /> Back
-              </button>
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resendCooldown > 0}
-                className="text-neutral-900 font-medium hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
-              >
-                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
-              </button>
-            </div>
-          </form>
-        )}
-
-        <p className="text-center text-sm text-neutral-500 mt-8">
-          Don't have an account?{" "}
-          <Link to="/sign-up" className="text-neutral-900 font-semibold hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

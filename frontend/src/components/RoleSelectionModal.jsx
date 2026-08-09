@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const roles = [
- 
   {
     id: "interviewer",
     title: "Interviewer",
@@ -113,6 +112,14 @@ const RoleSelectionModal = ({
           </motion.div>
 
           <style>{`
+            /*
+              Apple-style frosted glass: the overlay carries NO dark tint —
+              it's blur only, so the page behind (and its actual colors)
+              stays clearly visible, like macOS/iOS Control Center. All the
+              "glass" comes from blur + saturation, not from darkening or
+              whitening what's underneath. Text stays pure black throughout
+              for contrast against whatever bleeds through.
+            */
             .ivp-overlay {
               position: fixed;
               inset: 0;
@@ -121,46 +128,55 @@ const RoleSelectionModal = ({
               align-items: center;
               justify-content: center;
               padding: 24px;
-              background: rgba(15, 23, 42, 0.55);
-              backdrop-filter: blur(6px);
+              background: rgba(255, 255, 255, 0.05);
+              backdrop-filter: blur(3px);
+              -webkit-backdrop-filter: blur(3px);
             }
 
             .ivp-modal {
+              position: relative;
               width: 100%;
               max-width: 560px;
               max-height: calc(100vh - 48px);
               overflow-y: auto;
-              border-radius: 20px;
-              background: #ffffff;
-              box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.35);
+              border-radius: 22px;
+              border: 1px solid rgba(255, 255, 255, 0.55);
+              background: rgba(255, 255, 255, 0.22);
+              backdrop-filter: blur(42px) saturate(190%);
+              -webkit-backdrop-filter: blur(42px) saturate(190%);
+              box-shadow:
+                0 24px 70px -12px rgba(0, 0, 0, 0.3),
+                0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset;
               font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             }
 
             .ivp-topbar {
-              height: 4px;
+              height: 3px;
               width: 100%;
-              background: #2563eb;
+              background: linear-gradient(90deg, rgba(10,10,10,0.5), rgba(10,10,10,0.15));
             }
 
             .ivp-header {
               padding: 32px 36px 20px;
               text-align: center;
-              background: #eff6ff;
-              border-bottom: 1px solid #dbeafe;
+              background: rgba(255, 255, 255, 0.08);
+              border-bottom: 1px solid rgba(255, 255, 255, 0.35);
             }
 
             .ivp-title {
               margin: 0;
               font-size: 26px;
               font-weight: 700;
-              color: #2563eb;
+              color: #000000;
               letter-spacing: -0.01em;
             }
 
             .ivp-subtitle {
               margin: 8px 0 0;
               font-size: 14px;
-              color: #64748b;
+              color: #000000;
+              opacity: 0.62;
             }
 
             .ivp-role-list {
@@ -178,8 +194,10 @@ const RoleSelectionModal = ({
               text-align: left;
               padding: 16px 18px;
               border-radius: 14px;
-              border: 1px solid #e2e8f0;
-              background: #ffffff;
+              border: 1px solid rgba(255, 255, 255, 0.4);
+              background: rgba(255, 255, 255, 0.14);
+              backdrop-filter: blur(16px) saturate(160%);
+              -webkit-backdrop-filter: blur(16px) saturate(160%);
               cursor: pointer;
               transition: border-color 0.18s ease, background-color 0.18s ease,
                 box-shadow 0.18s ease, transform 0.18s ease;
@@ -187,20 +205,21 @@ const RoleSelectionModal = ({
             }
 
             .ivp-role-card:hover {
-              border-color: #93c5fd;
-              box-shadow: 0 6px 16px -8px rgba(37, 99, 235, 0.25);
+              border-color: rgba(255, 255, 255, 0.65);
+              background: rgba(255, 255, 255, 0.26);
+              box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.18);
               transform: translateY(-1px);
             }
 
             .ivp-role-card:focus-visible {
-              outline: 2px solid #2563eb;
+              outline: 2px solid #000000;
               outline-offset: 2px;
             }
 
             .ivp-role-card--active {
-              border-color: #2563eb;
-              background: #eff6ff;
-              box-shadow: 0 6px 16px -8px rgba(37, 99, 235, 0.3);
+              border-color: rgba(0, 0, 0, 0.55);
+              background: rgba(255, 255, 255, 0.34);
+              box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.22);
             }
 
             .ivp-role-badge {
@@ -211,18 +230,18 @@ const RoleSelectionModal = ({
               display: flex;
               align-items: center;
               justify-content: center;
-              background: #eff6ff;
-              color: #2563eb;
+              background: rgba(255, 255, 255, 0.3);
+              color: #000000;
               font-size: 13px;
               font-weight: 700;
               letter-spacing: 0.02em;
-              border: 1px solid #dbeafe;
+              border: 1px solid rgba(255, 255, 255, 0.5);
             }
 
             .ivp-role-card--active .ivp-role-badge {
-              background: #2563eb;
+              background: #0a0a0a;
               color: #ffffff;
-              border-color: #2563eb;
+              border-color: #0a0a0a;
             }
 
             .ivp-role-copy {
@@ -235,13 +254,14 @@ const RoleSelectionModal = ({
             .ivp-role-title {
               font-size: 16px;
               font-weight: 600;
-              color: #0f172a;
+              color: #000000;
             }
 
             .ivp-role-desc {
               font-size: 13.5px;
               line-height: 1.5;
-              color: #64748b;
+              color: #000000;
+              opacity: 0.6;
             }
 
             .ivp-role-indicator {
@@ -250,22 +270,22 @@ const RoleSelectionModal = ({
               height: 18px;
               margin-top: 2px;
               border-radius: 50%;
-              border: 2px solid #cbd5e1;
-              background: #ffffff;
+              border: 2px solid rgba(0, 0, 0, 0.3);
+              background: rgba(255, 255, 255, 0.35);
               transition: border-color 0.18s ease, background-color 0.18s ease;
             }
 
             .ivp-role-card--active .ivp-role-indicator {
-              border-color: #2563eb;
-              background: #2563eb;
-              box-shadow: inset 0 0 0 3px #ffffff;
+              border-color: #0a0a0a;
+              background: #0a0a0a;
+              box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.85);
             }
 
             .ivp-footer {
               display: flex;
               gap: 12px;
               padding: 20px 28px 28px;
-              border-top: 1px solid #eef2f7;
+              border-top: 1px solid rgba(255, 255, 255, 0.35);
             }
 
             .ivp-btn {
@@ -281,29 +301,31 @@ const RoleSelectionModal = ({
             }
 
             .ivp-btn--ghost {
-              background: #ffffff;
-              border: 1px solid #cbd5e1;
-              color: #334155;
+              background: rgba(255, 255, 255, 0.18);
+              border: 1px solid rgba(255, 255, 255, 0.5);
+              color: #000000;
+              backdrop-filter: blur(14px) saturate(160%);
+              -webkit-backdrop-filter: blur(14px) saturate(160%);
             }
 
             .ivp-btn--ghost:hover {
-              background: #f8fafc;
-              border-color: #94a3b8;
+              background: rgba(255, 255, 255, 0.32);
+              border-color: rgba(255, 255, 255, 0.7);
             }
 
             .ivp-btn--primary {
-              background: #2563eb;
-              border: 1px solid #2563eb;
+              background: #0a0a0a;
+              border: 1px solid #0a0a0a;
               color: #ffffff;
             }
 
             .ivp-btn--primary:hover:not(:disabled) {
-              background: #1d4ed8;
-              border-color: #1d4ed8;
+              background: #262626;
+              border-color: #262626;
             }
 
             .ivp-btn--primary:disabled {
-              opacity: 0.5;
+              opacity: 0.35;
               cursor: not-allowed;
             }
 

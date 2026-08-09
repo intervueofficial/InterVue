@@ -9,10 +9,10 @@ import toast from "react-hot-toast";
 import { aiGeneratorApi } from "../api/aiGeneratorApi";
 
 const inputCls =
-  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200 text-sm";
+  "w-full rounded-xl border border-white/60 bg-white/55 backdrop-blur-sm px-4 py-3 text-black placeholder:text-black/40 outline-none transition focus:border-black/70 focus:ring-4 focus:ring-black/10 text-sm";
 
 const selectCls =
-  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900 focus:ring-4 focus:ring-slate-200 text-sm";
+  "w-full rounded-xl border border-white/60 bg-white/55 backdrop-blur-sm px-4 py-3 text-black outline-none transition focus:border-black/70 focus:ring-4 focus:ring-black/10 text-sm";
 
 const STEPS = ["Configure", "Preview & Apply"];
 
@@ -207,7 +207,10 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      // Apple-style: blur only, no dark tint — the page behind stays
+      // visible in its real colors instead of being hidden under a
+      // black scrim.
+      className="fixed inset-0 z-50 flex items-center justify-center bg-white/5 backdrop-blur-[3px] p-4"
       onClick={handleBackdropClick}
     >
       <motion.div
@@ -215,10 +218,14 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 20 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
+        // Frosted glass card: low white tint + heavy blur/saturation so
+        // whatever's behind the modal bleeds real color through it,
+        // instead of an opaque white card.
+        className="relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-white/50 bg-white/25 backdrop-blur-2xl backdrop-saturate-150"
+        style={{ boxShadow: "0 24px 70px -12px rgba(0,0,0,0.3), 0 1px 0 0 rgba(255,255,255,0.6) inset" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-[#0A0A0A] px-6 py-5 flex items-center justify-between relative overflow-hidden">
+        <div className="bg-[#0A0A0A]/88 backdrop-blur-xl px-6 py-5 flex items-center justify-between relative overflow-hidden">
           <div
             className="absolute -right-6 -top-10 w-32 h-32 opacity-[0.08] pointer-events-none"
             style={{
@@ -257,9 +264,9 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
               <motion.div
                 animate={{ scaleX: i <= step ? 1 : 0.3 }}
                 transition={{ duration: 0.3 }}
-                className={`h-1 rounded-full origin-left ${i <= step ? "bg-[#0A0A0A]" : "bg-slate-200"}`}
+                className={`h-1 rounded-full origin-left ${i <= step ? "bg-black" : "bg-black/15"}`}
               />
-              <span className={`text-xs font-medium ${i <= step ? "text-[#0A0A0A]" : "text-slate-400"}`}>
+              <span className={`text-xs font-medium ${i <= step ? "text-black" : "text-black/40"}`}>
                 {s}
               </span>
             </div>
@@ -281,7 +288,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                   <motion.div
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-2"
+                    className="rounded-lg border border-red-300/60 bg-red-50/60 backdrop-blur-sm px-4 py-3 flex items-start gap-2"
                   >
                     <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
                     <p className="text-sm text-red-700 font-medium">{validationError}</p>
@@ -289,13 +296,13 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Role / Job Title</label>
+                  <label className="block text-sm font-medium text-black/80 mb-2">Role / Job Title</label>
                   <input type="text" className={inputCls} placeholder="e.g. Software Engineer"
                     value={form.role} onChange={(e) => updateForm("role", e.target.value)} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Experience Level</label>
+                  <label className="block text-sm font-medium text-black/80 mb-2">Experience Level</label>
                   <select className={selectCls} value={form.experience} onChange={(e) => updateForm("experience", e.target.value)}>
                     <option>Entry-level (0–1 years)</option>
                     <option>Junior (1–2 years)</option>
@@ -306,23 +313,23 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black/80 mb-2">
                     Required Skills <span className="text-red-500">*</span>
                   </label>
                   <input type="text" className={inputCls} placeholder="e.g. React, Node.js, System Design"
                     value={form.skills} onChange={(e) => updateForm("skills", e.target.value)} />
-                  <p className="text-xs text-slate-400 mt-1">Separate multiple skills with commas.</p>
+                  <p className="text-xs text-black/40 mt-1">Separate multiple skills with commas.</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Optional Topics / Focus Areas</label>
+                  <label className="block text-sm font-medium text-black/80 mb-2">Optional Topics / Focus Areas</label>
                   <input type="text" className={inputCls} placeholder="e.g. Recursion, REST APIs"
                     value={form.topics} onChange={(e) => updateForm("topics", e.target.value)} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Difficulty</label>
+                    <label className="block text-sm font-medium text-black/80 mb-2">Difficulty</label>
                     <select className={selectCls} value={form.difficulty} onChange={(e) => updateForm("difficulty", e.target.value)}>
                       <option>Easy</option>
                       <option>Medium</option>
@@ -331,7 +338,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                   </div>
                   {type === "quiz" && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Questions</label>
+                      <label className="block text-sm font-medium text-black/80 mb-2">Questions</label>
                       <input type="number" min="1" max="15" className={inputCls} value={form.count}
                         onChange={(e) => updateForm("count", Math.min(Math.max(parseInt(e.target.value) || 5, 1), 15))} />
                     </div>
@@ -349,8 +356,8 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                 transition={{ duration: 0.22 }}
                 className="space-y-4"
               >
-                <div className={`rounded-xl border px-4 py-3 flex items-start gap-3 ${
-                  isFallback ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50"
+                <div className={`rounded-xl border backdrop-blur-sm px-4 py-3 flex items-start gap-3 ${
+                  isFallback ? "border-amber-300/60 bg-amber-50/60" : "border-green-300/60 bg-green-50/60"
                 }`}>
                   {isFallback
                     ? <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
@@ -366,13 +373,13 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-50 max-h-64 overflow-y-auto">
-                  <pre className="p-4 text-xs text-slate-700 whitespace-pre-wrap font-mono leading-relaxed">
+                <div className="rounded-xl border border-white/50 bg-white/35 backdrop-blur-md max-h-64 overflow-y-auto">
+                  <pre className="p-4 text-xs text-black/80 whitespace-pre-wrap font-mono leading-relaxed">
                     {JSON.stringify(normalized, null, 2)}
                   </pre>
                 </div>
 
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-black/50">
                   This is exactly what will be applied to your form. Go back to regenerate if needed.
                 </p>
               </motion.div>
@@ -380,12 +387,12 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
           </AnimatePresence>
         </div>
 
-        <div className="border-t border-slate-100 px-6 py-4 flex items-center justify-between gap-3 bg-slate-50">
+        <div className="border-t border-white/40 px-6 py-4 flex items-center justify-between gap-3 bg-white/20 backdrop-blur-md">
           {step === 0 ? (
             <>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={closeWizard}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-100 transition">
+                className="px-5 py-2.5 rounded-xl border border-white/60 bg-white/30 text-black/70 text-sm font-medium hover:bg-white/50 transition">
                 Cancel
               </motion.button>
 
@@ -416,7 +423,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
             <>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={handleBack}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-100 transition">
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-white/60 bg-white/30 text-black/70 text-sm font-medium hover:bg-white/50 transition">
                 <ChevronLeft size={15} />
                 Back
               </motion.button>
@@ -425,7 +432,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                 {isFallback && (
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={handleBack}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-amber-300 text-amber-700 text-sm font-medium hover:bg-amber-50 transition">
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-amber-400/60 bg-amber-50/50 text-amber-700 text-sm font-medium hover:bg-amber-100/60 transition">
                     <RefreshCw size={13} />
                     Retry
                   </motion.button>
