@@ -8,6 +8,7 @@ import {
   createProblem,
   updateProblem,
   deleteProblem,
+  gradeProblem,
 } from "../controllers/problemController.js";
 
 const router = express.Router();
@@ -19,6 +20,9 @@ router.get("/", getProblems);
 
 // Get single problem
 router.get("/:id", getProblemById);
+
+// Practice-mode grading — any authenticated user (candidates included)
+router.post("/:id/grade", protectRoute, gradeProblem);
 
 /*
 |--------------------------------------------------------------------------

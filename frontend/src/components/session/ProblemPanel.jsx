@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Code2Icon, BookOpenIcon, FlaskConicalIcon, InboxIcon } from "lucide-react";
+import { Code2Icon, BookOpenIcon, FlaskConicalIcon, InboxIcon, LightbulbIcon, LockIcon } from "lucide-react";
 import { T, DIFF } from "../../constants/sessionTheme";
 import {
   Badge,
@@ -11,15 +11,93 @@ import {
   EmptyPane,
 } from "./SessionUI";
 
+/* ─── Hints tab — progressive, LeetCode-style reveal ─────────────────────
+ * Sourced entirely from problemData.hints (AI-generated or authored by
+ * whoever created the problem) — never hardcoded. Kept intentionally
+ * "one at a time" so a candidate has to actively ask for help rather
+ * than having every hint dumped on them.
+ * ────────────────────────────────────────────────────────────────────── */
+function HintsTab({ hints = [] }) {
+  const [revealedCount, setRevealedCount] = useState(0);
+
+  if (hints.length === 0) {
+    return (
+      <EmptyPane
+        icon={LightbulbIcon}
+        title="No hints available"
+        subtitle="This problem doesn't have any hints attached."
+      />
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {hints.slice(0, revealedCount).map((hint, i) => (
+        <div
+          key={i}
+          style={{
+            background: T.blueTint,
+            border: `1px solid rgba(24,104,219,0.2)`,
+            borderRadius: 8,
+            padding: 14,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+            <LightbulbIcon size={12} color={T.blue} />
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                color: T.blue,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              Hint {i + 1}
+            </span>
+          </div>
+          <p style={{ fontSize: 13, color: T.dark, lineHeight: 1.6, margin: 0 }}>
+            {hint}
+          </p>
+        </div>
+      ))}
+
+      {revealedCount < hints.length && (
+        <button
+          onClick={() => setRevealedCount((c) => c + 1)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            fontSize: 12.5,
+            fontWeight: 600,
+            padding: "12px 0",
+            borderRadius: 8,
+            border: `1px dashed ${T.border}`,
+            background: "transparent",
+            color: T.muted,
+            cursor: "pointer",
+          }}
+        >
+          <LockIcon size={12} />
+          Reveal Hint {revealedCount + 1} of {hints.length}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ─── Problem Panel ─────────────────────────────────────────────────────────── *
  * `problemData` here is the real Problem document pushed by the interviewer
  * (session.activeProblem), populated by the backend:
- *   { title, description, difficulty, tags[], starterCode, testCases[] }
+ *   { title, description, difficulty, tags[], starterCode, testCases[], hints[] }
  * ────────────────────────────────────────────────────────────────────────── */
 function ProblemPanel({ problemData, session, loading }) {
   const [tab, setTab] = useState("problem");
   const diff = DIFF[problemData?.difficulty?.toLowerCase()] || DIFF.medium;
   const testCases = problemData?.testCases || [];
+  const hints = problemData?.hints || [];
 
   return (
     <div
@@ -41,6 +119,9 @@ function ProblemPanel({ problemData, session, loading }) {
             onClick={() => setTab("testcases")}
           >
             <FlaskConicalIcon size={10} /> Test Cases
+          </TabPill>
+          <TabPill active={tab === "hints"} onClick={() => setTab("hints")}>
+            <LightbulbIcon size={10} /> Hints
           </TabPill>
         </div>
         {session?.interviewer?.name && (
@@ -167,7 +248,7 @@ function ProblemPanel({ problemData, session, loading }) {
               </Section>
             )}
           </div>
-        ) : (
+        ) : tab === "testcases" ? (
           <div style={{ padding: "22px 22px 32px" }}>
             {testCases.length > 0 ? (
               <Section title="Test Cases">
@@ -238,6 +319,12 @@ function ProblemPanel({ problemData, session, loading }) {
                 subtitle="This problem has no sample test cases attached."
               />
             )}
+          </div>
+        ) : (
+          <div style={{ padding: "22px 22px 32px" }}>
+            <Section title="Hints">
+              <HintsTab hints={hints} />
+            </Section>
           </div>
         )}
       </div>

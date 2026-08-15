@@ -51,4 +51,18 @@ export const problemApi = {
 
     return data;
   },
+
+  gradeProblem: async (id, payload, token) => {
+    const { data } = await axiosInstance.post(
+      `/problems/${id}/grade`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return data;
+  },
 };

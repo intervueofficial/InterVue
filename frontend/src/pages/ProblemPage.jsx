@@ -11,6 +11,8 @@ import {
   Trash2Icon,
   FlaskConicalIcon,
   BookOpenIcon,
+  LightbulbIcon,
+  LockIcon,
 } from "lucide-react";
 
 import { problemApi } from "../api/problemApi";
@@ -20,6 +22,7 @@ import AppShell from "../components/AppShell";
 import ProblemForm from "./admin/ProblemForm";
 import CodeEditorPanel from "../components/CodeEditorPanel";
 import OutputPanel from "../components/OutputPanel";
+import GradingResultModal from "../components/session/GradingResultModal";
 import { THEME, DIFFICULTY } from "../constants/theme";
 
 function DifficultyBadge({ difficulty }) {
@@ -31,6 +34,69 @@ function DifficultyBadge({ difficulty }) {
     >
       {difficulty}
     </span>
+  );
+}
+
+/* ─── Hints tab — progressive, LeetCode-style reveal ─────────────────────
+ * Sourced entirely from problem.hints (AI-generated or admin-authored),
+ * never hardcoded — a problem with no hints shows an honest empty state
+ * instead of filler text pretending to help.
+ * ────────────────────────────────────────────────────────────────────── */
+function HintsTab({ hints = [] }) {
+  const [revealedCount, setRevealedCount] = useState(0);
+
+  if (hints.length === 0) {
+    return (
+      <div className="flex flex-col items-center text-center py-16 px-6">
+        <div
+          className="w-11 h-11 rounded-lg flex items-center justify-center mb-3"
+          style={{ background: THEME.surface2 }}
+        >
+          <LightbulbIcon size={20} color={THEME.inkFaint} />
+        </div>
+        <p className="text-sm font-semibold" style={{ color: THEME.ink }}>
+          No hints available
+        </p>
+        <p className="text-xs mt-1 max-w-xs" style={{ color: THEME.inkFaint }}>
+          This problem doesn't have any hints attached yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {hints.slice(0, revealedCount).map((hint, i) => (
+        <div
+          key={i}
+          className="rounded-lg p-4"
+          style={{ background: THEME.primaryTint, border: `1px solid ${THEME.primaryTintBorder}` }}
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <LightbulbIcon size={12} color={THEME.primary} />
+            <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: THEME.primary }}>
+              Hint {i + 1}
+            </span>
+          </div>
+          <p className="text-[13px] leading-relaxed" style={{ color: THEME.ink }}>
+            {hint}
+          </p>
+        </div>
+      ))}
+
+      {revealedCount < hints.length && (
+        <button
+          onClick={() => setRevealedCount((c) => c + 1)}
+          className="w-full flex items-center justify-center gap-2 text-[13px] font-semibold py-3 rounded-lg transition-colors"
+          style={{ border: `1px dashed ${THEME.border}`, color: THEME.inkMuted }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.primary)}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = THEME.border)}
+        >
+          <LockIcon size={13} />
+          Reveal Hint {revealedCount + 1} of {hints.length}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -53,15 +119,24 @@ const ProblemPage = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
 
+  // Grading — same LeetCode-style engine the live interview session
+  // uses (backend: lib/judge.js), just without a session attached.
+  const [isGrading, setIsGrading] = useState(false);
+  const [gradingResult, setGradingResult] = useState(null);
+  const [gradingPopup, setGradingPopup] = useState(null);
+
   const { data, isLoading } = useQuery({
     queryKey: ["problem", id],
     queryFn: () => problemApi.getProblem(id),
   });
 
   const problem = data?.problem;
+  const hints = problem?.hints || [];
+  const hasTestCases = (problem?.testCases?.length || 0) > 0;
 
   useEffect(() => {
     setCode(problem?.starterCode || "");
+    setGradingResult(null);
   }, [problem?._id]);
 
   const handleRunCode = async () => {
@@ -73,6 +148,29 @@ const ProblemPage = () => {
       setOutput({ success: false, error: error.message });
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const handleSubmitForGrading = async () => {
+    if (isGrading) return;
+
+    setIsGrading(true);
+    try {
+      const token = await getToken();
+      const result = await problemApi.gradeProblem(
+        problem._id,
+        { code, language: selectedLanguage },
+        token
+      );
+
+      setGradingResult(result);
+      setGradingPopup(result);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Grading failed. Please try again."
+      );
+    } finally {
+      setIsGrading(false);
     }
   };
 
@@ -182,6 +280,28 @@ const ProblemPage = () => {
                     <FlaskConicalIcon size={12} />
                     Test Cases
                   </button>
+                  <button
+                    onClick={() => setTab("hints")}
+                    className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-md"
+                    style={{
+                      background: tab === "hints" ? THEME.primaryTint : "transparent",
+                      color: tab === "hints" ? THEME.primary : THEME.inkMuted,
+                    }}
+                  >
+                    <LightbulbIcon size={12} />
+                    Hints
+                    {hints.length > 0 && (
+                      <span
+                        className="text-[10px] font-bold px-1.5 rounded-full"
+                        style={{
+                          background: tab === "hints" ? THEME.primary : THEME.surface2,
+                          color: tab === "hints" ? THEME.surface : THEME.inkFaint,
+                        }}
+                      >
+                        {hints.length}
+                      </span>
+                    )}
+                  </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5">
@@ -196,32 +316,38 @@ const ProblemPage = () => {
                         {problem.description}
                       </p>
                     </>
-                  ) : (problem.testCases?.length > 0 ? (
-                    <div className="space-y-3">
-                      {problem.testCases.map((tc, i) => (
-                        <div key={i} className="rounded-lg overflow-hidden" style={{ border: `1px solid ${THEME.border}` }}>
-                          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ background: THEME.surface2, color: THEME.inkFaint, fontFamily: THEME.fontMono }}>
-                            Case {i + 1}
-                          </div>
-                          <div className="p-3 text-[12.5px]" style={{ fontFamily: THEME.fontMono }}>
-                            <div className="flex gap-2 mb-1.5">
-                              <span style={{ color: THEME.primary, fontWeight: 700, minWidth: 55 }}>Input:</span>
-                              <span style={{ color: THEME.ink }}>{tc.input}</span>
+                  ) : tab === "tests" ? (
+                    hasTestCases ? (
+                      <div className="space-y-3">
+                        {problem.testCases.map((tc, i) => (
+                          <div key={i} className="rounded-lg overflow-hidden" style={{ border: `1px solid ${THEME.border}` }}>
+                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide" style={{ background: THEME.surface2, color: THEME.inkFaint, fontFamily: THEME.fontMono }}>
+                              Case {i + 1}
                             </div>
-                            <div className="flex gap-2">
-                              <span style={{ color: THEME.success, fontWeight: 700, minWidth: 55 }}>Output:</span>
-                              <span style={{ color: THEME.ink }}>{tc.expectedOutput}</span>
+                            <div className="p-3 text-[12.5px]" style={{ fontFamily: THEME.fontMono }}>
+                              <div className="flex gap-2 mb-1.5">
+                                <span style={{ color: THEME.primary, fontWeight: 700, minWidth: 55 }}>Input:</span>
+                                <span style={{ color: THEME.ink }}>{tc.input}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <span style={{ color: THEME.success, fontWeight: 700, minWidth: 55 }}>Output:</span>
+                                <span style={{ color: THEME.ink }}>{tc.expectedOutput}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                      <p className="text-xs mt-3" style={{ color: THEME.inkFaint }}>
-                        Compare these against your code's output manually — running code checks that it executes, it doesn't auto-grade correctness.
-                      </p>
-                    </div>
+                        ))}
+                        <p className="text-xs mt-3" style={{ color: THEME.inkFaint }}>
+                          {problem.entryPoint
+                            ? `Click "Submit for Grading" to run your code against every test case automatically.`
+                            : `Compare these against your code's output manually — running code checks that it executes, it doesn't auto-grade correctness.`}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm" style={{ color: THEME.inkFaint }}>No test cases were added for this problem.</p>
+                    )
                   ) : (
-                    <p className="text-sm" style={{ color: THEME.inkFaint }}>No test cases were added for this problem.</p>
-                  ))}
+                    <HintsTab hints={hints} />
+                  )}
                 </div>
               </div>
             </Panel>
@@ -238,6 +364,11 @@ const ProblemPage = () => {
                     onLanguageChange={(e) => setSelectedLanguage(e.target.value)}
                     onCodeChange={(value) => setCode(value || "")}
                     onRunCode={handleRunCode}
+                    onSubmitForGrading={handleSubmitForGrading}
+                    isGrading={isGrading}
+                    gradingResult={gradingResult}
+                    showGrading={hasTestCases}
+                    starterCode={problem?.starterCode || ""}
                   />
                 </Panel>
                 <PanelResizeHandle style={{ height: 4, background: THEME.border }} />
@@ -249,6 +380,8 @@ const ProblemPage = () => {
           </PanelGroup>
         </div>
       </div>
+
+      <GradingResultModal result={gradingPopup} onClose={() => setGradingPopup(null)} />
 
       {showEditForm && (
         <ProblemForm

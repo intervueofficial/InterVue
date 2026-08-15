@@ -59,6 +59,17 @@ const problemSchema = new mongoose.Schema(
       },
     ],
 
+    // Progressive, LeetCode-style hints shown to the candidate on request
+    // (never all at once). Populated either by an admin/interviewer
+    // typing them in manually, or by the AI generator — either way this
+    // is what makes hints *dynamic*: they live on the problem document
+    // itself, not hardcoded anywhere in the UI.
+    hints: [
+      {
+        type: String,
+      },
+    ],
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

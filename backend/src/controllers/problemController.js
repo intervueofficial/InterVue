@@ -1,4 +1,5 @@
 import Problem from "../models/Problem.js";
+import { gradeAgainstTestCases } from "../lib/judge.js";
 
 // =======================================
 // Get All Problems
@@ -116,6 +117,74 @@ export const updateProblem = async (req, res) => {
     });
   } catch (error) {
     console.error("updateProblem:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// =======================================
+// Grade Problem (practice mode — no session attached)
+// =======================================
+// Reuses the same LeetCode-style judge engine that live interview
+// sessions use (lib/judge.js), so practice mode and real interviews
+// grade identically — same per-test-case pass/fail, same error
+// reporting. Unlike the session version, this doesn't persist a score
+// anywhere; it's just "how am I doing right now" for a candidate
+// practicing on their own.
+export const gradeProblem = async (req, res) => {
+  try {
+    const { code, language } = req.body;
+
+    if (typeof code !== "string" || !code.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "code is required",
+      });
+    }
+
+    if (typeof language !== "string" || !language.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "language is required",
+      });
+    }
+
+    const problem = await Problem.findById(req.params.id);
+
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found",
+      });
+    }
+
+    const testCases = problem.testCases || [];
+
+    if (testCases.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "This problem has no test cases to grade against",
+      });
+    }
+
+    const { passed, total, results } = await gradeAgainstTestCases({
+      language,
+      code,
+      testCases,
+      entryPoint: problem.entryPoint,
+    });
+
+    return res.json({
+      success: true,
+      passed,
+      total,
+      results,
+    });
+  } catch (error) {
+    console.error("gradeProblem:", error);
 
     return res.status(500).json({
       success: false,
