@@ -453,4 +453,4 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
   );
 };
 
-export default AIGeneratorWizard;//hello 
+export default AIGeneratorWizard;

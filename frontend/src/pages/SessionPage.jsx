@@ -39,6 +39,11 @@ function SessionPage() {
   const [code, setCode] = useState("");
   const [isGrading, setIsGrading] = useState(false);
   const [gradingResult, setGradingResult] = useState(null);
+  // Separate from gradingResult (which just drives the small persistent
+  // badge) — this holds the *same* data but is what triggers the popup,
+  // and gets set to a fresh object every submission so the modal reopens
+  // even for back-to-back submissions with an identical pass/total.
+  const [gradingPopup, setGradingPopup] = useState(null);
 
   const [decisionApplication, setDecisionApplication] = useState(null);
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
@@ -213,6 +218,14 @@ function SessionPage() {
       if (codeResult) {
         setGradingResult({ passed: codeResult.passed, total: codeResult.total });
       }
+      // Show the popup — the backend also returns a per-test-case
+      // breakdown (input/expected/actual/passed) alongside the summary,
+      // which the modal uses to explain a failure instead of just a count.
+      setGradingPopup({
+        passed: codeResult?.passed ?? 0,
+        total: codeResult?.total ?? 0,
+        results: response?.results || [],
+      });
     } catch (err) {
       console.error("Failed to submit for grading:", err);
       setOutput({
@@ -318,6 +331,8 @@ function SessionPage() {
       handleSubmitForGrading={handleSubmitForGrading}
       isGrading={isGrading}
       gradingResult={gradingResult}
+      gradingPopup={gradingPopup}
+      onCloseGradingPopup={() => setGradingPopup(null)}
       activePage={activePage}
       setActivePage={setActivePage}
       problemData={problemData}

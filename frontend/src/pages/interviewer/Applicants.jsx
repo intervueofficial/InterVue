@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye, RefreshCw } from "lucide-react";
 
 import { jobApi } from "../../api/jobApi";
 import { applicationApi } from "../../api/applicationApi";
@@ -16,6 +16,12 @@ const STATUS_BADGE = {
   selected: "bg-green-50 text-green-700",
   rejected: "bg-slate-100 text-slate-500",
 };
+
+// How often to quietly re-check for new applicants in the background.
+// A candidate applying shows up within this window without the
+// interviewer having to do anything — the manual refresh button next to
+// it is for "I want it right now" instead of waiting out the interval.
+const AUTO_REFRESH_MS = 15000;
 
 const Applicants = () => {
   const { getToken } = useAuth();
@@ -38,13 +44,54 @@ const Applicants = () => {
     }
   }, [jobs, selectedJobId]);
 
-  const { data: appsData, isLoading } = useQuery({
+  const {
+    data: appsData,
+    isLoading,
+    isFetching,
+    refetch,
+    dataUpdatedAt,
+  } = useQuery({
     queryKey: ["applicants", selectedJobId],
     queryFn: async () => applicationApi.getApplicantsForJob(selectedJobId, await getToken()),
     enabled: !!selectedJobId,
+    // New applicants appear on their own — no need to leave the page
+    // open and hit refresh repeatedly. Still refetches on tab focus too
+    // (react-query default), which covers "I switched away and came back".
+    refetchInterval: AUTO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
 
   const applications = appsData?.applications || [];
+
+  // Toast when a background poll (not the very first load, not a manual
+  // click) reveals more applicants than we last had, so the interviewer
+  // notices without staring at the table.
+  const prevCountRef = useRef(null);
+  const isFirstLoadRef = useRef(true);
+  useEffect(() => {
+    if (!appsData) return;
+    const count = applications.length;
+
+    if (isFirstLoadRef.current) {
+      isFirstLoadRef.current = false;
+      prevCountRef.current = count;
+      return;
+    }
+
+    if (prevCountRef.current !== null && count > prevCountRef.current) {
+      const diff = count - prevCountRef.current;
+      toast.success(`${diff} new applicant${diff > 1 ? "s" : ""} just came in`);
+    }
+    prevCountRef.current = count;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appsData]);
+
+  // Reset the "seen count" baseline whenever the selected job changes,
+  // so switching jobs doesn't fire a stale "new applicants" toast.
+  useEffect(() => {
+    isFirstLoadRef.current = true;
+    prevCountRef.current = null;
+  }, [selectedJobId]);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["applicants", selectedJobId] });
@@ -75,6 +122,10 @@ const Applicants = () => {
     },
   });
 
+  const lastUpdatedLabel = dataUpdatedAt
+    ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
+
   return (
     <AppShell scope="interviewer">
       <PageHeader
@@ -83,7 +134,7 @@ const Applicants = () => {
         description="Review candidates who applied to a job, filtered by automated eligibility check."
       />
 
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <label className="text-sm font-semibold text-slate-700">Job:</label>
         <select
           value={selectedJobId}
@@ -96,6 +147,25 @@ const Applicants = () => {
             </option>
           ))}
         </select>
+
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-60 transition-colors"
+          title="Check for new applicants now"
+        >
+          <RefreshCw size={15} className={isFetching ? "animate-spin" : ""} />
+          {isFetching ? "Refreshing..." : "Refresh"}
+        </button>
+
+        <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-auto">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+          </span>
+          Auto-refreshing every {AUTO_REFRESH_MS / 1000}s
+          {lastUpdatedLabel && <span>&middot; last updated {lastUpdatedLabel}</span>}
+        </div>
       </div>
 
       <div className="mt-6 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">

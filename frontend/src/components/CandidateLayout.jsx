@@ -12,6 +12,7 @@ import StatusBar from "./StatusBar";
 import CodeEditorPanel from "../CodeEditorPanel";
 import OutputPanel from "../OutputPanel";
 import WhiteboardPanel from "./WhiteboardPanel";
+import GradingResultModal from "./GradingResultModal";
 
 /* ─── Candidate Layout ───────────────────────────────────────────────────────── */
 function CandidateLayout({
@@ -24,6 +25,8 @@ function CandidateLayout({
   handleSubmitForGrading,
   isGrading,
   gradingResult,
+  gradingPopup,
+  onCloseGradingPopup,
   activePage,
   setActivePage,
   problemData,
@@ -94,6 +97,9 @@ function CandidateLayout({
           onDismiss={handleDismissPopup}
         />
       )}
+
+      <GradingResultModal result={gradingPopup} onClose={onCloseGradingPopup} />
+
       <div
         className="sp-root"
         style={{

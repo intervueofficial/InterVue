@@ -319,3 +319,32 @@ redeploying with this fix, check whether `api.intervue.site` is behind
 one of those and whether it needs a platform-level limit increase (not
 an Express one) — let me know what it's hosted on and I can point you
 at the exact setting.
+
+---
+
+## Patch: "Solved!" popup after grading
+
+**What changed:**
+
+- New `frontend/src/components/session/GradingResultModal.jsx` — a
+  celebratory popup shown right after "Submit for Grading" comes back
+  from the server. All-tests-passed shows a green "Problem Solved!"
+  state; a partial result shows amber with a per-test-case breakdown
+  (input / expected / what your code actually returned) so the
+  candidate can see exactly what to fix, using the same detailed
+  `results` array the backend already returns from
+  `submitCodeResult` (built on the AI-generated-and-verified reference
+  answer + entry-point harness grading from before) — nothing new
+  needed on the backend for this.
+- `SessionPage.jsx` now also stores that `results` array and opens the
+  popup on every submission (a fresh object each time, so back-to-back
+  submissions with the same pass/total still reopen it rather than
+  silently no-op).
+- `CandidateLayout.jsx` renders the popup as an overlay above the whole
+  session view, not just inside the code editor panel, so it's
+  impossible to miss.
+
+Dismissing the popup (✕, the footer button, or clicking outside it)
+just closes it — the small "X/Y tests passed" badge next to the Submit
+button (already existing) still stays up afterward as a persistent
+reminder of the last result.
