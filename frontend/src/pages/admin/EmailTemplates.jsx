@@ -1,9 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Mail, Save, Eye, AlertTriangleIcon, RefreshCwIcon } from "lucide-react";
+import {
+  Mail,
+  Save,
+  Eye,
+  AlertTriangleIcon,
+  RefreshCwIcon,
+  Sparkles,
+  Send,
+  CalendarCheck2,
+  XCircle,
+  Trophy,
+  Clock3,
+  FileWarning,
+  UserPlus,
+} from "lucide-react";
 
 import { adminApi } from "../../api/adminApi";
 import PageHeader from "../../components/PageHeader";
@@ -11,11 +25,76 @@ import EmptyState from "./EmptyState";
 import Loading from "./Loading";
 import { THEME } from "../../constants/theme";
 
-const KEY_LABEL = {
-  candidate_selected: "Interview Invitation",
-  candidate_rejected: "Application Rejected",
-  candidate_hired: "Candidate Hired",
+/* ---------------------------------------------------------------------
+   Template metadata. Add an entry here whenever a new template key is
+   seeded on the backend — the editor UI will pick it up automatically.
+   `category` controls grouping/section order below.
+--------------------------------------------------------------------- */
+const TEMPLATE_META = {
+  candidate_applied: {
+    label: "Application Received",
+    icon: UserPlus,
+    color: THEME.info,
+    category: "Application",
+  },
+  candidate_selected: {
+    label: "Interview Invitation",
+    icon: CalendarCheck2,
+    color: THEME.primary,
+    category: "Interview",
+  },
+  interview_reminder: {
+    label: "Interview Reminder",
+    icon: Clock3,
+    color: THEME.warning,
+    category: "Interview",
+  },
+  interview_rescheduled: {
+    label: "Interview Rescheduled",
+    icon: RefreshCwIcon,
+    color: THEME.warning,
+    category: "Interview",
+  },
+  candidate_rejected: {
+    label: "Application Rejected",
+    icon: XCircle,
+    color: THEME.danger,
+    category: "Decision",
+  },
+  candidate_waitlisted: {
+    label: "Candidate Waitlisted",
+    icon: FileWarning,
+    color: THEME.inkFaint,
+    category: "Decision",
+  },
+  candidate_hired: {
+    label: "Candidate Hired",
+    icon: Trophy,
+    color: THEME.success,
+    category: "Decision",
+  },
+  offer_sent: {
+    label: "Offer Letter Sent",
+    icon: Send,
+    color: THEME.success,
+    category: "Decision",
+  },
 };
+
+const CATEGORY_ORDER = ["Application", "Interview", "Decision", "Other"];
+
+function metaFor(key) {
+  return (
+    TEMPLATE_META[key] || {
+      label: key
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
+      icon: Mail,
+      color: THEME.primary,
+      category: "Other",
+    }
+  );
+}
 
 const SAMPLE_DATA = {
   candidateName: "Priya Sharma",
@@ -38,6 +117,7 @@ const TemplateEditor = ({ template, onSave, saving }) => {
   }, [template]);
 
   const dirty = subject !== template.subject || body !== template.body;
+  const { label, icon: Icon, color } = metaFor(template.key);
 
   return (
     <div
@@ -51,13 +131,13 @@ const TemplateEditor = ({ template, onSave, saving }) => {
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center"
-            style={{ background: THEME.primaryTint }}
+            style={{ background: `${color}1A` }}
           >
-            <Mail size={16} color={THEME.primary} />
+            <Icon size={16} color={color} />
           </div>
           <div>
             <p className="text-sm font-semibold" style={{ color: THEME.ink }}>
-              {KEY_LABEL[template.key] || template.key}
+              {label}
             </p>
             <p className="text-xs font-mono" style={{ color: THEME.inkFaint }}>
               {template.key}
@@ -179,6 +259,20 @@ const TemplateEditor = ({ template, onSave, saving }) => {
   );
 };
 
+const SectionHeading = ({ title, count }) => (
+  <div className="flex items-center gap-2 mb-3">
+    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: THEME.inkFaint }}>
+      {title}
+    </p>
+    <span
+      className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full"
+      style={{ background: THEME.surface2, color: THEME.inkMuted }}
+    >
+      {count}
+    </span>
+  </div>
+);
+
 const EmailTemplates = () => {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
@@ -192,6 +286,18 @@ const EmailTemplates = () => {
 
   const templates = data?.templates || [];
 
+  const grouped = useMemo(() => {
+    const byCategory = {};
+    templates.forEach((t) => {
+      const { category } = metaFor(t.key);
+      if (!byCategory[category]) byCategory[category] = [];
+      byCategory[category].push(t);
+    });
+    return CATEGORY_ORDER.map((cat) => ({ category: cat, items: byCategory[cat] || [] })).filter(
+      (g) => g.items.length > 0
+    );
+  }, [templates]);
+
   const mutation = useMutation({
     mutationFn: async ({ key, subject, body }) =>
       adminApi.updateEmailTemplate(key, { subject, body }, await getToken()),
@@ -204,6 +310,8 @@ const EmailTemplates = () => {
     onSettled: () => setSavingKey(null),
   });
 
+  let cardIndex = 0;
+
   return (
     <div className="space-y-8">
       <motion.div
@@ -215,6 +323,17 @@ const EmailTemplates = () => {
           eyebrow="Library"
           title="Email Templates"
           description="Edit the subject and message for candidate emails. Layout and branding stay fixed."
+          actions={
+            templates.length > 0 && (
+              <span
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: THEME.primaryTint, color: THEME.primary }}
+              >
+                <Sparkles size={13} />
+                {templates.length} template{templates.length === 1 ? "" : "s"}
+              </span>
+            )
+          }
         />
       </motion.div>
 
@@ -246,20 +365,32 @@ const EmailTemplates = () => {
       ) : !templates.length ? (
         <EmptyState title="No templates found" description="Templates seed automatically on first load." />
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          {templates.map((template, i) => (
-            <motion.div
-              key={template.key}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.05 * i, ease: "easeOut" }}
-            >
-              <TemplateEditor
-                template={template}
-                saving={savingKey === template.key}
-                onSave={({ subject, body }) => mutation.mutate({ key: template.key, subject, body })}
-              />
-            </motion.div>
+        <div className="space-y-9">
+          {grouped.map(({ category, items }) => (
+            <div key={category}>
+              <SectionHeading title={category} count={items.length} />
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                {items.map((template) => {
+                  const i = cardIndex++;
+                  return (
+                    <motion.div
+                      key={template.key}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.04 * i, ease: "easeOut" }}
+                    >
+                      <TemplateEditor
+                        template={template}
+                        saving={savingKey === template.key}
+                        onSave={({ subject, body }) =>
+                          mutation.mutate({ key: template.key, subject, body })
+                        }
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </div>
       )}
