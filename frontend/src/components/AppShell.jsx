@@ -19,6 +19,11 @@ import {
   UserCheckIcon,
   ClockIcon,
   UserCircleIcon,
+  CreditCardIcon,
+  GitBranchIcon,
+  MailIcon,
+  HistoryIcon,
+  HeartPulseIcon,
 } from "lucide-react";
 
 import { THEME } from "../constants/theme";
@@ -32,6 +37,8 @@ const NAV_BY_SCOPE = {
         { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
         { to: "/admin/sessions", label: "Sessions", icon: VideoIcon },
         { to: "/admin/users", label: "People", icon: UsersIcon },
+        { to: "/admin/billing", label: "Billing", icon: CreditCardIcon },
+        { to: "/admin/pipeline", label: "Pipeline", icon: GitBranchIcon },
       ],
     },
     {
@@ -40,12 +47,15 @@ const NAV_BY_SCOPE = {
         { to: "/admin/problems", label: "Problems", icon: Code2Icon },
         { to: "/admin/quiz", label: "Quizzes", icon: ClipboardListIcon },
         { to: "/admin/jobs", label: "Jobs", icon: BriefcaseIcon },
+        { to: "/admin/email-templates", label: "Email Templates", icon: MailIcon },
       ],
     },
     {
       label: "Insights",
       items: [
         { to: "/admin/analytics", label: "Analytics", icon: BarChart3Icon },
+        { to: "/admin/audit-log", label: "Audit Log", icon: HistoryIcon },
+        { to: "/admin/system-health", label: "System Health", icon: HeartPulseIcon },
         { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
       ],
     },
