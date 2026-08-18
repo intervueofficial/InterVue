@@ -7,14 +7,36 @@ import {
   Trophy,
 } from "lucide-react";
 import AppLoader from "../../components/AppLoader";
+import { THEME, DIFFICULTY } from "../../constants/theme";
 
 import EmptyState from "./EmptyState";
 
-const badge = {
-  Easy: "bg-green-100 text-green-700",
-  Medium: "bg-yellow-100 text-yellow-700",
-  Hard: "bg-red-100 text-red-700",
-};
+function DifficultyBadge({ difficulty }) {
+  const d = DIFFICULTY[difficulty?.toLowerCase()] || DIFFICULTY.medium;
+  return (
+    <span
+      className="inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full"
+      style={{ background: d.bg, color: d.text, boxShadow: `inset 0 0 0 1px ${d.border}` }}
+    >
+      {difficulty}
+    </span>
+  );
+}
+
+function StatusBadge({ published }) {
+  return (
+    <span
+      className="inline-block text-[11px] font-semibold px-2.5 py-1 rounded-full"
+      style={{
+        background: published ? THEME.successTint : THEME.surface2,
+        color: published ? THEME.success : THEME.inkMuted,
+        boxShadow: `inset 0 0 0 1px ${published ? THEME.successBorder : THEME.border}`,
+      }}
+    >
+      {published ? "Published" : "Draft"}
+    </span>
+  );
+}
 
 const QuizTable = ({
   quizzes = [],
@@ -25,14 +47,15 @@ const QuizTable = ({
   onDelete,
 }) => {
   const filtered = quizzes.filter((quiz) =>
-    quiz.title
-      ?.toLowerCase()
-      .includes(search.toLowerCase())
+    quiz.title?.toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 p-16 flex justify-center">
+      <div
+        className="rounded-xl p-16 flex justify-center"
+        style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+      >
         <AppLoader />
       </div>
     );
@@ -48,211 +71,121 @@ const QuizTable = ({
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-
-      <div className="px-8 py-6 border-b">
-
-        <h2 className="text-xl font-semibold">
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+    >
+      <div className="px-6 py-5" style={{ borderBottom: `1px solid ${THEME.border}` }}>
+        <h2 style={{ fontFamily: THEME.fontDisplay, fontSize: 16, fontWeight: 600, color: THEME.ink }}>
           Quiz Library
         </h2>
-
-        <p className="text-slate-500 mt-1">
-          {filtered.length} quizzes available
+        <p className="text-sm mt-0.5" style={{ color: THEME.inkMuted }}>
+          {filtered.length} quiz{filtered.length === 1 ? "" : "zes"} available
         </p>
-
       </div>
 
       <div className="overflow-x-auto">
-
         <table className="w-full">
-
-          <thead className="bg-slate-50">
-
-            <tr>
-
-              <th className="text-left px-8 py-4">
-                Quiz
-              </th>
-
-              <th className="text-left px-6 py-4">
-                Difficulty
-              </th>
-
-              <th className="text-center px-6 py-4">
-                Questions
-              </th>
-
-              <th className="text-center px-6 py-4">
-                Duration
-              </th>
-
-              <th className="text-center px-6 py-4">
-                Passing
-              </th>
-
-              <th className="text-center px-6 py-4">
-                Status
-              </th>
-
-              <th className="text-center px-6 py-4">
-                Actions
-              </th>
-
+          <thead>
+            <tr
+              className="text-[11px] font-semibold uppercase tracking-wide"
+              style={{ background: THEME.surface2, color: THEME.inkFaint }}
+            >
+              <th className="text-left px-6 py-3">Quiz</th>
+              <th className="text-left px-4 py-3">Difficulty</th>
+              <th className="text-center px-4 py-3">Questions</th>
+              <th className="text-center px-4 py-3">Duration</th>
+              <th className="text-center px-4 py-3">Passing</th>
+              <th className="text-center px-4 py-3">Status</th>
+              <th className="text-center px-4 py-3">Actions</th>
             </tr>
-
           </thead>
 
           <tbody>
-
             {filtered.map((quiz) => (
-
               <tr
                 key={quiz._id}
-                className="border-t hover:bg-slate-50 transition"
+                className="transition-colors"
+                style={{ borderTop: `1px solid ${THEME.border}` }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-
-                {/* Quiz */}
-
-                <td className="px-8 py-5">
-
-                  <div>
-
-                    <h3 className="font-semibold">
-                      {quiz.title}
-                    </h3>
-
-                    <p className="text-slate-500 text-sm mt-1 line-clamp-1">
-                      {quiz.description}
-                    </p>
-
-                  </div>
-
+                <td className="px-6 py-4">
+                  <h3 className="font-semibold text-sm" style={{ color: THEME.ink }}>
+                    {quiz.title}
+                  </h3>
+                  <p className="text-xs mt-0.5 line-clamp-1" style={{ color: THEME.inkFaint }}>
+                    {quiz.description}
+                  </p>
                 </td>
 
-                {/* Difficulty */}
-
-                <td className="px-6">
-
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      badge[quiz.difficulty]
-                    }`}
-                  >
-                    {quiz.difficulty}
-                  </span>
-
+                <td className="px-4 py-4">
+                  <DifficultyBadge difficulty={quiz.difficulty} />
                 </td>
 
-                {/* Questions */}
-
-                <td className="text-center">
-
-                  <div className="flex justify-center items-center gap-2">
-
-                    <HelpCircle size={16} />
-
+                <td className="text-center px-4 py-4">
+                  <div className="flex justify-center items-center gap-1.5 text-sm" style={{ color: THEME.inkMuted }}>
+                    <HelpCircle size={14} color={THEME.inkFaint} />
                     {quiz.questions?.length || 0}
-
                   </div>
-
                 </td>
 
-                {/* Duration */}
-
-                <td className="text-center">
-
-                  <div className="flex justify-center items-center gap-2">
-
-                    <Clock3 size={16} />
-
+                <td className="text-center px-4 py-4">
+                  <div className="flex justify-center items-center gap-1.5 text-sm" style={{ color: THEME.inkMuted }}>
+                    <Clock3 size={14} color={THEME.inkFaint} />
                     {quiz.duration} min
-
                   </div>
-
                 </td>
 
-                {/* Passing */}
-
-                <td className="text-center">
-
-                  <div className="flex justify-center items-center gap-2">
-
-                    <Trophy size={16} />
-
+                <td className="text-center px-4 py-4">
+                  <div className="flex justify-center items-center gap-1.5 text-sm" style={{ color: THEME.inkMuted }}>
+                    <Trophy size={14} color={THEME.inkFaint} />
                     {quiz.passingMarks}
-
                   </div>
-
                 </td>
 
-                {/* Published */}
-
-                <td className="text-center">
-
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      quiz.isPublished
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {quiz.isPublished
-                      ? "Published"
-                      : "Draft"}
-                  </span>
-
+                <td className="text-center px-4 py-4">
+                  <StatusBadge published={quiz.isPublished} />
                 </td>
 
-                {/* Actions */}
-
-                <td>
-
-                  <div className="flex justify-center gap-2">
-
+                <td className="px-4 py-4">
+                  <div className="flex justify-center gap-1">
                     <button
                       onClick={() => onView?.(quiz)}
-                      className="w-10 h-10 rounded-xl hover:bg-slate-100"
+                      title="View"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                      onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
-                      <Eye
-                        size={18}
-                        className="mx-auto"
-                      />
+                      <Eye size={15} color={THEME.inkMuted} />
                     </button>
 
                     <button
                       onClick={() => onEdit?.(quiz)}
-                      className="w-10 h-10 rounded-xl hover:bg-blue-50"
+                      title="Edit"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                      onMouseEnter={(e) => (e.currentTarget.style.background = THEME.primaryTint)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
-                      <Pencil
-                        size={18}
-                        className="mx-auto text-blue-600"
-                      />
+                      <Pencil size={15} color={THEME.primary} />
                     </button>
 
                     <button
                       onClick={() => onDelete?.(quiz)}
-                      className="w-10 h-10 rounded-xl hover:bg-red-50"
+                      title="Delete"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                      onMouseEnter={(e) => (e.currentTarget.style.background = THEME.dangerTint)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
-                      <Trash2
-                        size={18}
-                        className="mx-auto text-red-600"
-                      />
+                      <Trash2 size={15} color={THEME.danger} />
                     </button>
-
                   </div>
-
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
-
         </table>
-
       </div>
-
     </div>
   );
 };

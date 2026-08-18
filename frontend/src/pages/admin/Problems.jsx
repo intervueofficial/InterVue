@@ -7,14 +7,12 @@ import {
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Plus,
-  Search,
-  RefreshCw,
-  Code2,
-} from "lucide-react";
+import { Plus, Search, AlertTriangleIcon, RefreshCwIcon } from "lucide-react";
 
 import { problemApi } from "../../api/problemApi";
+import PageHeader from "../../components/PageHeader";
+import AutoRefreshBar from "../../components/admin/AutoRefreshBar";
+import { THEME } from "../../constants/theme";
 
 import ProblemTable from "./ProblemTable";
 import ProblemForm from "./ProblemForm";
@@ -27,7 +25,6 @@ const Problems = () => {
 
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("All");
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [openForm, setOpenForm] = useState(false);
   const [editingProblem, setEditingProblem] = useState(null);
@@ -37,10 +34,13 @@ const Problems = () => {
   const {
     data,
     isLoading,
+    isFetching,
+    isError,
     refetch,
   } = useQuery({
     queryKey: ["problems"],
     queryFn: problemApi.getProblems,
+    retry: 1,
   });
 
   const problems = data?.problems || [];
@@ -69,154 +69,142 @@ const Problems = () => {
     },
   });
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
   return (
     <div className="space-y-8">
 
-      {/* Header */}
-
       <motion.div
-        initial={{ opacity: 0, y: -12 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6"
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
-
-        <div className="flex items-center gap-3">
-
-          <motion.div
-            whileHover={{ scale: 1.06, rotate: -4 }}
-            transition={{ type: "spring", stiffness: 300, damping: 15 }}
-            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shadow-sm ring-1 ring-blue-100"
-          >
-            <Code2
-              className="text-blue-600"
-              size={28}
-            />
-          </motion.div>
-
-          <div>
-
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
-              Coding Problems
-            </h1>
-
-            <p className="text-slate-500">
-              Create, edit and organize interview coding challenges.
-            </p>
-
-          </div>
-
-        </div>
-
-        <motion.button
-          whileHover={{ scale: 1.03, y: -1 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => {
-            setEditingProblem(null);
-            setOpenForm(true);
-          }}
-          className="flex items-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 transition-shadow"
-        >
-          <Plus size={20} />
-          Add Problem
-        </motion.button>
-
+        <PageHeader
+          eyebrow="Library"
+          title="Coding Problems"
+          description="Create, edit and organize interview coding challenges."
+          actions={
+            <>
+              <AutoRefreshBar
+                onRefresh={refetch}
+                isFetching={isFetching}
+                intervalSeconds={30}
+              />
+              <button
+                onClick={() => {
+                  setEditingProblem(null);
+                  setOpenForm(true);
+                }}
+                className="flex items-center gap-2 rounded-lg font-semibold text-sm px-4 py-2.5 transition-colors"
+                style={{ background: THEME.ink, color: THEME.surface }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                <Plus size={16} />
+                Add Problem
+              </button>
+            </>
+          }
+        />
       </motion.div>
 
       {/* Toolbar */}
-
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
-        className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm"
+        transition={{ duration: 0.3, delay: 0.05, ease: "easeOut" }}
+        className="rounded-xl p-4"
+        style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
       >
-
-        <div className="flex gap-4">
-
-          <div className="relative flex-1 group">
-
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
             <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-blue-500"
+              size={15}
+              color={THEME.inkFaint}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2"
             />
-
             <input
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Search problems..."
-              className="w-full rounded-xl border border-slate-200 pl-12 pr-4 py-3 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search problems…"
+              className="w-full text-sm outline-none transition-colors"
+              style={{
+                padding: "9px 12px 9px 34px",
+                borderRadius: 8,
+                border: `1px solid ${THEME.border}`,
+                background: THEME.background,
+                color: THEME.ink,
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = THEME.primary)}
+              onBlur={(e) => (e.currentTarget.style.borderColor = THEME.border)}
             />
-
           </div>
 
           <select
             value={difficulty}
-            onChange={(e) =>
-              setDifficulty(e.target.value)
-            }
-            className="rounded-xl border border-slate-200 px-4 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+            onChange={(e) => setDifficulty(e.target.value)}
+            className="text-sm outline-none"
+            style={{
+              padding: "9px 12px",
+              borderRadius: 8,
+              border: `1px solid ${THEME.border}`,
+              background: THEME.background,
+              color: THEME.ink,
+            }}
           >
             <option>All</option>
             <option>Easy</option>
             <option>Medium</option>
             <option>Hard</option>
           </select>
-
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={handleRefresh}
-            className="border border-slate-200 rounded-xl px-5 flex items-center gap-2 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
-          >
-            <motion.span
-              animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
-              transition={{ duration: 0.6, ease: "linear" }}
-              className="flex"
-            >
-              <RefreshCw size={18} />
-            </motion.span>
-            Refresh
-          </motion.button>
-
         </div>
-
       </motion.div>
 
-      {/* Table */}
-
+      {/* Table / error state */}
       <motion.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.15, ease: "easeOut" }}
+        transition={{ duration: 0.3, delay: 0.1, ease: "easeOut" }}
       >
-        <ProblemTable
-          problems={problems}
-          loading={isLoading}
-          search={search}
-          difficulty={difficulty}
-          onView={(problem) =>
-            setViewProblem(problem)
-          }
-          onEdit={(problem) => {
-            setEditingProblem(problem);
-            setOpenForm(true);
-          }}
-          onDelete={(problem) =>
-            setDeleteProblem(problem)
-          }
-        />
+        {isError ? (
+          <div
+            className="flex flex-col items-center text-center py-16 rounded-xl"
+            style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+          >
+            <div
+              className="w-11 h-11 rounded-lg flex items-center justify-center mb-3"
+              style={{ background: THEME.dangerTint }}
+            >
+              <AlertTriangleIcon size={20} color={THEME.danger} />
+            </div>
+            <p className="text-sm font-semibold" style={{ color: THEME.ink }}>
+              Couldn't load problems
+            </p>
+            <p className="text-xs mt-1 mb-4" style={{ color: THEME.inkFaint }}>
+              Something went wrong fetching the problem library.
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg"
+              style={{ background: THEME.ink, color: THEME.surface }}
+            >
+              <RefreshCwIcon size={14} />
+              Try again
+            </button>
+          </div>
+        ) : (
+          <ProblemTable
+            problems={problems}
+            loading={isLoading}
+            search={search}
+            difficulty={difficulty}
+            onView={(problem) => setViewProblem(problem)}
+            onEdit={(problem) => {
+              setEditingProblem(problem);
+              setOpenForm(true);
+            }}
+            onDelete={(problem) => setDeleteProblem(problem)}
+          />
+        )}
       </motion.div>
-
-      {/* Create / Edit */}
 
       <AnimatePresence>
         {openForm && (
@@ -227,38 +215,21 @@ const Problems = () => {
               setEditingProblem(null);
             }}
             onSuccess={() => {
-              queryClient.invalidateQueries({
-                queryKey: ["problems"],
-              });
+              queryClient.invalidateQueries({ queryKey: ["problems"] });
             }}
           />
         )}
       </AnimatePresence>
 
-      {/* View */}
-
-      <ViewProblemModal
-        problem={viewProblem}
-        onClose={() =>
-          setViewProblem(null)
-        }
-      />
-
-      {/* Delete */}
+      <ViewProblemModal problem={viewProblem} onClose={() => setViewProblem(null)} />
 
       <DeleteModal
         open={!!deleteProblem}
         title={deleteProblem?.title}
         description="This action cannot be undone."
         loading={deleteMutation.isPending}
-        onCancel={() =>
-          setDeleteProblem(null)
-        }
-        onConfirm={() =>
-          deleteMutation.mutate(
-            deleteProblem._id
-          )
-        }
+        onCancel={() => setDeleteProblem(null)}
+        onConfirm={() => deleteMutation.mutate(deleteProblem._id)}
       />
 
     </div>

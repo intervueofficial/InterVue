@@ -1,25 +1,29 @@
 import { Inbox } from "lucide-react";
+import { THEME } from "../../constants/theme";
 
-const EmptyState = ({
-  title,
-  description,
-}) => {
+const EmptyState = ({ title, description }) => {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
+    <div
+      className="rounded-xl p-16 text-center"
+      style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+    >
+      <div
+        className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto"
+        style={{ background: THEME.surface2 }}
+      >
+        <Inbox size={24} color={THEME.inkFaint} />
+      </div>
 
-      <Inbox
-        size={55}
-        className="mx-auto text-slate-400"
-      />
-
-      <h2 className="mt-6 text-2xl font-semibold">
+      <h2
+        className="mt-5 text-xl"
+        style={{ fontFamily: THEME.fontDisplay, fontWeight: 600, color: THEME.ink }}
+      >
         {title}
       </h2>
 
-      <p className="text-slate-500 mt-2">
+      <p className="mt-2 text-sm" style={{ color: THEME.inkMuted }}>
         {description}
       </p>
-
     </div>
   );
 };

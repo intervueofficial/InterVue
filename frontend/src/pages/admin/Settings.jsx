@@ -13,6 +13,8 @@ import {
   Calendar,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import PageHeader from "../../components/PageHeader";
+import { THEME } from "../../constants/theme";
 
 const STORAGE_KEY = "intervue-admin-settings";
 
@@ -48,182 +50,106 @@ const loadSettings = () => {
 
 const Toggle = ({ checked, onChange }) => {
   return (
-    <>
-      <style>{`
-        .toggle{
-          width:46px;
-          height:26px;
-          border-radius:99px;
-          border:none;
-          cursor:pointer;
-          position:relative;
-          flex-shrink:0;
-          transition:background .2s ease;
-          padding:0;
-        }
-
-        .toggle-knob{
-          position:absolute;
-          top:3px;
-          left:3px;
-          width:20px;
-          height:20px;
-          border-radius:50%;
-          background:#fff;
-          box-shadow:0 1px 3px rgba(15,23,42,.3);
-          transition:transform .2s cubic-bezier(.4,0,.2,1);
-        }
-      `}</style>
-
-      <button
-        type="button"
-        className="toggle"
-        onClick={() => onChange(!checked)}
-        style={{ background: checked ? "#2563EB" : "#CBD5E1" }}
-        aria-pressed={checked}
-      >
-        <span
-          className="toggle-knob"
-          style={{ transform: checked ? "translateX(20px)" : "translateX(0)" }}
-        />
-      </button>
-    </>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      aria-pressed={checked}
+      className="relative flex-shrink-0 transition-colors"
+      style={{
+        width: 42,
+        height: 24,
+        borderRadius: 999,
+        border: "none",
+        cursor: "pointer",
+        padding: 0,
+        background: checked ? THEME.ink : THEME.border,
+      }}
+    >
+      <span
+        className="absolute rounded-full transition-transform"
+        style={{
+          top: 3,
+          left: 3,
+          width: 18,
+          height: 18,
+          borderRadius: "50%",
+          background: THEME.surface,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+          transform: checked ? "translateX(18px)" : "translateX(0)",
+          transitionDuration: "0.2s",
+        }}
+      />
+    </button>
   );
 };
 
 const SectionCard = ({ icon: Icon, color, title, subtitle, badge, children }) => {
   return (
-    <>
-      <style>{`
-        .settings-card{
-          background:#fff;
-          border:1px solid #E2E8F0;
-          border-radius:22px;
-          padding:26px;
-          transition:.25s;
-        }
-
-        .settings-card:hover{
-          box-shadow:0 20px 45px rgba(15,23,42,.06);
-          border-color:#CBD5E1;
-        }
-
-        .settings-card-header{
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:14px;
-          margin-bottom:22px;
-        }
-
-        .settings-card-header-left{
-          display:flex;
-          align-items:center;
-          gap:14px;
-          min-width:0;
-        }
-
-        .settings-icon-box{
-          width:46px;
-          height:46px;
-          min-width:46px;
-          border-radius:14px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-        }
-
-        .settings-card-title{
-          font-size:17px;
-          font-weight:700;
-          color:#0F172A;
-        }
-
-        .settings-card-subtitle{
-          font-size:13px;
-          color:#94A3B8;
-          margin-top:2px;
-        }
-
-        .settings-badge{
-          font-size:10.5px;
-          font-weight:700;
-          text-transform:uppercase;
-          letter-spacing:.4px;
-          padding:5px 10px;
-          border-radius:999px;
-          flex-shrink:0;
-          white-space:nowrap;
-        }
-
-        .settings-row{
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:16px;
-          padding:14px 0;
-          border-top:1px solid #F1F5F9;
-        }
-
-        .settings-row:first-of-type{
-          border-top:none;
-          padding-top:0;
-        }
-
-        .settings-row-label{
-          font-size:14.5px;
-          font-weight:600;
-          color:#334155;
-        }
-
-        .settings-row-desc{
-          font-size:13px;
-          color:#94A3B8;
-          margin-top:2px;
-        }
-      `}</style>
-
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <div className="settings-card-header-left">
-            <div
-              className="settings-icon-box"
-              style={{ background: `${color}15` }}
-            >
-              <Icon color={color} size={22} />
-            </div>
-
-            <div className="min-w-0">
-              <div className="settings-card-title">{title}</div>
-              {subtitle && (
-                <div className="settings-card-subtitle">{subtitle}</div>
-              )}
-            </div>
+    <div
+      className="rounded-xl p-6 transition-colors"
+      style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.borderStrong)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = THEME.border)}
+    >
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: THEME.surface2 }}
+          >
+            <Icon color={color} size={19} />
           </div>
 
-          {badge}
+          <div className="min-w-0">
+            <div
+              className="truncate"
+              style={{ fontFamily: THEME.fontDisplay, fontSize: 15, fontWeight: 600, color: THEME.ink }}
+            >
+              {title}
+            </div>
+            {subtitle && (
+              <div className="text-xs mt-0.5 truncate" style={{ color: THEME.inkFaint }}>
+                {subtitle}
+              </div>
+            )}
+          </div>
         </div>
 
-        {children}
+        {badge}
       </div>
-    </>
+
+      {children}
+    </div>
   );
 };
 
 const SettingsRow = ({ label, description, control }) => (
-  <div className="settings-row">
-    <div>
-      <div className="settings-row-label">{label}</div>
+  <div
+    className="flex items-center justify-between gap-4 py-3.5 first:pt-0"
+    style={{ borderTop: `1px solid ${THEME.border}` }}
+  >
+    <div className="min-w-0">
+      <div className="text-sm font-semibold" style={{ color: THEME.ink }}>{label}</div>
       {description && (
-        <div className="settings-row-desc">{description}</div>
+        <div className="text-xs mt-0.5" style={{ color: THEME.inkFaint }}>{description}</div>
       )}
     </div>
     {control}
   </div>
 );
 
-const inputStyle =
-  "rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
+const inputStyle = {
+  borderRadius: 8,
+  border: `1px solid ${THEME.border}`,
+  background: THEME.background,
+  color: THEME.ink,
+  padding: "8px 12px",
+  fontSize: 13,
+  outline: "none",
+};
+
+const btnSecondary =
+  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors";
 
 const Settings = () => {
   const { user } = useUser();
@@ -286,65 +212,61 @@ const Settings = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1
-            className="text-4xl font-bold"
-            style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
-          >
-            Settings
-          </h1>
-          <p className="text-slate-500 mt-2">
-            Manage your admin profile, notifications, and platform preferences.
-          </p>
-        </div>
+      <PageHeader
+        eyebrow="Insights"
+        title="Settings"
+        description="Manage your admin profile, notifications, and platform preferences."
+        actions={
+          <>
+            <button
+              onClick={handleReset}
+              className={btnSecondary}
+              style={{ border: `1px solid ${THEME.border}`, color: THEME.inkMuted }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <RotateCcw size={14} />
+              Reset
+            </button>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
-          >
-            <RotateCcw size={16} />
-            Reset
-          </button>
+            <button
+              onClick={handleSave}
+              disabled={!dirty || saving}
+              className="flex items-center gap-2 rounded-lg font-semibold text-sm px-4 py-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: THEME.ink, color: THEME.surface }}
+              onMouseEnter={(e) => {
+                if (!e.currentTarget.disabled) e.currentTarget.style.opacity = "0.88";
+              }}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              <Save size={15} />
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </>
+        }
+      />
 
-          <button
-            onClick={handleSave}
-            disabled={!dirty || saving}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl transition"
-          >
-            <Save size={18} />
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Admin Profile */}
-        <SectionCard
-          icon={UserCog}
-          color="#2563EB"
-          title="Admin Profile"
-          subtitle="Your account information"
-        >
-          <div className="flex items-center gap-4">
+        <SectionCard icon={UserCog} color={THEME.primary} title="Admin Profile" subtitle="Your account information">
+          <div className="flex items-center gap-3.5">
             <img
               src={user?.imageUrl}
               alt={user?.fullName || "Admin"}
-              className="w-16 h-16 rounded-2xl object-cover border border-slate-200"
+              className="w-14 h-14 rounded-xl object-cover"
+              style={{ border: `1px solid ${THEME.border}` }}
             />
 
             <div className="min-w-0">
-              <div className="font-bold text-slate-900 truncate">
+              <div className="font-semibold truncate text-sm" style={{ color: THEME.ink }}>
                 {user?.fullName || "Administrator"}
               </div>
-              <div className="text-sm text-slate-500 truncate">
+              <div className="text-xs truncate" style={{ color: THEME.inkFaint }}>
                 {user?.primaryEmailAddress?.emailAddress}
               </div>
               <span
-                className="inline-block mt-2 text-xs font-semibold px-3 py-1 rounded-full"
-                style={{ background: "#2563EB15", color: "#2563EB" }}
+                className="inline-block mt-2 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: THEME.primaryTint, color: THEME.primary, boxShadow: `inset 0 0 0 1px ${THEME.primaryTintBorder}` }}
               >
                 Administrator
               </span>
@@ -353,27 +275,28 @@ const Settings = () => {
 
           <button
             onClick={() => openUserProfile()}
-            className="mt-6 w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-300 hover:bg-slate-100 transition font-medium text-slate-700"
+            className="mt-5 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+            style={{ border: `1px solid ${THEME.border}`, color: THEME.ink }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Manage Account
-            <ExternalLink size={16} />
+            <ExternalLink size={14} />
           </button>
         </SectionCard>
 
         {/* Security */}
-        <SectionCard
-          icon={ShieldCheck}
-          color="#15803D"
-          title="Security"
-          subtitle="Protect your admin access"
-        >
+        <SectionCard icon={ShieldCheck} color={THEME.success} title="Security" subtitle="Protect your admin access">
           <SettingsRow
             label="Password & Authentication"
             description="Update your password or enable two-factor authentication"
             control={
               <button
                 onClick={() => openUserProfile()}
-                className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 transition text-sm font-medium text-slate-700"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                style={{ border: `1px solid ${THEME.border}`, color: THEME.ink }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = THEME.surface2)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 Manage
               </button>
@@ -386,9 +309,12 @@ const Settings = () => {
             control={
               <button
                 onClick={handleSignOutEverywhere}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition text-sm font-medium"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                style={{ border: `1px solid ${THEME.dangerBorder}`, color: THEME.danger }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = THEME.dangerTint)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                <LogOut size={15} />
+                <LogOut size={13} />
                 Sign Out
               </button>
             }
@@ -398,13 +324,13 @@ const Settings = () => {
         {/* Notifications */}
         <SectionCard
           icon={Bell}
-          color="#B45309"
+          color={THEME.warning}
           title="Notifications"
           subtitle="Choose what you want to be notified about"
           badge={
             <span
-              className="settings-badge"
-              style={{ background: "#94A3B815", color: "#64748B" }}
+              className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full flex-shrink-0"
+              style={{ background: THEME.surface2, color: THEME.inkFaint }}
               title="Stored on this device only — not yet sent to the backend"
             >
               This device
@@ -414,45 +340,22 @@ const Settings = () => {
           <SettingsRow
             label="Email Alerts"
             description="Get important platform alerts via email"
-            control={
-              <Toggle
-                checked={settings.notifications.emailAlerts}
-                onChange={(v) => updateNotification("emailAlerts", v)}
-              />
-            }
+            control={<Toggle checked={settings.notifications.emailAlerts} onChange={(v) => updateNotification("emailAlerts", v)} />}
           />
-
           <SettingsRow
             label="New User Alerts"
             description="Notify me when a new user registers"
-            control={
-              <Toggle
-                checked={settings.notifications.newUserAlerts}
-                onChange={(v) => updateNotification("newUserAlerts", v)}
-              />
-            }
+            control={<Toggle checked={settings.notifications.newUserAlerts} onChange={(v) => updateNotification("newUserAlerts", v)} />}
           />
-
           <SettingsRow
             label="Session Reminders"
             description="Remind me before scheduled interview sessions"
-            control={
-              <Toggle
-                checked={settings.notifications.sessionReminders}
-                onChange={(v) => updateNotification("sessionReminders", v)}
-              />
-            }
+            control={<Toggle checked={settings.notifications.sessionReminders} onChange={(v) => updateNotification("sessionReminders", v)} />}
           />
-
           <SettingsRow
             label="Weekly Reports"
             description="Receive a weekly platform analytics summary"
-            control={
-              <Toggle
-                checked={settings.notifications.weeklyReports}
-                onChange={(v) => updateNotification("weeklyReports", v)}
-              />
-            }
+            control={<Toggle checked={settings.notifications.weeklyReports} onChange={(v) => updateNotification("weeklyReports", v)} />}
           />
         </SectionCard>
 
@@ -464,20 +367,20 @@ const Settings = () => {
           subtitle="Configure default platform behavior"
           badge={
             <span
-              className="settings-badge flex items-center gap-1"
-              style={{ background: "#DC262615", color: "#DC2626" }}
+              className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full flex items-center gap-1 flex-shrink-0"
+              style={{ background: THEME.dangerTint, color: THEME.danger }}
               title="Not wired to the backend yet — see note below"
             >
-              <AlertTriangle size={11} />
+              <AlertTriangle size={10} />
               Not enforced
             </span>
           }
         >
           <div
-            className="flex items-start gap-2.5 rounded-xl px-4 py-3 mb-1 text-xs"
-            style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}
+            className="flex items-start gap-2 rounded-lg px-3.5 py-3 mb-1 text-xs"
+            style={{ background: THEME.dangerTint, color: THEME.danger, border: `1px solid ${THEME.dangerBorder}` }}
           >
-            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+            <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
             <span>
               These currently save to your browser only. Session creation, interviewer
               sign-up, and platform access don't read them yet — treat them as drafts
@@ -491,15 +394,14 @@ const Settings = () => {
             control={
               <div className="relative">
                 <Calendar
-                  size={15}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  size={14}
+                  color={THEME.inkFaint}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                 />
                 <select
                   value={settings.platform.defaultSessionDuration}
-                  onChange={(e) =>
-                    updatePlatform("defaultSessionDuration", e.target.value)
-                  }
-                  className={`${inputStyle} pl-9`}
+                  onChange={(e) => updatePlatform("defaultSessionDuration", e.target.value)}
+                  style={{ ...inputStyle, paddingLeft: 30 }}
                 >
                   <option value="30">30 minutes</option>
                   <option value="45">45 minutes</option>
@@ -513,23 +415,13 @@ const Settings = () => {
           <SettingsRow
             label="Auto-approve Interviewers"
             description="Skip manual review for new interviewer sign-ups"
-            control={
-              <Toggle
-                checked={settings.platform.autoApproveInterviewers}
-                onChange={(v) => updatePlatform("autoApproveInterviewers", v)}
-              />
-            }
+            control={<Toggle checked={settings.platform.autoApproveInterviewers} onChange={(v) => updatePlatform("autoApproveInterviewers", v)} />}
           />
 
           <SettingsRow
             label="Maintenance Mode"
             description="Temporarily block candidate access to the platform"
-            control={
-              <Toggle
-                checked={settings.platform.maintenanceMode}
-                onChange={(v) => updatePlatform("maintenanceMode", v)}
-              />
-            }
+            control={<Toggle checked={settings.platform.maintenanceMode} onChange={(v) => updatePlatform("maintenanceMode", v)} />}
           />
         </SectionCard>
       </div>

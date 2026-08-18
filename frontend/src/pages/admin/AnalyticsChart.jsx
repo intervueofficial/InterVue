@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { THEME } from "../../constants/theme";
 
 /**
  * Lightweight dependency-free SVG bar chart for the last N days of session
@@ -63,28 +64,28 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
     <>
       <style>{`
         .chart-card{
-          background:#fff;
-          border:1px solid #E2E8F0;
-          border-radius:22px;
-          padding:26px;
+          background:${THEME.surface};
+          border:1px solid ${THEME.border};
+          border-radius:12px;
+          padding:24px;
           transition:.25s;
         }
 
         .chart-card:hover{
-          box-shadow:0 20px 45px rgba(15,23,42,.06);
-          border-color:#CBD5E1;
+          border-color:${THEME.borderStrong};
         }
 
         .chart-title{
-          font-size:16px;
-          font-weight:700;
-          color:#0F172A;
+          font-size:15px;
+          font-weight:600;
+          font-family:${THEME.fontDisplay};
+          color:${THEME.ink};
         }
 
         .chart-subtitle{
-          font-size:13px;
-          color:#94A3B8;
-          margin-top:4px;
+          font-size:12px;
+          color:${THEME.inkFaint};
+          margin-top:2px;
         }
 
         .chart-bar{
@@ -107,53 +108,53 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
         }
 
         .chart-gridline{
-          stroke:#EEF2F7;
+          stroke:${THEME.surface2};
           stroke-width:1;
         }
 
         .chart-baseline{
-          stroke:#E2E8F0;
+          stroke:${THEME.border};
           stroke-width:1.5;
         }
 
         .chart-hover-line{
-          stroke:#CBD5E1;
+          stroke:${THEME.borderStrong};
           stroke-width:1;
           stroke-dasharray:3 3;
         }
 
         .chart-axis-label{
           font-size:10.5px;
-          fill:#94A3B8;
+          fill:${THEME.inkFaint};
           font-family:inherit;
         }
 
         .chart-axis-label.active{
-          fill:#2563EB;
+          fill:${THEME.primary};
           font-weight:600;
         }
 
         .chart-y-label{
           font-size:10px;
-          fill:#B0BAC9;
+          fill:${THEME.inkFaint};
           font-family:inherit;
         }
 
         .chart-tooltip-bg{
-          fill:#0F172A;
+          fill:${THEME.ink};
         }
 
         .chart-tooltip-text{
           font-size:11.5px;
           font-weight:700;
-          fill:#fff;
+          fill:${THEME.surface};
           font-family:inherit;
         }
 
         .chart-tooltip-subtext{
           font-size:9.5px;
           font-weight:500;
-          fill:#94A3B8;
+          fill:${THEME.inkFaint};
           font-family:inherit;
         }
       `}</style>
@@ -171,8 +172,8 @@ const AnalyticsChart = ({ data = [], title, subtitle }) => {
           >
             <defs>
               <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4F7DF9" />
-                <stop offset="100%" stopColor="#2563EB" />
+                <stop offset="0%" stopColor={THEME.ink} stopOpacity="0.85" />
+                <stop offset="100%" stopColor={THEME.ink} />
               </linearGradient>
             </defs>
 

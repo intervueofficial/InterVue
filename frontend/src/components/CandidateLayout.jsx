@@ -203,6 +203,7 @@ function CandidateLayout({
                             isGrading={isGrading}
                             gradingResult={gradingResult}
                             showGrading={!!problemData}
+                            starterCode={problemData?.starterCode || ""}
                           />
                         </div>
                       </div>

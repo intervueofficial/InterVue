@@ -3,32 +3,37 @@ import {
   CheckCircle2,
   Clock,
   MonitorPlay,
+  AlertTriangleIcon,
+  RefreshCwIcon,
 } from "lucide-react";
 import AppLoader from "../../components/AppLoader";
+import PageHeader from "../../components/PageHeader";
+import AutoRefreshBar from "../../components/admin/AutoRefreshBar";
+import { THEME } from "../../constants/theme";
 
 import { useAdminAnalytics } from "../../hooks/useAdmin";
 import StatCard from "./StatCard";
 import AnalyticsChart from "./AnalyticsChart";
 
 const STATUS_META = {
-  scheduled: { label: "Scheduled", color: "#2563EB" },
-  waiting: { label: "Waiting", color: "#B45309" },
-  live: { label: "Live", color: "#15803D" },
-  completed: { label: "Completed", color: "#475569" },
-  cancelled: { label: "Cancelled", color: "#DC2626" },
+  scheduled: { label: "Scheduled", color: THEME.info },
+  waiting: { label: "Waiting", color: THEME.warning },
+  live: { label: "Live", color: THEME.success },
+  completed: { label: "Completed", color: THEME.inkMuted },
+  cancelled: { label: "Cancelled", color: THEME.danger },
 };
 
 const DIFFICULTY_META = {
-  Easy: { label: "Easy", color: "#15803D" },
-  Medium: { label: "Medium", color: "#B45309" },
-  Hard: { label: "Hard", color: "#DC2626" },
+  Easy: { label: "Easy", color: THEME.success },
+  Medium: { label: "Medium", color: THEME.warning },
+  Hard: { label: "Hard", color: THEME.danger },
 };
 
 const ROLE_META = {
-  candidate: { label: "Candidates", color: "#2563EB" },
+  candidate: { label: "Candidates", color: THEME.primary },
   interviewer: { label: "Interviewers", color: "#7C3AED" },
-  admin: { label: "Admins", color: "#0F172A" },
-  unassigned: { label: "Unassigned", color: "#94A3B8" },
+  admin: { label: "Admins", color: THEME.ink },
+  unassigned: { label: "Unassigned", color: THEME.inkFaint },
 };
 
 /* ─── Donut ring built from stacked SVG arcs (real proportions, no filler) ─── */
@@ -44,12 +49,12 @@ function DonutRing({ entries, meta, total, size = 132, stroke = 16 }) {
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="#F1F5F9"
+        stroke={THEME.surface2}
         strokeWidth={stroke}
       />
       {total > 0 &&
         entries.map(([key, count]) => {
-          const info = meta[key] || { label: key, color: "#94A3B8" };
+          const info = meta[key] || { label: key, color: THEME.inkFaint };
           const fraction = count / total;
           const dash = fraction * circumference;
           const gap = circumference - dash;
@@ -81,195 +86,85 @@ function DonutRing({ entries, meta, total, size = 132, stroke = 16 }) {
 
 const BreakdownCard = ({ title, subtitle, entries, meta, total }) => {
   return (
-    <>
-      <style>{`
-        .breakdown-card{
-          background:#fff;
-          border:1px solid #E2E8F0;
-          border-radius:22px;
-          padding:26px;
-          transition:.25s;
-        }
+    <div
+      className="rounded-xl p-6 transition-colors"
+      style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = THEME.borderStrong)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = THEME.border)}
+    >
+      <div
+        style={{ fontFamily: THEME.fontDisplay, fontSize: 15, fontWeight: 600, color: THEME.ink }}
+      >
+        {title}
+      </div>
+      {subtitle && (
+        <div className="text-xs mt-1" style={{ color: THEME.inkFaint }}>
+          {subtitle}
+        </div>
+      )}
 
-        .breakdown-card:hover{
-          box-shadow:0 20px 45px rgba(15,23,42,.06);
-          border-color:#CBD5E1;
-        }
-
-        .breakdown-title{
-          font-size:16px;
-          font-weight:700;
-          color:#0F172A;
-        }
-
-        .breakdown-subtitle{
-          font-size:13px;
-          color:#94A3B8;
-          margin-top:4px;
-        }
-
-        .breakdown-body{
-          display:flex;
-          align-items:center;
-          gap:24px;
-          margin-top:22px;
-        }
-
-        .breakdown-ring-wrap{
-          position:relative;
-          flex-shrink:0;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-        }
-
-        .breakdown-ring-center{
-          position:absolute;
-          display:flex;
-          flex-direction:column;
-          align-items:center;
-          justify-content:center;
-        }
-
-        .breakdown-ring-total{
-          font-size:24px;
-          font-weight:800;
-          color:#0F172A;
-          letter-spacing:-0.3px;
-          line-height:1;
-        }
-
-        .breakdown-ring-label{
-          font-size:10.5px;
-          color:#94A3B8;
-          font-weight:600;
-          text-transform:uppercase;
-          letter-spacing:0.4px;
-          margin-top:3px;
-        }
-
-        .breakdown-legend{
-          flex:1;
-          display:flex;
-          flex-direction:column;
-          gap:11px;
-          min-width:0;
-        }
-
-        .legend-row{
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:10px;
-        }
-
-        .legend-label{
-          display:flex;
-          align-items:center;
-          gap:8px;
-          font-size:12.5px;
-          font-weight:600;
-          color:#334155;
-          min-width:0;
-        }
-
-        .legend-dot{
-          width:9px;
-          height:9px;
-          border-radius:3px;
-          flex-shrink:0;
-        }
-
-        .legend-value{
-          display:flex;
-          align-items:baseline;
-          gap:5px;
-          flex-shrink:0;
-        }
-
-        .legend-count{
-          font-size:13px;
-          font-weight:700;
-          color:#0F172A;
-          font-variant-numeric:tabular-nums;
-        }
-
-        .legend-pct{
-          font-size:11px;
-          font-weight:600;
-          color:#94A3B8;
-          min-width:32px;
-          text-align:right;
-          font-variant-numeric:tabular-nums;
-        }
-
-        .breakdown-empty{
-          margin-top:22px;
-          font-size:13px;
-          color:#94A3B8;
-        }
-      `}</style>
-
-      <div className="breakdown-card">
-        <div className="breakdown-title">{title}</div>
-        {subtitle && <div className="breakdown-subtitle">{subtitle}</div>}
-
-        {entries.length === 0 || total === 0 ? (
-          <div className="breakdown-empty">No data yet.</div>
-        ) : (
-          <div className="breakdown-body">
-            <div className="breakdown-ring-wrap">
-              <DonutRing entries={entries} meta={meta} total={total} />
-              <div className="breakdown-ring-center">
-                <span className="breakdown-ring-total">{total}</span>
-                <span className="breakdown-ring-label">Total</span>
-              </div>
-            </div>
-
-            <div className="breakdown-legend">
-              {entries.map(([key, count]) => {
-                const info = meta[key] || { label: key, color: "#94A3B8" };
-                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-
-                return (
-                  <div className="legend-row" key={key}>
-                    <span className="legend-label">
-                      <span
-                        className="legend-dot"
-                        style={{ background: info.color }}
-                      />
-                      <span
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {info.label}
-                      </span>
-                    </span>
-
-                    <span className="legend-value">
-                      <span className="legend-count">{count}</span>
-                      <span className="legend-pct">{pct}%</span>
-                    </span>
-                  </div>
-                );
-              })}
+      {entries.length === 0 || total === 0 ? (
+        <div className="text-sm mt-5" style={{ color: THEME.inkFaint }}>
+          No data yet.
+        </div>
+      ) : (
+        <div className="flex items-center gap-6 mt-6">
+          <div className="relative flex-shrink-0 flex items-center justify-center">
+            <DonutRing entries={entries} meta={meta} total={total} />
+            <div className="absolute flex flex-col items-center justify-center">
+              <span
+                style={{ fontFamily: THEME.fontDisplay, fontSize: 22, fontWeight: 700, color: THEME.ink, lineHeight: 1 }}
+              >
+                {total}
+              </span>
+              <span
+                className="mt-1"
+                style={{ fontFamily: THEME.fontMono, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: THEME.inkFaint }}
+              >
+                Total
+              </span>
             </div>
           </div>
-        )}
-      </div>
-    </>
+
+          <div className="flex-1 flex flex-col gap-2.5 min-w-0">
+            {entries.map(([key, count]) => {
+              const info = meta[key] || { label: key, color: THEME.inkFaint };
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
+              return (
+                <div key={key} className="flex items-center justify-between gap-2.5">
+                  <span className="flex items-center gap-2 text-[12.5px] font-medium min-w-0" style={{ color: THEME.inkMuted }}>
+                    <span
+                      className="w-2 h-2 rounded-sm flex-shrink-0"
+                      style={{ background: info.color }}
+                    />
+                    <span className="truncate">{info.label}</span>
+                  </span>
+
+                  <span className="flex items-baseline gap-1.5 flex-shrink-0">
+                    <span className="text-[13px] font-bold tabular-nums" style={{ color: THEME.ink }}>
+                      {count}
+                    </span>
+                    <span className="text-[11px] font-semibold tabular-nums min-w-[30px] text-right" style={{ color: THEME.inkFaint }}>
+                      {pct}%
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
 const Analytics = () => {
-  const { data, isLoading, isError } = useAdminAnalytics();
+  const { data, isPending, isFetching, isError, refetch } = useAdminAnalytics();
 
   const analytics = data?.analytics;
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <AppLoader />
@@ -279,13 +174,34 @@ const Analytics = () => {
 
   if (isError || !analytics) {
     return (
-      <div>
-        <h1 className="text-4xl font-bold" style={{ color: "#2563EB" }}>
-          Analytics
-        </h1>
-        <p className="text-slate-500 mt-3">
-          Couldn't load analytics data. Please try again shortly.
-        </p>
+      <div className="space-y-8">
+        <PageHeader eyebrow="Insights" title="Analytics" description="Platform activity and performance at a glance." />
+
+        <div
+          className="flex flex-col items-center text-center py-16 rounded-xl"
+          style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}
+        >
+          <div
+            className="w-11 h-11 rounded-lg flex items-center justify-center mb-3"
+            style={{ background: THEME.dangerTint }}
+          >
+            <AlertTriangleIcon size={20} color={THEME.danger} />
+          </div>
+          <p className="text-sm font-semibold" style={{ color: THEME.ink }}>
+            Couldn't load analytics data
+          </p>
+          <p className="text-xs mt-1 mb-4 max-w-sm" style={{ color: THEME.inkFaint }}>
+            This can happen if the request fired before your session was fully ready. Try again below.
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg"
+            style={{ background: THEME.ink, color: THEME.surface }}
+          >
+            <RefreshCwIcon size={14} />
+            Try again
+          </button>
+        </div>
       </div>
     );
   }
@@ -302,12 +218,8 @@ const Analytics = () => {
 
   const liveSessions = sessionsByStatus.live || 0;
 
-  const statusEntries = Object.entries(sessionsByStatus).sort(
-    (a, b) => b[1] - a[1]
-  );
-  const difficultyEntries = Object.entries(problemsByDifficulty).sort(
-    (a, b) => b[1] - a[1]
-  );
+  const statusEntries = Object.entries(sessionsByStatus).sort((a, b) => b[1] - a[1]);
+  const difficultyEntries = Object.entries(problemsByDifficulty).sort((a, b) => b[1] - a[1]);
   const roleEntries = Object.entries(usersByRole).sort((a, b) => b[1] - a[1]);
 
   const totalProblems = difficultyEntries.reduce((sum, [, c]) => sum + c, 0);
@@ -315,26 +227,20 @@ const Analytics = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1
-          className="text-4xl font-bold"
-          style={{ color: "#2563EB", letterSpacing: "-0.5px" }}
-        >
-          Analytics
-        </h1>
+      <PageHeader
+        eyebrow="Insights"
+        title="Analytics"
+        description="Platform activity and performance at a glance."
+        actions={<AutoRefreshBar onRefresh={refetch} isFetching={isFetching} intervalSeconds={20} />}
+      />
 
-        <p className="text-slate-500 mt-2">
-          Platform activity and performance at a glance.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           title="Total Sessions"
           value={totalSessions}
           subtitle="All time interview sessions"
           icon={MonitorPlay}
-          color="#2563EB"
+          color={THEME.primary}
         />
 
         <StatCard
@@ -342,7 +248,7 @@ const Analytics = () => {
           value={`${completionRate}%`}
           subtitle="Sessions marked completed"
           icon={CheckCircle2}
-          color="#15803D"
+          color={THEME.success}
         />
 
         <StatCard
@@ -350,7 +256,7 @@ const Analytics = () => {
           value={avgDurationMinutes > 0 ? `${avgDurationMinutes}m` : "--"}
           subtitle="Average completed session length"
           icon={Clock}
-          color="#B45309"
+          color={THEME.warning}
         />
 
         <StatCard
@@ -368,7 +274,7 @@ const Analytics = () => {
         subtitle="Last 14 days"
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <BreakdownCard
           title="Sessions by Status"
           subtitle={`${totalSessions} total`}
