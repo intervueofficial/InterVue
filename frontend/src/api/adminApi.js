@@ -132,4 +132,109 @@ getAnalytics: async (token) => {
 
   return data;
 },
+
+  // ==========================
+  // Billing & Subscriptions
+  // ==========================
+  getSubscriptions: async (token) => {
+    const { data } = await axiosInstance.get("/admin/subscriptions", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  getSubscriptionStats: async (token) => {
+    const { data } = await axiosInstance.get("/admin/subscriptions/stats", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  cancelSubscription: async (id, token) => {
+    const { data } = await axiosInstance.patch(
+      `/admin/subscriptions/${id}/cancel`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return data;
+  },
+
+  // ==========================
+  // Cross-Job Applications Pipeline
+  // ==========================
+  getAllApplications: async (token, { status, job } = {}) => {
+    const params = {};
+    if (status && status !== "all") params.status = status;
+    if (job && job !== "all") params.job = job;
+
+    const { data } = await axiosInstance.get("/admin/applications", {
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  getPipelineStats: async (token) => {
+    const { data } = await axiosInstance.get("/admin/applications/stats", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  // ==========================
+  // Audit Log
+  // ==========================
+  getAuditLog: async (token, { page = 1, limit = 25 } = {}) => {
+    const { data } = await axiosInstance.get("/admin/audit-log", {
+      params: { page, limit },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  // ==========================
+  // Email Templates
+  // ==========================
+  getEmailTemplates: async (token) => {
+    const { data } = await axiosInstance.get("/admin/email-templates", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  updateEmailTemplate: async (key, { subject, body }, token) => {
+    const { data } = await axiosInstance.patch(
+      `/admin/email-templates/${key}`,
+      { subject, body },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return data;
+  },
+
+  // ==========================
+  // System Health
+  // ==========================
+  getSystemHealth: async (token) => {
+    const { data } = await axiosInstance.get("/admin/system-health", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  // ==========================
+  // Platform Settings (Maintenance Mode)
+  // ==========================
+  getPlatformSettings: async (token) => {
+    const { data } = await axiosInstance.get("/admin/settings", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  updatePlatformSettings: async (payload, token) => {
+    const { data } = await axiosInstance.patch("/admin/settings", payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
 };

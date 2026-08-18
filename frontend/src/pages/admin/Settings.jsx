@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser, useClerk, useAuth } from "@clerk/clerk-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   UserCog,
   Bell,
@@ -10,11 +11,14 @@ import {
   Save,
   RotateCcw,
   AlertTriangle,
+  CheckCircle2,
   Calendar,
+  Construction,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageHeader from "../../components/PageHeader";
 import { THEME } from "../../constants/theme";
+import { adminApi } from "../../api/adminApi";
 
 const STORAGE_KEY = "intervue-admin-settings";
 
@@ -27,7 +31,6 @@ const DEFAULT_SETTINGS = {
   },
   platform: {
     defaultSessionDuration: "60",
-    maintenanceMode: false,
     autoApproveInterviewers: false,
   },
 };
@@ -154,6 +157,8 @@ const btnSecondary =
 const Settings = () => {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
 
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [dirty, setDirty] = useState(false);
@@ -162,6 +167,59 @@ const Settings = () => {
   useEffect(() => {
     setSettings(loadSettings());
   }, []);
+
+  // ── Maintenance Mode — the one Platform Preference that's actually
+  // wired to the backend. Kept separate from the browser-only settings
+  // above so it can have its own real save state instead of piggy-
+  // backing on the "saved to your browser" flow. ──────────────────────
+  const { data: platformSettingsData } = useQuery({
+    queryKey: ["admin-platform-settings"],
+    queryFn: async () => adminApi.getPlatformSettings(await getToken()),
+  });
+
+  const liveSettings = platformSettingsData?.settings;
+
+  const [maintenanceDraft, setMaintenanceDraft] = useState(null);
+
+  useEffect(() => {
+    if (liveSettings && maintenanceDraft === null) {
+      setMaintenanceDraft({
+        maintenanceMode: liveSettings.maintenanceMode,
+        maintenanceMessage: liveSettings.maintenanceMessage,
+      });
+    }
+  }, [liveSettings, maintenanceDraft]);
+
+  const maintenanceMutation = useMutation({
+    mutationFn: async (payload) =>
+      adminApi.updatePlatformSettings(payload, await getToken()),
+    onSuccess: (data) => {
+      toast.success(
+        data.settings.maintenanceMode
+          ? "Maintenance mode is now ON — candidates are blocked."
+          : "Maintenance mode is now off."
+      );
+      queryClient.invalidateQueries({ queryKey: ["admin-platform-settings"] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update maintenance mode.");
+    },
+  });
+
+  const handleMaintenanceToggle = (checked) => {
+    setMaintenanceDraft((prev) => ({ ...prev, maintenanceMode: checked }));
+    maintenanceMutation.mutate({
+      maintenanceMode: checked,
+      maintenanceMessage: maintenanceDraft?.maintenanceMessage,
+    });
+  };
+
+  const handleMaintenanceMessageSave = () => {
+    maintenanceMutation.mutate({
+      maintenanceMode: maintenanceDraft?.maintenanceMode,
+      maintenanceMessage: maintenanceDraft?.maintenanceMessage,
+    });
+  };
 
   const updateNotification = (key, value) => {
     setSettings((prev) => ({
@@ -417,12 +475,64 @@ const Settings = () => {
             description="Skip manual review for new interviewer sign-ups"
             control={<Toggle checked={settings.platform.autoApproveInterviewers} onChange={(v) => updatePlatform("autoApproveInterviewers", v)} />}
           />
+        </SectionCard>
 
+        {/* Maintenance Mode — real, backend-enforced */}
+        <SectionCard
+          icon={Construction}
+          color={maintenanceDraft?.maintenanceMode ? THEME.danger : THEME.success}
+          title="Maintenance Mode"
+          subtitle="Block candidate access to the platform"
+          badge={
+            <span
+              className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full flex items-center gap-1 flex-shrink-0"
+              style={{ background: THEME.successTint, color: THEME.success }}
+              title="Actually enforced server-side by middleware — unlike Platform Preferences above"
+            >
+              <CheckCircle2 size={10} />
+              Enforced
+            </span>
+          }
+        >
           <SettingsRow
             label="Maintenance Mode"
-            description="Temporarily block candidate access to the platform"
-            control={<Toggle checked={settings.platform.maintenanceMode} onChange={(v) => updatePlatform("maintenanceMode", v)} />}
+            description={
+              maintenanceDraft?.maintenanceMode
+                ? "ON — candidates currently can't browse jobs, apply, or join sessions."
+                : "OFF — candidates have normal access."
+            }
+            control={
+              <Toggle
+                checked={!!maintenanceDraft?.maintenanceMode}
+                onChange={handleMaintenanceToggle}
+              />
+            }
           />
+
+          <div>
+            <label className="text-sm font-semibold block mb-1.5" style={{ color: THEME.ink }}>
+              Message shown to blocked candidates
+            </label>
+            <textarea
+              value={maintenanceDraft?.maintenanceMessage || ""}
+              onChange={(e) =>
+                setMaintenanceDraft((prev) => ({ ...prev, maintenanceMessage: e.target.value }))
+              }
+              rows={2}
+              className="w-full text-sm"
+              style={{ ...inputStyle, resize: "vertical" }}
+            />
+            <button
+              type="button"
+              onClick={handleMaintenanceMessageSave}
+              disabled={maintenanceMutation.isPending}
+              className={`${btnSecondary} mt-2`}
+              style={{ background: THEME.surface2, color: THEME.ink }}
+            >
+              <Save size={14} />
+              Save message
+            </button>
+          </div>
         </SectionCard>
       </div>
     </div>

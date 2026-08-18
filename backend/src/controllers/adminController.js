@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Session from "../models/Session.js";
 import Problem from "../models/Problem.js";
+import { logAction } from "../lib/auditLog.js";
 
 // =======================================
 // Dashboard Statistics
@@ -91,6 +92,15 @@ export const updateUserRole = async (req, res) => {
       });
     }
 
+    const before = await User.findById(id).select("role");
+
+    if (!before) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     const user = await User.findByIdAndUpdate(
       id,
       { role },
@@ -100,12 +110,13 @@ export const updateUserRole = async (req, res) => {
       }
     );
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    await logAction({
+      actor: req.user,
+      action: "user.role_changed",
+      targetType: "User",
+      targetId: user._id,
+      metadata: { before: before.role, after: role },
+    });
 
     return res.status(200).json({
       success: true,
@@ -137,9 +148,18 @@ export const toggleUserStatus = async (req, res) => {
       });
     }
 
+    const before = user.isActive;
     user.isActive = !user.isActive;
 
     await user.save();
+
+    await logAction({
+      actor: req.user,
+      action: "user.status_toggled",
+      targetType: "User",
+      targetId: user._id,
+      metadata: { before, after: user.isActive },
+    });
 
     return res.status(200).json({
       success: true,

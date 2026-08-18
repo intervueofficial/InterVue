@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { ENV } from "./env.js";
+import { getTemplate, substitutePlaceholders, paragraphsToHtml } from "./emailTemplateDefaults.js";
 
 export const resend = new ResendSafe();
 
@@ -36,9 +37,20 @@ export async function sendSelectionEmail({
   sessionCode,
   sessionLink,
 }) {
+  // Subject and the narrative paragraphs below now come from the
+  // "candidate_selected" EmailTemplate in the DB (editable from
+  // Admin → Email Templates), falling back to the original hardcoded
+  // copy if no template exists yet. The header banner, interview-code
+  // box, and "Join Interview" button stay structural — they depend on
+  // sessionCode/sessionLink, which aren't part of the editable template.
+  const template = await getTemplate("candidate_selected");
+  const data = { candidateName: name, jobTitle };
+  const subject = substitutePlaceholders(template.subject, data);
+  const bodyHtml = paragraphsToHtml(substitutePlaceholders(template.body, data));
+
   return resend.send({
     to,
-    subject: `Interview Invitation | ${jobTitle} | InterVue`,
+    subject,
     html: `
 <!DOCTYPE html>
 <html>
@@ -78,23 +90,11 @@ Interview Management Platform
 Interview Invitation
 </p>
 
-<h2 style="margin:0;color:#111827;font-size:24px;">
+<h2 style="margin:0 0 25px;color:#111827;font-size:24px;">
 You have been shortlisted
 </h2>
 
-<p style="margin-top:25px;color:#374151;font-size:15px;line-height:28px;">
-Dear ${name},
-</p>
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
-We are pleased to inform you that your profile has been shortlisted for the position of
-<strong>${jobTitle}</strong>.
-</p>
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
-You have been invited to participate in an online interview through the InterVue interview platform.
-Please review the details below.
-</p>
+${bodyHtml}
 
 <table width="100%" cellpadding="14" cellspacing="0" style="margin-top:25px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
 <tr>
@@ -159,15 +159,6 @@ Please ensure the following before your interview:
 <li>You keep your interview code available for verification.</li>
 </ul>
 
-<p style="margin-top:35px;color:#4b5563;font-size:15px;line-height:28px;">
-We look forward to speaking with you and wish you the very best for your interview.
-</p>
-
-<p style="margin-top:35px;color:#111827;font-size:15px;line-height:26px;">
-Kind regards,<br>
-InterVue Recruitment Team
-</p>
-
 </td>
 </tr>
 
@@ -196,9 +187,14 @@ export async function sendRejectionEmail({
   feedback,
   reportAttachment,
 }) {
+  const template = await getTemplate("candidate_rejected");
+  const data = { candidateName: name, jobTitle };
+  const subject = substitutePlaceholders(template.subject, data);
+  const bodyHtml = paragraphsToHtml(substitutePlaceholders(template.body, data));
+
   return resend.send({
     to,
-    subject: `Application Update | ${jobTitle} | InterVue`,
+    subject,
     html: `
 <!DOCTYPE html>
 <html>
@@ -230,22 +226,11 @@ InterVue
 Application Update
 </p>
 
-<h2 style="margin:0;color:#111827;font-size:24px;">
+<h2 style="margin:0 0 25px;color:#111827;font-size:24px;">
 Thank you for interviewing with us
 </h2>
 
-<p style="margin-top:28px;color:#374151;font-size:15px;line-height:28px;">
-Dear ${name},
-</p>
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
-Thank you for your interest in the position of
-<strong>${jobTitle}</strong> and for taking the time to interview with our team.
-</p>
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
-After careful consideration, we have decided to move forward with other candidates whose qualifications more closely match the current requirements of this role.
-</p>
+${bodyHtml}
 
 ${
   feedback
@@ -263,21 +248,6 @@ ${feedback}
 </table>`
     : ""
 }
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;margin-top:25px;">
-This decision does not diminish the effort you invested in your application, and we sincerely appreciate your interest in joining our organization.
-</p>
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
-We encourage you to stay connected with InterVue and apply for future opportunities that align with your skills and experience.
-</p>
-
-<hr style="margin:35px 0;border:none;border-top:1px solid #e5e7eb;">
-
-<p style="color:#111827;font-size:15px;line-height:26px;">
-Kind regards,<br>
-InterVue Recruitment Team
-</p>
 
 </td>
 </tr>
@@ -308,9 +278,14 @@ export async function sendHiredEmail({
   feedback,
   reportAttachment,
 }) {
+  const template = await getTemplate("candidate_hired");
+  const data = { candidateName: name, jobTitle };
+  const subject = substitutePlaceholders(template.subject, data);
+  const bodyHtml = paragraphsToHtml(substitutePlaceholders(template.body, data));
+
   return resend.send({
     to,
-    subject: `Congratulations! You've been selected | ${jobTitle} | InterVue`,
+    subject,
     html: `
 <!DOCTYPE html>
 <html>
@@ -342,21 +317,11 @@ InterVue
 Final Decision
 </p>
 
-<h2 style="margin:0;color:#111827;font-size:24px;">
+<h2 style="margin:0 0 25px;color:#111827;font-size:24px;">
 Congratulations, you've been selected! 🎉
 </h2>
 
-<p style="margin-top:28px;color:#374151;font-size:15px;line-height:28px;">
-Dear ${name},
-</p>
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
-We are delighted to inform you that, following your interview, you have been selected for the position of <strong>${jobTitle}</strong>.
-</p>
-
-<p style="color:#4b5563;font-size:15px;line-height:28px;">
-Our team was impressed with your performance and believes you'll be a great fit. Our HR team will reach out shortly with next steps and onboarding details.
-</p>
+${bodyHtml}
 
 ${
   feedback
@@ -374,17 +339,6 @@ ${feedback}
 </table>`
     : ""
 }
-
-<p style="margin-top:25px;color:#4b5563;font-size:15px;line-height:28px;">
-Congratulations once again, and welcome aboard!
-</p>
-
-<hr style="margin:35px 0;border:none;border-top:1px solid #e5e7eb;">
-
-<p style="color:#111827;font-size:15px;line-height:26px;">
-Kind regards,<br>
-InterVue Recruitment Team
-</p>
 
 </td>
 </tr>

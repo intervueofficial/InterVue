@@ -1,6 +1,7 @@
 import express from "express";
 import { protectRoute } from "../middleware/protectRoute.js";
 import { requireRole } from "../middleware/requireRole.js";
+import { blockCandidatesInMaintenance } from "../middleware/maintenanceMode.js";
 
 import {
   applyToJob,
@@ -20,6 +21,7 @@ router.post(
   "/:jobId/apply",
   protectRoute,
   requireRole("candidate"),
+  blockCandidatesInMaintenance,
   applyToJob
 );
 

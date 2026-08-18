@@ -1,6 +1,7 @@
 import express from "express";
 import { protectRoute } from "../middleware/protectRoute.js";
 import { requireRole } from "../middleware/requireRole.js";
+import { blockCandidatesInMaintenance } from "../middleware/maintenanceMode.js";
 
 import {
   createSession,
@@ -59,6 +60,7 @@ router.get(
 router.post(
   "/:id/join",
   protectRoute,
+  blockCandidatesInMaintenance,
   joinSession
 );
 

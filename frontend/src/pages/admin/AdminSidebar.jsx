@@ -6,48 +6,50 @@ import {
   BarChart3,
   Settings,
   ChevronLeft,
+  ClipboardList,
+  CreditCard,
+  GitBranch,
+  Mail,
+  History,
+  HeartPulse,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { UserButton } from "@clerk/clerk-react";
-import { ClipboardList } from "lucide-react";
 
-const menu = [
+// Grouped into sections rather than one flat list — WORKSPACE (day-to-day
+// operational pages), LIBRARY (content admins curate), INSIGHTS (read-only
+// reporting/observability). Settings stays outside any section, as the
+// last item, matching where it always was.
+const sections = [
   {
-    name: "Dashboard",
-    icon: LayoutDashboard,
-    path: "/admin/dashboard",
+    label: "Workspace",
+    items: [
+      { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+      { name: "Users", icon: Users, path: "/admin/users" },
+      { name: "Sessions", icon: CalendarDays, path: "/admin/sessions" },
+      { name: "Billing", icon: CreditCard, path: "/admin/billing" },
+      { name: "Pipeline", icon: GitBranch, path: "/admin/pipeline" },
+    ],
   },
   {
-    name: "Problems",
-    icon: Code2,
-    path: "/admin/problems",
+    label: "Library",
+    items: [
+      { name: "Problems", icon: Code2, path: "/admin/problems" },
+      { name: "Quiz", icon: ClipboardList, path: "/admin/quiz" },
+      { name: "Email Templates", icon: Mail, path: "/admin/email-templates" },
+    ],
   },
   {
-    name: "Quiz",
-    icon: ClipboardList,
-    path: "/admin/quiz",
-  },
-  {
-    name: "Users",
-    icon: Users,
-    path: "/admin/users",
-  },
-  {
-    name: "Sessions",
-    icon: CalendarDays,
-    path: "/admin/sessions",
-  },
-  {
-    name: "Analytics",
-    icon: BarChart3,
-    path: "/admin/analytics",
-  },
-  {
-    name: "Settings",
-    icon: Settings,
-    path: "/admin/settings",
+    label: "Insights",
+    items: [
+      { name: "Analytics", icon: BarChart3, path: "/admin/analytics" },
+      { name: "Audit Log", icon: History, path: "/admin/audit-log" },
+      { name: "System Health", icon: HeartPulse, path: "/admin/system-health" },
+    ],
   },
 ];
+
+const settingsItem = { name: "Settings", icon: Settings, path: "/admin/settings" };
 
 const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
   return (
@@ -157,6 +159,43 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
           box-shadow:0 10px 24px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.08);
         }
 
+        /* ── Section labels ───────────────────────────────── */
+        .nav-section{
+          display:flex;
+          flex-direction:column;
+          gap:6px;
+        }
+
+        .nav-section + .nav-section{
+          margin-top:18px;
+        }
+
+        .nav-section-label{
+          font-size:11px;
+          font-weight:700;
+          letter-spacing:.08em;
+          text-transform:uppercase;
+          color:rgba(255,255,255,.42);
+          padding:0 12px;
+          white-space:nowrap;
+          overflow:hidden;
+          max-width:0;
+          opacity:0;
+          margin-bottom:2px;
+          transition:max-width .32s cubic-bezier(.4,0,.2,1), opacity .18s ease;
+        }
+
+        .admin-sidebar:hover .nav-section-label,
+        .admin-sidebar.mobile-open .nav-section-label{
+          max-width:160px;
+          opacity:1;
+        }
+
+        .nav-divider{
+          border-top:1px solid rgba(255,255,255,.14);
+          margin:14px 0;
+        }
+
         /* ── Footer ───────────────────────────────────────── */
         .sidebar-footer{
           margin-top:auto;
@@ -224,21 +263,36 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
         </div>
 
         <div className="nav-links">
-          {menu.map((item) => {
-            const Icon = item.icon;
+          {sections.map((section) => (
+            <div className="nav-section" key={section.label}>
+              <p className="nav-section-label">{section.label}</p>
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon />
+                    <span className="nav-label">{item.name}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
 
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Icon />
-                <span className="nav-label">{item.name}</span>
-              </NavLink>
-            );
-          })}
+          <div className="nav-divider" />
+
+          <NavLink
+            to={settingsItem.path}
+            className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            onClick={() => setSidebarOpen(false)}
+          >
+            <settingsItem.icon />
+            <span className="nav-label">{settingsItem.name}</span>
+          </NavLink>
         </div>
 
         <div className="sidebar-footer">

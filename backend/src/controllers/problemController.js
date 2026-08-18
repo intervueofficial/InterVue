@@ -1,5 +1,6 @@
 import Problem from "../models/Problem.js";
 import { gradeAgainstTestCases } from "../lib/judge.js";
+import { logAction } from "../lib/auditLog.js";
 
 // =======================================
 // Get All Problems
@@ -217,6 +218,14 @@ export const deleteProblem = async (req, res) => {
     }
 
     await Problem.findByIdAndDelete(req.params.id);
+
+    await logAction({
+      actor: req.user,
+      action: "problem.deleted",
+      targetType: "Problem",
+      targetId: existing._id,
+      metadata: { title: existing.title },
+    });
 
     return res.status(200).json({
       success: true,

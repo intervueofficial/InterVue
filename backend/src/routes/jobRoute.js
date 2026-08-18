@@ -1,6 +1,7 @@
 import express from "express";
 import { protectRoute } from "../middleware/protectRoute.js";
 import { requireRole } from "../middleware/requireRole.js";
+import { blockCandidatesInMaintenance } from "../middleware/maintenanceMode.js";
 
 import {
   createJob,
@@ -18,6 +19,7 @@ router.get(
   "/open",
   protectRoute,
   requireRole("candidate"),
+  blockCandidatesInMaintenance,
   getOpenJobs
 );
 

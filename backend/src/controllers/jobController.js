@@ -1,5 +1,6 @@
 import Job from "../models/Job.js";
 import Application from "../models/Application.js";
+import { logAction } from "../lib/auditLog.js";
 
 // ==========================
 // Admin: create a job posting
@@ -142,6 +143,14 @@ export async function deleteJob(req, res) {
     }
 
     await Application.deleteMany({ job: job._id });
+
+    await logAction({
+      actor: req.user,
+      action: "job.deleted",
+      targetType: "Job",
+      targetId: job._id,
+      metadata: { title: job.title },
+    });
 
     return res.json({ success: true, message: "Job deleted" });
   } catch (error) {

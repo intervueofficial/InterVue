@@ -24,6 +24,8 @@ import quizRoute from "./routes/quizRoute.js";
 import jobRoute from "./routes/jobRoute.js";
 import applicationRoute from "./routes/applicationRoute.js";
 import aiGeneratorRoute from "./routes/aiGeneratorRoute.js";
+import adminModulesRoute from "./routes/adminModulesRoute.js";
+import subscriptionRoute from "./routes/subscriptionRoute.js";
 
 const app = express();
 const __dirname = path.resolve();
@@ -80,6 +82,8 @@ app.use("/api/auth", authRoute);
 
 // Admin APIs
 app.use("/api/admin", adminRoute);
+// Billing, Pipeline, Audit Log, Email Templates, System Health, Settings
+app.use("/api/admin", adminModulesRoute);
 
 // Problems APIs
 app.use("/api/problems", problemRoute);
@@ -93,6 +97,7 @@ app.use("/api/applications", applicationRoute);
 
 // AI Generator API
 app.use("/api/ai", aiGeneratorRoute);
+app.use("/api/subscription", subscriptionRoute);
 
 // ================= Health Check =================
 

@@ -32,6 +32,11 @@ import Sessions from "./pages/Sessions";
 import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
 import AdminJobs from "./pages/admin/Jobs";
+import Billing from "./pages/admin/Billing";
+import Pipeline from "./pages/admin/Pipeline";
+import AuditLog from "./pages/admin/AuditLog";
+import EmailTemplates from "./pages/admin/EmailTemplates";
+import SystemHealth from "./pages/admin/SystemHealth";
 
 // Candidate
 import CandidateDashboard from "./pages/candidate/Dashboard";
@@ -195,6 +200,31 @@ function App() {
           <Route
             path="jobs"
             element={<AdminJobs />}
+          />
+
+          <Route
+            path="billing"
+            element={<Billing />}
+          />
+
+          <Route
+            path="pipeline"
+            element={<Pipeline />}
+          />
+
+          <Route
+            path="audit-log"
+            element={<AuditLog />}
+          />
+
+          <Route
+            path="email-templates"
+            element={<EmailTemplates />}
+          />
+
+          <Route
+            path="system-health"
+            element={<SystemHealth />}
           />
         </Route>
 

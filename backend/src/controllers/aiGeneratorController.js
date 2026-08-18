@@ -85,6 +85,39 @@ async function verifyProblemAgainstItsOwnSolution(problem) {
 
 const RATE_LIMIT_CACHE = new Map();
 const RESPONSE_CACHE = new Map();
+
+// Simple in-memory counter for "AI generations made today", read by
+// Admin → System Health. Resets automatically whenever the calendar day
+// rolls over (checked lazily on each recordGeneration() call — no
+// scheduled job needed). In-memory means this resets on every server
+// restart/deploy, which is an acceptable trade-off for a lightweight
+// usage indicator; it's not meant to be a billing-grade counter.
+const GENERATION_STATS = { day: todayKey(), total: 0, fallback: 0 };
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function recordGeneration(result) {
+  const key = todayKey();
+  if (GENERATION_STATS.day !== key) {
+    GENERATION_STATS.day = key;
+    GENERATION_STATS.total = 0;
+    GENERATION_STATS.fallback = 0;
+  }
+  GENERATION_STATS.total += 1;
+  if (result?.fallback) GENERATION_STATS.fallback += 1;
+}
+
+// Read-only snapshot for the System Health controller — imported there
+// rather than duplicating this tracking logic.
+export function getGenerationStatsToday() {
+  const key = todayKey();
+  if (GENERATION_STATS.day !== key) {
+    return { day: key, total: 0, fallback: 0 };
+  }
+  return { ...GENERATION_STATS };
+}
 const REQUEST_QUEUE = [];
 let PROCESSING = false;
 const MAX_QUEUE = 50;
@@ -555,6 +588,7 @@ export const generateQuestions = async (req, res) => {
       }
     },
     resolve: (result) => {
+      recordGeneration(result);
       res.status(200).json(result);
     },
     reject: (error) => {

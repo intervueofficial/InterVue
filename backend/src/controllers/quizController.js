@@ -1,4 +1,5 @@
 import Quiz from "../models/Quiz.js";
+import { logAction } from "../lib/auditLog.js";
 
 // =======================================
 // Get All Quizzes
@@ -183,6 +184,14 @@ export const deleteQuiz = async (req, res) => {
     }
 
     await Quiz.findByIdAndDelete(req.params.id);
+
+    await logAction({
+      actor: req.user,
+      action: "quiz.deleted",
+      targetType: "Quiz",
+      targetId: existing._id,
+      metadata: { title: existing.title },
+    });
 
     return res.status(200).json({
       success: true,
