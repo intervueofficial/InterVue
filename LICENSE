@@ -1,21 +1,298 @@
-MIT License
+# INTERVUE PROPRIETARY SOURCE-AVAILABLE LICENSE
 
-Copyright (c) 2026 AlphaWare Private Limited
+**Version 1.0 — Effective August 20, 2026**
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+**Copyright © 2026 Blue Horizon. All Rights Reserved.**
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+**Product:** InterVue
+**Organization:** Blue Horizon
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+---
+
+## 1. DEFINITIONS
+
+For purposes of this License:
+
+**"Software"** means the InterVue software project and all associated source code, object code, binaries, documentation, configuration files, scripts, interfaces, APIs, designs, algorithms, database schemas, architecture, assets, and other materials distributed with or as part of the InterVue project.
+
+**"Copyright Holder"** means **Blue Horizon**, including its successors and permitted assigns.
+
+**"You"** or **"Your"** means any individual, organization, company, entity, or other party accessing or obtaining the Software.
+
+**"Commercial Use"** means any use intended to generate revenue, support a commercial operation, provide services to customers, operate a business, or otherwise obtain a commercial or financial benefit, whether directly or indirectly.
+
+**"Derivative Work"** means any work based upon, incorporating, adapting, modifying, translating, transforming, or otherwise substantially derived from the Software or any substantial portion of it.
+
+**"Authorized License"** means a separate written agreement executed by an authorized representative of Blue Horizon granting additional rights to use the Software.
+
+---
+
+## 2. OWNERSHIP
+
+The Software is proprietary software and constitutes intellectual property owned by or licensed to **Blue Horizon**.
+
+All rights, title, and interest in and to the Software, including all applicable copyrights, trade secrets, trademarks, designs, know-how, architecture, and other intellectual-property rights, are reserved by Blue Horizon and/or their respective owners.
+
+The Software is **licensed, not sold**.
+
+Nothing in this License transfers ownership of the Software or any intellectual-property rights from Blue Horizon to You.
+
+---
+
+## 3. LIMITED SOURCE-VIEWING PERMISSION
+
+Blue Horizon permits You to access and view the publicly available source code of the Software solely for:
+
+* Personal evaluation;
+* Educational study;
+* Technical assessment;
+* Security review conducted in good faith;
+* Understanding the architecture and implementation of the Software.
+
+This permission is limited, non-exclusive, non-transferable, revocable, and does not grant any ownership rights.
+
+**Viewing the source code does not grant permission to use the source code.**
+
+---
+
+## 4. RESTRICTIONS
+
+Except where expressly permitted by this License or by a separate written agreement with Blue Horizon, You may **not**:
+
+1. Use the Software for personal, organizational, commercial, or production purposes.
+2. Modify, edit, refactor, adapt, translate, or otherwise alter the Software.
+3. Create derivative works based on the Software.
+4. Copy or reproduce the Software or substantial portions of its source code.
+5. Redistribute, publish, transmit, mirror, or otherwise make the Software available to third parties.
+6. Sell, lease, rent, sublicense, assign, transfer, or otherwise commercialize the Software.
+7. Incorporate the Software or substantial portions of it into another software product or service.
+8. Use the Software to create or operate a competing product or service.
+9. Deploy or host the Software in a production environment.
+10. Offer the Software or functionality substantially derived from it as a hosted service, SaaS product, API service, cloud service, or similar service.
+11. Use the Software for commercial benchmarking, competitive analysis, or commercial research without written authorization.
+12. Remove, modify, obscure, or alter copyright, trademark, licensing, attribution, or proprietary notices.
+13. Publish modified or unmodified versions of the Software.
+14. Upload copies or substantial portions of the Software to another public or private repository for purposes other than permitted evaluation.
+15. Use the Software or its source code to train, fine-tune, evaluate, or develop a commercial artificial-intelligence or machine-learning model without written authorization.
+16. Circumvent, disable, bypass, or interfere with security mechanisms, access controls, license controls, or other technical restrictions associated with the Software.
+17. Represent that You are an authorized distributor, partner, representative, or affiliate of Blue Horizon without written authorization.
+18. Use the Software, its architecture, or substantial portions of its implementation to develop a substantially similar competing commercial product.
+
+---
+
+## 5. COMMERCIAL AND PRODUCTION USE
+
+No commercial or production rights are granted under this License.
+
+Any organization or individual wishing to:
+
+* Deploy InterVue;
+* Modify InterVue;
+* Integrate InterVue into another product;
+* Host InterVue;
+* Operate InterVue as a SaaS service;
+* Use InterVue commercially;
+* Provide InterVue to customers;
+* Resell or distribute InterVue;
+* Create an enterprise deployment;
+* Create derivative works; or
+* Obtain additional rights
+
+must obtain a **separate written commercial license or agreement from Blue Horizon**.
+
+The terms of such an agreement may grant specific rights, limitations, pricing, deployment conditions, support obligations, and other commercial terms.
+
+No commercial rights may be implied from access to the source code.
+
+---
+
+## 6. SOURCE CODE AVAILABILITY DOES NOT MEAN OPEN SOURCE
+
+The Software is **source-available but not open source**.
+
+The availability of the source code does not grant the permissions normally associated with open-source software licenses.
+
+This Software is not licensed under the MIT License, Apache License, GNU General Public License, BSD License, or any other open-source license unless Blue Horizon expressly states otherwise in writing.
+
+---
+
+## 7. INTELLECTUAL PROPERTY
+
+All intellectual-property rights associated with the Software remain reserved.
+
+This includes, without limitation:
+
+* Source code;
+* Software architecture;
+* System architecture;
+* Algorithms;
+* Database structures;
+* API designs;
+* User-interface designs;
+* User-experience designs;
+* Documentation;
+* Original graphics and assets;
+* Branding;
+* Product concepts;
+* Proprietary workflows;
+* Business logic;
+* Technical implementations;
+* Documentation and technical specifications.
+
+Nothing in this License grants You ownership or a license to any of the above except for the limited permission expressly stated in this License.
+
+---
+
+## 8. TRADEMARKS AND BRANDING
+
+**Blue Horizon** and **InterVue**, together with their respective names, logos, symbols, product names, visual identity, and associated branding, may constitute trademarks, service marks, trade names, or protected identifiers.
+
+This License does not grant permission to use any Blue Horizon or InterVue trademark, logo, brand identity, or trade dress.
+
+You may not represent that a project, product, service, company, or organization is affiliated with, sponsored by, endorsed by, or officially associated with Blue Horizon or InterVue without prior written authorization.
+
+---
+
+## 9. SECURITY RESEARCH
+
+Blue Horizon supports responsible security research.
+
+Good-faith security testing and responsible vulnerability disclosure are permitted where such activities are otherwise lawful and do not involve unauthorized access to systems, data, accounts, infrastructure, or services.
+
+Security researchers should report suspected vulnerabilities privately to the appropriate Blue Horizon security contact whenever such a contact has been provided.
+
+Nothing in this section authorizes unauthorized access, exploitation, data extraction, disruption, or circumvention of security controls.
+
+---
+
+## 10. THIRD-PARTY SOFTWARE
+
+The Software may include or depend upon third-party libraries, frameworks, packages, services, or other components that are distributed under their own licenses.
+
+Nothing in this License modifies or overrides the terms of those third-party licenses.
+
+Where applicable, You are responsible for complying with the licenses governing third-party components.
+
+The proprietary rights described in this License apply to the portions of the Software owned or controlled by Blue Horizon.
+
+---
+
+## 11. CONTRIBUTIONS
+
+Unless otherwise agreed in writing, submitting source code, documentation, designs, fixes, features, or other material to the InterVue project does not automatically transfer ownership of such material to Blue Horizon.
+
+Blue Horizon may require contributors to execute a separate **Contributor License Agreement (CLA)**, intellectual-property assignment, or other agreement before accepting contributions.
+
+Contributors must not knowingly submit material that they do not have the legal right to contribute.
+
+---
+
+## 12. CONFIDENTIALITY
+
+Source code or other materials identified as confidential by Blue Horizon must not be disclosed to third parties except where expressly authorized in writing or required by applicable law.
+
+Public availability of a particular portion of the Software does not automatically make separately provided confidential materials public.
+
+---
+
+## 13. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED **"AS IS"** AND **"AS AVAILABLE"**, WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW.
+
+BLUE HORIZON DISCLAIMS ALL WARRANTIES INCLUDING, WITHOUT LIMITATION, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, ACCURACY, RELIABILITY, AVAILABILITY, AND SECURITY.
+
+BLUE HORIZON DOES NOT WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE, UNINTERRUPTED, SECURE, OR SUITABLE FOR ANY PARTICULAR PURPOSE.
+
+---
+
+## 14. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, BLUE HORIZON AND ITS FOUNDERS, DIRECTORS, OFFICERS, EMPLOYEES, CONTRIBUTORS, AFFILIATES, LICENSORS, AND REPRESENTATIVES SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATING TO THE SOFTWARE OR THIS LICENSE.
+
+THIS INCLUDES, WITHOUT LIMITATION, LOSS OF PROFITS, REVENUE, BUSINESS OPPORTUNITIES, DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES.
+
+---
+
+## 15. TERMINATION
+
+Any rights granted under this License automatically terminate upon Your material violation of its terms.
+
+Upon termination, You must immediately:
+
+1. Cease all activities that are no longer authorized;
+2. Stop using the Software;
+3. Stop distributing or making the Software available;
+4. Remove unauthorized copies under Your control where legally required; and
+5. Comply with any additional lawful requirements resulting from the termination.
+
+Termination does not limit any other rights or remedies available to Blue Horizon under applicable law.
+
+---
+
+## 16. NO IMPLIED RIGHTS
+
+Except for the limited source-viewing permission expressly granted under Section 3, no rights are granted by implication, estoppel, exhaustion, or otherwise.
+
+No patent, copyright, trademark, trade-secret, or other intellectual-property license is granted except as expressly stated.
+
+---
+
+## 17. COMPLIANCE WITH LAW
+
+You must comply with all applicable laws and regulations when accessing or interacting with the Software.
+
+Nothing in this License grants permission to perform any activity prohibited by applicable law.
+
+---
+
+## 18. GOVERNING LAW
+
+This License shall be interpreted and enforced in accordance with the laws applicable to the legal entity owning the Software, subject to any mandatory provisions of applicable law.
+
+Where Blue Horizon enters into a separate written commercial agreement with a customer, the governing-law and jurisdiction provisions of that agreement shall control for that customer.
+
+---
+
+## 19. CHANGES TO THE LICENSE
+
+Blue Horizon may publish updated versions of this License for future releases of the Software.
+
+Unless expressly stated otherwise, each released version of the Software will remain subject to the version of the License accompanying that release.
+
+A later version of this License does not automatically alter the rights granted under an earlier version unless expressly agreed in writing.
+
+---
+
+## 20. ENTIRE AGREEMENT
+
+This License constitutes the complete agreement concerning the permissions granted to the Software under this License.
+
+Any additional rights must be granted through a separate written agreement authorized by Blue Horizon.
+
+Where a separate commercial agreement exists, the terms of that agreement shall govern the rights specifically granted under that agreement.
+
+---
+
+## 21. CONTACT AND COMMERCIAL LICENSING
+
+For commercial licensing, enterprise deployment, partnerships, integrations, permissions, or other licensing inquiries, contact an authorized representative of Blue Horizon.
+
+**Organization:** Blue Horizon
+**Product:** InterVue
+**License:** InterVue Proprietary Source-Available License v1.0
+
+---
+
+# COPYRIGHT NOTICE
+
+**Copyright © 2026 Blue Horizon. All Rights Reserved.**
+
+InterVue is proprietary software developed and owned by Blue Horizon.
+
+Unauthorized use, modification, reproduction, distribution, deployment, hosting, commercialization, or creation of derivative works is prohibited except where expressly authorized in writing by Blue Horizon.
+
+**Viewing the source code does not grant a license to use the Software.**
+
+---
+
+**Copyright © 2026 Blue Horizon. All Rights Reserved.**
