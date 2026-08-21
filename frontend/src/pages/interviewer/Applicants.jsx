@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye, RefreshCw, ArrowUpDown } from "lucide-react";
 
 import { jobApi } from "../../api/jobApi";
 import { applicationApi } from "../../api/applicationApi";
@@ -23,12 +23,77 @@ const STATUS_BADGE = {
 // it is for "I want it right now" instead of waiting out the interval.
 const AUTO_REFRESH_MS = 15000;
 
+// Every sort option an interviewer could reasonably need when there are
+// hundreds of applicants and no time to open each profile individually.
+// Not-eligible candidates are always sunk to the bottom regardless of
+// the chosen sort — they already failed the automated screening, so
+// they shouldn't compete with eligible candidates for the top slots.
+const SORT_OPTIONS = [
+  {
+    value: "experience_desc",
+    label: "Most Experienced",
+    compare: (a, b) =>
+      (b.profileSnapshot?.experienceYears ?? -1) - (a.profileSnapshot?.experienceYears ?? -1),
+  },
+  {
+    value: "experience_asc",
+    label: "Least Experienced",
+    compare: (a, b) =>
+      (a.profileSnapshot?.experienceYears ?? 999) - (b.profileSnapshot?.experienceYears ?? 999),
+  },
+  {
+    value: "skill_match_desc",
+    label: "Best Skill Match",
+    compare: (a, b) => (b.skillMatchCount ?? 0) - (a.skillMatchCount ?? 0),
+  },
+  {
+    value: "skills_count_desc",
+    label: "Most Skills Listed",
+    compare: (a, b) =>
+      (b.profileSnapshot?.skills?.length ?? 0) - (a.profileSnapshot?.skills?.length ?? 0),
+  },
+  {
+    value: "grad_year_desc",
+    label: "Most Recent Graduate",
+    compare: (a, b) =>
+      (b.profileSnapshot?.yearOfGraduation ?? -Infinity) -
+      (a.profileSnapshot?.yearOfGraduation ?? -Infinity),
+  },
+  {
+    value: "newest",
+    label: "Newest Applied",
+    compare: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  },
+  {
+    value: "oldest",
+    label: "Oldest Applied",
+    compare: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+  },
+  {
+    value: "name_asc",
+    label: "Name (A–Z)",
+    compare: (a, b) => (a.candidate?.name || "").localeCompare(b.candidate?.name || ""),
+  },
+];
+
+function sortApplications(applications, sortKey) {
+  const option = SORT_OPTIONS.find((o) => o.value === sortKey) || SORT_OPTIONS[0];
+
+  return [...applications].sort((a, b) => {
+    // Eligible candidates always sit above not-eligible ones, no matter
+    // which field the interviewer is sorting by.
+    if (a.isEligible !== b.isEligible) return a.isEligible ? -1 : 1;
+    return option.compare(a, b);
+  });
+}
+
 const Applicants = () => {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState("");
   const [actingOn, setActingOn] = useState(null);
   const [viewingApplication, setViewingApplication] = useState(null);
+  const [sortKey, setSortKey] = useState("experience_desc");
 
   // Interviewers see all jobs (open + closed) so they can review past postings too
   const { data: jobsData } = useQuery({
@@ -62,6 +127,11 @@ const Applicants = () => {
   });
 
   const applications = appsData?.applications || [];
+
+  const sortedApplications = useMemo(
+    () => sortApplications(applications, sortKey),
+    [applications, sortKey]
+  );
 
   // Toast when a background poll (not the very first load, not a manual
   // click) reveals more applicants than we last had, so the interviewer
@@ -158,6 +228,23 @@ const Applicants = () => {
           {isFetching ? "Refreshing..." : "Refresh"}
         </button>
 
+        <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 ml-2">
+          <ArrowUpDown size={14} className="text-slate-400" />
+          Sort:
+        </label>
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value)}
+          className="rounded-xl border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[190px]"
+          title="Sort applicants so the strongest candidates surface first — no need to open every profile"
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
         <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-auto">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -189,7 +276,7 @@ const Applicants = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {applications.map((app) => (
+              {sortedApplications.map((app) => (
                 <tr key={app._id} className="hover:bg-slate-50/50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -220,6 +307,11 @@ const Applicants = () => {
                     {app.profileSnapshot?.experienceYears} yrs
                   </td>
                   <td className="px-6 py-4">
+                    {app.totalRequiredSkills > 0 && (
+                      <div className="text-[11px] font-semibold text-emerald-600 mb-1">
+                        {app.skillMatchCount}/{app.totalRequiredSkills} required skills matched
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-1 max-w-[220px]">
                       {(app.profileSnapshot?.skills || []).map((s, i) => (
                         <span key={i} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">

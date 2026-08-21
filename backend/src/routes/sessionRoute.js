@@ -9,6 +9,7 @@ import {
   endSession,
   getActiveSessions,
   getMyRecentSessions,
+  getSessionHistory,
   getSessionById,
   joinSession,
   pushProblem,
@@ -49,6 +50,15 @@ router.get(
   "/my-recent",
   protectRoute,
   getMyRecentSessions
+);
+
+// Must be registered before "/:id" — otherwise "/history" would be
+// swallowed by the ":id" param route below.
+router.get(
+  "/history",
+  protectRoute,
+  requireRole("admin", "interviewer"),
+  getSessionHistory
 );
 
 router.get(

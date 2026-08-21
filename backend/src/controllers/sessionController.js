@@ -2,7 +2,9 @@ import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
 import Problem from "../models/Problem.js";
 import Quiz from "../models/Quiz.js";
+import Application from "../models/Application.js";
 import { gradeAgainstTestCases } from "../lib/judge.js";
+import { scoreToRating } from "../utils/ratingScale.js";
 
 export async function createSession(req, res) {
   try {
@@ -159,6 +161,93 @@ export async function getMyRecentSessions(req, res) {
   } catch (error) {
     console.log("Error in getMyRecentSessions controller:", error.message);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+// ==========================
+// Interviewer/Admin: History page
+// A table of every completed interview session with the candidate's
+// profile snapshot and the AI performance report for that session
+// (ratings only — never raw percentages — plus a link to download the
+// full PDF). Interviewers only see sessions they ran; admins see every
+// session on the platform.
+// ==========================
+export async function getSessionHistory(req, res) {
+  try {
+    const { role, _id } = req.user;
+
+    const scopeFilter = role === "admin" ? {} : { interviewer: _id };
+
+    const sessions = await Session.find({
+      status: "completed",
+      ...scopeFilter,
+    })
+      .populate("candidate", "name email profileImage candidateProfile")
+      .populate("interviewer", "name email")
+      .populate("activeProblem", "title difficulty")
+      .populate("activeQuiz", "title")
+      .select("-performanceReport.pdfBase64")
+      .sort({ updatedAt: -1 })
+      .limit(200);
+
+    const sessionIds = sessions.map((s) => s._id);
+
+    // Applications carry the job title, the final hire/reject decision,
+    // and the profile snapshot taken at application time (preferred
+    // over the candidate's live profile, which may have changed since).
+    const applications = await Application.find({ session: { $in: sessionIds } })
+      .populate("job", "title")
+      .select("session job finalDecision profileSnapshot feedback decidedAt");
+
+    const applicationBySession = new Map(
+      applications.map((a) => [a.session.toString(), a])
+    );
+
+    const history = sessions.map((session) => {
+      const application = applicationBySession.get(session._id.toString());
+      const report = session.performanceReport || {};
+
+      const codingResultPct =
+        session.codeResult?.total > 0
+          ? Math.round((session.codeResult.passed / session.codeResult.total) * 100)
+          : null;
+
+      const quizResultPct =
+        session.quizResult?.total > 0
+          ? Math.round((session.quizResult.score / session.quizResult.total) * 100)
+          : null;
+
+      return {
+        _id: session._id,
+        title: session.title,
+        scheduledAt: session.scheduledAt,
+        completedAt: session.updatedAt,
+        candidate: session.candidate,
+        interviewer: session.interviewer,
+        jobTitle: application?.job?.title || null,
+        finalDecision: application?.finalDecision || null,
+        profile: application?.profileSnapshot || session.candidate?.candidateProfile || null,
+        problem: session.activeProblem,
+        quiz: session.activeQuiz,
+        codingRating: scoreToRating(codingResultPct),
+        quizRating: scoreToRating(quizResultPct),
+        performanceReport: report.generatedAt
+          ? {
+              generatedAt: report.generatedAt,
+              codingRating: scoreToRating(report.codingScore),
+              quizRating: scoreToRating(report.quizScore),
+              confidenceRating: scoreToRating(report.confidenceScore),
+              summary: report.summary,
+              interviewerComment: report.interviewerComment,
+            }
+          : null,
+      };
+    });
+
+    return res.json({ success: true, history });
+  } catch (error) {
+    console.log("Error in getSessionHistory controller:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 }
 

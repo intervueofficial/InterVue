@@ -26,6 +26,7 @@ import applicationRoute from "./routes/applicationRoute.js";
 import aiGeneratorRoute from "./routes/aiGeneratorRoute.js";
 import adminModulesRoute from "./routes/adminModulesRoute.js";
 import subscriptionRoute from "./routes/subscriptionRoute.js";
+import identityRoute from "./routes/identityRoute.js";
 
 const app = express();
 const __dirname = path.resolve();
@@ -98,6 +99,9 @@ app.use("/api/applications", applicationRoute);
 // AI Generator API
 app.use("/api/ai", aiGeneratorRoute);
 app.use("/api/subscription", subscriptionRoute);
+
+// Identity Verification (DigiLocker) — duplicate-account prevention
+app.use("/api/identity", identityRoute);
 
 // ================= Health Check =================
 

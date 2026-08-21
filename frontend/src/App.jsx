@@ -37,6 +37,7 @@ import Pipeline from "./pages/admin/Pipeline";
 import AuditLog from "./pages/admin/AuditLog";
 import EmailTemplates from "./pages/admin/EmailTemplates";
 import SystemHealth from "./pages/admin/SystemHealth";
+import AdminHistory from "./pages/admin/History";
 
 // Candidate
 import CandidateDashboard from "./pages/candidate/Dashboard";
@@ -44,10 +45,12 @@ import MyInterviews from "./pages/candidate/MyInterviews";
 import Results from "./pages/candidate/Results";
 import CandidateJobs from "./pages/candidate/Jobs";
 import CandidateProfile from "./pages/candidate/Profile";
+import MockDigiLocker from "./pages/MockDigiLocker";
 
 // Interviewer (job applicants)
 import Applicants from "./pages/interviewer/Applicants";
 import Waitlist from "./pages/interviewer/Waitlist";
+import InterviewerHistory from "./pages/interviewer/History";
 
 function App() {
   const { isLoaded, isSignedIn } = useUser();
@@ -130,6 +133,15 @@ function App() {
           }
         />
 
+        {/* Mock DigiLocker consent screen — only reachable when the
+            backend has DIGILOCKER_MOCK_MODE=true (see
+            backend/IDENTITY_VERIFICATION_SETUP.md). Requires being
+            signed in, same as every other authenticated page. */}
+        <Route
+          path="/mock-digilocker"
+          element={isSignedIn ? <MockDigiLocker /> : <Navigate replace to="/sign-in" />}
+        />
+
         {/* Mock Interview — in production, /bot is proxied at the Vercel
             edge (see vercel.json) to a separately-deployed bot app;
             that rewrite only fires on a genuine full-page navigation,
@@ -185,6 +197,11 @@ function App() {
           <Route
             path="sessions"
             element={<Sessions />}
+          />
+
+          <Route
+            path="history"
+            element={<AdminHistory />}
           />
 
           <Route
@@ -289,6 +306,15 @@ function App() {
           element={
             role === "interviewer"
               ? <Applicants />
+              : <Navigate replace to={dashboard} />
+          }
+        />
+
+        <Route
+          path="/history"
+          element={
+            role === "interviewer"
+              ? <InterviewerHistory />
               : <Navigate replace to={dashboard} />
           }
         />

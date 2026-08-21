@@ -1,13 +1,25 @@
 import PDFDocument from "pdfkit";
+import { scoreToRating } from "./ratingScale.js";
+
+const RATING_COLOR = {
+  Excellent: "#059669",
+  Best: "#16A34A",
+  Better: "#D97706",
+  Good: "#EA580C",
+  Worst: "#DC2626",
+  "Not Rated": "#6b7280",
+};
 
 function scoreLine(doc, label, value) {
+  const rating = scoreToRating(value);
+
   doc.fontSize(11).fillColor("#374151").font("Helvetica-Bold").text(`${label}: `, {
     continued: true,
   });
   doc
-    .font("Helvetica")
-    .fillColor("#111827")
-    .text(value !== null && value !== undefined ? `${value}%` : "Not recorded");
+    .font("Helvetica-Bold")
+    .fillColor(RATING_COLOR[rating] || "#111827")
+    .text(rating);
 }
 
 function section(doc, title, content) {
@@ -24,8 +36,13 @@ function section(doc, title, content) {
 
 /**
  * Builds a performance-report PDF as a Buffer, combining objective
- * session data (coding/quiz/confidence scores) with an AI-generated
- * narrative and the interviewer's own comments.
+ * session data (coding/quiz/confidence, shown as plain-language
+ * ratings rather than raw percentages) with an AI-generated narrative
+ * and the interviewer's own comments.
+ *
+ * This report is no longer emailed to candidates — it's generated and
+ * stored on the session for interviewers/admins to review from the
+ * History page.
  */
 export function generatePerformancePdf({
   candidateName,
@@ -64,8 +81,8 @@ export function generatePerformancePdf({
       doc.text(`Date: ${interviewDate}`);
       doc.moveDown(1);
 
-      // Scores
-      doc.fontSize(13).fillColor("#111827").font("Helvetica-Bold").text("Scores");
+      // Ratings
+      doc.fontSize(13).fillColor("#111827").font("Helvetica-Bold").text("Ratings");
       doc.moveDown(0.3);
       scoreLine(doc, "Coding Skills", codingScore);
       scoreLine(doc, "Quiz Accuracy", quizScore);
@@ -86,7 +103,7 @@ export function generatePerformancePdf({
         .fontSize(9)
         .fillColor("#9ca3af")
         .text(
-          "This report combines objective session data (test results, quiz score, and session engagement signals) with an AI-generated narrative summary and the interviewer's own comments. It is intended as constructive feedback, not a certified assessment.",
+          "Ratings (Worst / Good / Better / Best / Excellent) combine objective session data (test results, quiz score, and session engagement signals) with an AI-generated narrative summary and the interviewer's own comments. This report is intended as constructive feedback, not a certified assessment.",
           { align: "left" }
         );
 

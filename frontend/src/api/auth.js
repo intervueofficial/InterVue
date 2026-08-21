@@ -60,3 +60,37 @@ export const authApi = {
     return data;
   },
 };
+
+// =======================================
+// Identity Verification (DigiLocker) — see backend/IDENTITY_VERIFICATION_SETUP.md
+// =======================================
+export const identityApi = {
+  async getStatus(token) {
+    const { data } = await axios.get("/identity/status", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  // Returns { redirectUrl } — the caller should navigate the browser
+  // there (window.location.href = redirectUrl) since DigiLocker needs a
+  // full-page redirect, not an XHR.
+  async startVerification(token) {
+    const { data } = await axios.get("/identity/verify/start", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  // Mock consent flow (DIGILOCKER_MOCK_MODE=true on the server) — used
+  // by frontend/src/pages/MockDigiLocker.jsx in place of a real
+  // DigiLocker OAuth round-trip.
+  async submitMockVerification({ name, dob, aadhaarNumber }, token) {
+    const { data } = await axios.post(
+      "/identity/verify/mock-submit",
+      { name, dob, aadhaarNumber },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return data;
+  },
+};

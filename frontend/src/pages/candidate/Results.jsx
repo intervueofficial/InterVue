@@ -17,8 +17,10 @@ import { useMyRecentSessions } from "../../hooks/useSessions";
 import { sessionApi } from "../../api/sessions";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
+import RatingBadge from "../../components/RatingBadge";
 import StatCard from "../admin/StatCard";
 import { THEME, DIFFICULTY } from "../../constants/theme";
+import { scoreToRating } from "../../utils/rating";
 
 function DifficultyBadge({ difficulty }) {
   const d = DIFFICULTY[difficulty?.toLowerCase()] || DIFFICULTY.medium;
@@ -78,25 +80,10 @@ function PerformanceReportSection({ session }) {
   const report = session.performanceReport;
   if (!report?.generatedAt) return null;
 
-  const scoreBar = (label, value) => (
-    <div>
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span style={{ color: THEME.inkMuted }}>{label}</span>
-        <span className="font-semibold" style={{ color: THEME.ink }}>
-          {value !== null && value !== undefined ? `${value}%` : "N/A"}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: THEME.border }}>
-        {value !== null && value !== undefined && (
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${value}%`,
-              background: value >= 70 ? THEME.success : value >= 40 ? THEME.warning : THEME.danger,
-            }}
-          />
-        )}
-      </div>
+  const ratingRow = (label, value) => (
+    <div className="flex items-center justify-between">
+      <span className="text-xs" style={{ color: THEME.inkMuted }}>{label}</span>
+      <RatingBadge rating={scoreToRating(value)} size="sm" />
     </div>
   );
 
@@ -116,10 +103,10 @@ function PerformanceReportSection({ session }) {
         {report.summary}
       </p>
 
-      <div className="grid grid-cols-3 gap-3 mb-3">
-        {scoreBar("Coding", report.codingScore)}
-        {scoreBar("Quiz", report.quizScore)}
-        {scoreBar("Confidence", report.confidenceScore)}
+      <div className="grid grid-cols-1 gap-2 mb-3">
+        {ratingRow("Coding", report.codingScore)}
+        {ratingRow("Quiz", report.quizScore)}
+        {ratingRow("Confidence", report.confidenceScore)}
       </div>
 
       <DownloadReportButton sessionId={session._id} />

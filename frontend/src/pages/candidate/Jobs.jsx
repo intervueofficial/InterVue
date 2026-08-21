@@ -20,6 +20,7 @@ import {
 
 import { jobApi } from "../../api/jobApi";
 import { applicationApi } from "../../api/applicationApi";
+import { identityApi } from "../../api/auth";
 import useAuthUser from "../../hooks/useAuthUser";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
@@ -155,8 +156,10 @@ const EligibilityModal = ({ result, onClose }) => {
 };
 
 /* ─── Job details modal ──────────────────────────────────────────────────── */
-const JobDetailsModal = ({ job, onClose, profileComplete, onApply, isApplying }) => {
+const JobDetailsModal = ({ job, onClose, profileComplete, identityRequired, onApply, isApplying }) => {
   if (!job) return null;
+
+  const canApply = profileComplete && !identityRequired;
 
   const status = job.applicationStatus;
   const criteria = job.criteria || {};
@@ -346,12 +349,17 @@ const JobDetailsModal = ({ job, onClose, profileComplete, onApply, isApplying })
               </button>
             ) : (
               <button
-                disabled={!profileComplete || isApplying}
+                disabled={!canApply || isApplying}
                 onClick={onApply}
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: THEME.ink, color: THEME.surface }}
                 onMouseEnter={(e) => !isApplying && (e.currentTarget.style.opacity = "0.88")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                title={
+                  identityRequired
+                    ? "Verify your identity via DigiLocker in your Profile before applying"
+                    : undefined
+                }
               >
                 {isApplying ? <Loader2 className="animate-spin" size={14} /> : null}
                 {isApplying ? "Applying" : "Apply for this role"}
@@ -421,8 +429,9 @@ function EmptyState() {
 }
 
 /* ─── Single job row ─────────────────────────────────────────────────────── */
-function JobRow({ job, profileComplete, onApply, isApplying, onOpenDetails }) {
+function JobRow({ job, profileComplete, identityRequired, onApply, isApplying, onOpenDetails }) {
   const status = job.applicationStatus;
+  const canApply = profileComplete && !identityRequired;
 
   return (
     <div
@@ -491,7 +500,7 @@ function JobRow({ job, profileComplete, onApply, isApplying, onOpenDetails }) {
         <div className="flex-shrink-0 md:pt-0.5">
           {job.hasApplied ? null : (
             <button
-              disabled={!profileComplete || isApplying}
+              disabled={!canApply || isApplying}
               onClick={(e) => {
                 e.stopPropagation();
                 onApply();
@@ -524,8 +533,18 @@ const CandidateJobs = () => {
     queryFn: async () => jobApi.getOpenJobs(await getToken()),
   });
 
+  const { data: identityStatus } = useQuery({
+    queryKey: ["identity-status"],
+    queryFn: async () => identityApi.getStatus(await getToken()),
+  });
+
   const jobs = data?.jobs || [];
   const profileComplete = authUser?.candidateProfile?.isComplete;
+  // Only actually blocks applying once the server has identity
+  // verification turned on (REQUIRE_IDENTITY_VERIFICATION=true) — see
+  // backend/IDENTITY_VERIFICATION_SETUP.md.
+  const identityRequired =
+    Boolean(identityStatus?.required) && !identityStatus?.verification?.verified;
   const selectedJob = jobs.find((j) => j._id === selectedJobId) || null;
 
   const applyMutation = useMutation({
@@ -569,6 +588,25 @@ const CandidateJobs = () => {
           </div>
         )}
 
+        {profileComplete && identityRequired && (
+          <div
+            className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-4"
+            style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
+          >
+            <div className="flex items-center gap-2.5 text-sm" style={{ color: "#92400E" }}>
+              <AlertCircle size={16} />
+              <span>Verify your identity via DigiLocker before applying to a role.</span>
+            </div>
+            <Link
+              to="/candidate/profile"
+              className="text-sm font-semibold whitespace-nowrap"
+              style={{ color: "#92400E" }}
+            >
+              Verify Identity
+            </Link>
+          </div>
+        )}
+
         {!isLoading && jobs.length > 0 && (
           <div className="flex items-center gap-2 text-sm" style={{ color: THEME.inkFaint }}>
             <span className="font-semibold" style={{ color: THEME.ink }}>{jobs.length}</span>
@@ -593,6 +631,7 @@ const CandidateJobs = () => {
                 key={job._id}
                 job={job}
                 profileComplete={profileComplete}
+                identityRequired={identityRequired}
                 isApplying={applyMutation.isPending && applyMutation.variables === job._id}
                 onApply={() => applyMutation.mutate(job._id)}
                 onOpenDetails={() => setSelectedJobId(job._id)}
@@ -606,6 +645,7 @@ const CandidateJobs = () => {
         job={selectedJob}
         onClose={() => setSelectedJobId(null)}
         profileComplete={profileComplete}
+        identityRequired={identityRequired}
         isApplying={applyMutation.isPending && applyMutation.variables === selectedJobId}
         onApply={() => selectedJobId && applyMutation.mutate(selectedJobId)}
       />

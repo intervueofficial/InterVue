@@ -35,6 +35,19 @@ export async function applyToJob(req, res) {
       });
     }
 
+    // Duplicate-account guard: once enabled (REQUIRE_IDENTITY_VERIFICATION=true
+    // after DigiLocker is configured — see IDENTITY_VERIFICATION_SETUP.md),
+    // a candidate must verify their identity once via DigiLocker before
+    // their first job application. Off by default so the app keeps
+    // working before that's set up.
+    if (ENV.REQUIRE_IDENTITY_VERIFICATION && !req.user.identityVerification?.verified) {
+      return res.status(403).json({
+        success: false,
+        code: "IDENTITY_NOT_VERIFIED",
+        message: "Please verify your identity via DigiLocker before applying to jobs.",
+      });
+    }
+
     const existing = await Application.findOne({
       job: jobId,
       candidate: req.user._id,
@@ -106,11 +119,36 @@ export async function getApplicantsForJob(req, res) {
   try {
     const { jobId } = req.params;
 
+    const job = await Job.findById(jobId).select("requiredSkills");
+    const requiredSkills = (job?.requiredSkills || []).map((s) => s.toLowerCase().trim());
+
     const applications = await Application.find({ job: jobId })
       .populate("candidate", "name email profileImage candidateProfile")
-      .sort({ isEligible: -1, createdAt: 1 });
+      // Default sort: eligible candidates first, then most experienced
+      // first — with 500+ applicants an interviewer shouldn't have to
+      // scroll/open each one just to find the strongest candidates.
+      // Frontend still exposes other sort options on top of this.
+      .sort({ isEligible: -1, "profileSnapshot.experienceYears": -1, createdAt: 1 });
 
-    return res.json({ success: true, applications });
+    // Attach a computed skill-match count (how many of the job's
+    // required skills this candidate's profile lists) so the frontend
+    // can offer "Best Skill Match" as a sort option without every
+    // client having to recompute the intersection itself.
+    const applicationsWithMatch = applications.map((app) => {
+      const candidateSkills = (app.profileSnapshot?.skills || []).map((s) =>
+        s.toLowerCase().trim()
+      );
+      const skillMatchCount = requiredSkills.length
+        ? requiredSkills.filter((s) => candidateSkills.includes(s)).length
+        : 0;
+
+      const obj = app.toObject();
+      obj.skillMatchCount = skillMatchCount;
+      obj.totalRequiredSkills = requiredSkills.length;
+      return obj;
+    });
+
+    return res.json({ success: true, applications: applicationsWithMatch });
   } catch (error) {
     console.error("getApplicantsForJob:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -254,15 +292,19 @@ export async function getApplicationBySession(req, res) {
  * Builds the AI performance report for a decided application (hired or
  * rejected only) from real session data — quiz score, code-grading
  * result, and proctoring attention flags — plus the interviewer's own
- * feedback. Saves the PDF + narrative onto the Session document and
- * returns a Resend-ready attachment object.
+ * feedback. Saves the PDF + narrative onto the Session document so it
+ * shows up in the History page (Interviewer/Admin only).
+ *
+ * NOTE: this report is intentionally never emailed to the candidate —
+ * it's generated purely for the internal record kept on the Session
+ * and surfaced via the History table + PDF download there.
  *
  * Deliberately non-blocking: any failure here (AI provider down, no
  * linked session, pdf generation error) is logged and swallowed so the
- * hire/reject decision + email still goes through without an attachment
+ * hire/reject decision + email still goes through without interruption
  * rather than failing the whole request.
  */
-async function generateAndAttachPerformanceReport(application, feedback) {
+async function generatePerformanceReport(application, feedback) {
   try {
     if (!application.session) return null;
 
@@ -334,12 +376,9 @@ async function generateAndAttachPerformanceReport(application, feedback) {
 
     await session.save();
 
-    return {
-      filename: `${(candidate?.name || "candidate").replace(/\s+/g, "-")}-Performance-Report.pdf`,
-      content: pdfBase64,
-    };
+    return session.performanceReport;
   } catch (error) {
-    console.error("generateAndAttachPerformanceReport:", error.message);
+    console.error("generatePerformanceReport:", error.message);
     return null;
   }
 }
@@ -377,30 +416,24 @@ export async function submitDecision(req, res) {
     await application.save();
 
     if (decision === "hired") {
-      const reportAttachment = await generateAndAttachPerformanceReport(
-        application,
-        feedback
-      );
+      // Generated for the internal History record only — never emailed
+      // to the candidate. See generatePerformanceReport() above.
+      await generatePerformanceReport(application, feedback);
 
       await sendHiredEmail({
         to: application.candidate.email,
         name: application.candidate.name,
         jobTitle: application.job.title,
         feedback: feedback || "",
-        reportAttachment,
       });
     } else if (decision === "rejected") {
-      const reportAttachment = await generateAndAttachPerformanceReport(
-        application,
-        feedback
-      );
+      await generatePerformanceReport(application, feedback);
 
       await sendRejectionEmail({
         to: application.candidate.email,
         name: application.candidate.name,
         jobTitle: application.job.title,
         feedback: feedback || "",
-        reportAttachment,
       });
     }
     // "waitlisted" -> no email, no report generated yet — candidate just

@@ -28,6 +28,15 @@ export const sessionApi = {
     return response.data;
   },
 
+  getHistory: async (token) => {
+    const response = await axiosInstance.get("/sessions/history", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
   getSessionById: async (id, token) => {
     const response = await axiosInstance.get(`/sessions/${id}`, {
       headers: {

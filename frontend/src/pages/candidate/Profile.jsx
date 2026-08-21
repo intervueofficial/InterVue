@@ -24,6 +24,7 @@ import useAuthUser from "../../hooks/useAuthUser";
 import { authApi } from "../../api/auth";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
+import IdentityVerificationCard from "../../components/IdentityVerificationCard";
 import { THEME } from "../../constants/theme";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -423,6 +424,9 @@ const Profile = () => {
             </p>
           )}
         </motion.div>
+
+        {/* Duplicate-account prevention */}
+        <IdentityVerificationCard index={0.5} />
 
         {/* Contact & Education */}
         <SectionCard

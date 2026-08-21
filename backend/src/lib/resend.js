@@ -185,7 +185,6 @@ export async function sendRejectionEmail({
   name,
   jobTitle,
   feedback,
-  reportAttachment,
 }) {
   const template = await getTemplate("candidate_rejected");
   const data = { candidateName: name, jobTitle };
@@ -267,7 +266,6 @@ ${feedback}
 </body>
 </html>
 `,
-    attachments: reportAttachment ? [reportAttachment] : undefined,
   });
 }
 
@@ -276,7 +274,6 @@ export async function sendHiredEmail({
   name,
   jobTitle,
   feedback,
-  reportAttachment,
 }) {
   const template = await getTemplate("candidate_hired");
   const data = { candidateName: name, jobTitle };
@@ -358,6 +355,5 @@ ${feedback}
 </body>
 </html>
 `,
-    attachments: reportAttachment ? [reportAttachment] : undefined,
   });
 }
