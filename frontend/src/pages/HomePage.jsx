@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {SignInButton,SignUpButton,} from "@clerk/clerk-react";
 
@@ -48,6 +49,7 @@ const Icon = {
   ),
 };
 
+/* ─── BRAND LOGOS for marquee ─── */
 const BRAND_LOGOS = [
   { name: "Stripe", svg: <svg height="20" viewBox="0 0 60 25" fill="none"><path d="M27.16 10.07c0-1.1.9-1.52 2.39-1.52 2.14 0 4.84.65 6.98 1.8V4.28C34.28 3.4 32.1 3 29.55 3c-5.37 0-8.95 2.8-8.95 7.47 0 7.28 10.04 6.12 10.04 9.26 0 1.3-1.13 1.72-2.71 1.72-2.35 0-5.35-.97-7.72-2.28v6.18C22.73 26.24 25.2 27 27.84 27c5.51 0 9.3-2.72 9.3-7.47-.02-7.87-10.08-6.46-9.98-9.46zM0 27.58l6.97-1.5V3.95L0 5.45v22.13zM47.64 3.93l-4.42 1-.02 17.67c0 3.27 2.45 5.4 5.72 5.4 1.81 0 3.13-.33 3.86-.72v-5.18c-.7.28-4.16.65-4.16-1.97V10.4h4.16V4.95h-4.16l.02-1.02zM56 9.43v18.15H63V3.95L56 5.63V9.43z" fill="#635BFF"/></svg> },
   { name: "Figma", svg: <svg height="20" viewBox="0 0 38 56" fill="none"><path d="M19 28a9 9 0 1 1 18 0 9 9 0 0 1-18 0z" fill="#1ABCFE"/><path d="M1 46a9 9 0 0 1 9-9h9v9a9 9 0 0 1-18 0z" fill="#0ACF83"/><path d="M19 1v18h9a9 9 0 0 0 0-18h-9z" fill="#FF7262"/><path d="M1 10a9 9 0 0 0 9 9h9V1H10A9 9 0 0 0 1 10z" fill="#F24E1E"/><path d="M1 28a9 9 0 0 0 9 9h9V19H10a9 9 0 0 0-9 9z" fill="#A259FF"/></svg> },
@@ -58,6 +60,26 @@ const BRAND_LOGOS = [
   { name: "GitHub", svg: <svg height="20" viewBox="0 0 24 24" fill="#24292e"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg> },
   { name: "Shopify", svg: <svg height="20" viewBox="0 0 256 292"><path d="M223.773 55.2c-.22-1.626-1.626-2.494-2.713-2.604-1.087-.11-23.745-1.737-23.745-1.737s-15.819-15.6-17.556-17.337c-1.737-1.737-5.1-1.196-6.407-.768-.11 0-3.473 1.087-9.1 2.823-5.427-15.71-14.97-30.14-31.878-30.14-.437 0-.987 0-1.426.11C126.167 1.737 121.507 0 117.497 0 85.84 0 70.67 40.12 65.903 60.518c-12.924 3.912-22.138 6.846-23.225 7.166-7.274 2.274-7.494 2.494-8.471 9.33C33.55 82.23 8 280.592 8 280.592L190.407 292l69.916-14.97S223.993 56.826 223.773 55.2z" fill="#95BF47"/><path d="M221.06 52.597c-1.087-.11-23.745-1.737-23.745-1.737s-15.819-15.6-17.556-17.337c-.66-.66-1.537-.987-2.494-.987l-13.004 265.464 69.916-14.97S223.993 56.826 223.773 55.2c-.22-1.626-1.626-2.494-2.713-2.604z" fill="#5E8E3E"/><path d="M128.78 105.015l-8.581 25.59s-7.494-3.912-16.677-3.912c-13.443 0-14.09 8.471-14.09 10.567 0 11.614 30.25 16.017 30.25 43.145 0 21.34-13.553 35.1-31.878 35.1-21.9 0-33.074-13.663-33.074-13.663l5.866-19.496s11.504 9.88 21.23 9.88c6.297 0 8.9-4.999 8.9-8.58 0-15.052-24.823-15.71-24.823-40.643 0-20.923 14.97-41.187 45.11-41.187 11.614-.11 17.777 3.2 17.777 3.2z" fill="#FFF"/></svg> },
 ];
+
+/* ─── KANBAN DATA ─── */
+const KANBAN_COLS = [
+  { label: "Backlog", color: "#6b7280", tasks: [
+    { title: "Implement OAuth2 flow", tag: "Auth", priority: "low", assignee: "AL" },
+    { title: "Rate limiting strategy", tag: "Infra", priority: "med", assignee: "SR" },
+  ]},
+  { label: "In Progress", color: "#7185b0", tasks: [
+    { title: "WebSocket reconnect logic", tag: "Backend", priority: "high", assignee: "MK" },
+    { title: "Collaborative cursor sync", tag: "Frontend", priority: "high", assignee: "JP" },
+  ]},
+  { label: "In Review", color: "#7c3aed", tasks: [
+    { title: "Language runtime sandbox", tag: "Infra", priority: "high", assignee: "AL" },
+  ]},
+  { label: "Done", color: "#059669", tasks: [
+    { title: "Session recording API", tag: "Backend", priority: "low", assignee: "MK" },
+    { title: "Editor theme switcher", tag: "Frontend", priority: "low", assignee: "JP" },
+  ]},
+];
+const priorityColors = { high: "#ef4444", med: "#f59e0b", low: "#6b7280" };
 
 const FEATURES = [
   {
@@ -117,6 +139,7 @@ const FOOTER_COLS = [
   { heading: "Company", links: ["About", "Careers", "Press Kit", "Legal", "Privacy"] },
 ];
 
+/* ─── SUB-COMPONENTS ─── */
 function KanbanBoard() {
   return (
     <div
@@ -170,6 +193,7 @@ function CodeEditorMock() {
           "0 30px 80px rgba(37,99,235,0.15), 0 8px 32px rgba(15,23,42,0.08)",
       }}
     >
+      {/* Browser Header */}
       <div
         style={{
           height: 58,
@@ -226,6 +250,7 @@ function CodeEditorMock() {
         </div>
       </div>
 
+      {/* Dashboard Screenshot */}
       <img
         src="/code-editor.png"
         alt="Code Editor Preview"
@@ -249,6 +274,7 @@ function VideoMock() {
         boxShadow: "0 20px 60px rgba(0,0,0,0.08)",
       }}
     >
+      {/* Browser Header */}
       <div
         style={{
           height: 56,
@@ -381,7 +407,9 @@ const fadeUp = {
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }),
 };
 
+/* ─── MAIN LANDING PAGE ─── */
 export default function InterVueLanding() {
+  const navigate = useNavigate();
  const [activeTab, setActiveTab] = useState("board");
 const [showRoleModal, setShowRoleModal] = useState(false);
 const [selectedRole, setSelectedRole] = useState("");
@@ -422,6 +450,7 @@ const [selectedRole, setSelectedRole] = useState("");
         .comparison-row:hover { background:#f8fafc; }
       `}</style>
 
+      {/* ── NAVBAR ── */}
 <nav
   style={{
     position: "sticky",
@@ -459,6 +488,7 @@ const [selectedRole, setSelectedRole] = useState("");
     overflow: "hidden",
   }}
 >
+  {/* Glass Highlight */}
 <div
   style={{
     position: "absolute",
@@ -614,9 +644,11 @@ const [selectedRole, setSelectedRole] = useState("");
   </div>
 </nav>
 
+      {/* ── HERO ── */}
       <section style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px 60px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "0.95fr 1.25fr", gap: 64, alignItems: "start" }}>
 
+          {/* LEFT */}
           <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.07 } } }}>
             <motion.div variants={fadeUp}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid #bfdbfe", background: "#eff6ff", borderRadius: 20, padding: "4px 12px 4px 6px", marginBottom: 24 }}>
@@ -633,8 +665,10 @@ const [selectedRole, setSelectedRole] = useState("");
               InterVue gives engineering teams a collaborative code editor, live video, and AI-driven scoring in one platform — so every hire decision is backed by signal, not gut feeling.
             </motion.p>
 
+            {/* Auth form area */}
             <motion.div variants={fadeUp} style={{ maxWidth: 420, marginBottom: 32 }}>
               
+              {/* Primary CTA — Clerk modal */}
               <SignUpButton mode="modal">
                 
                 <button className="btn-primary" style={{ width: "100%", justifyContent: "center", fontSize: 15, marginBottom: 10 }}>
@@ -648,6 +682,7 @@ const [selectedRole, setSelectedRole] = useState("");
                 <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
               </div>
 
+              {/* Social sign-in via Clerk modal */}
               <div style={{ display: "grid", gridTemplateColumns: "0.95fr 1.25fr", gap: 10 }}>
                 <SignUpButton mode="modal">
                   <button className="social-btn"><Icon.Google /> Google</button>
@@ -668,6 +703,7 @@ const [selectedRole, setSelectedRole] = useState("");
             </motion.div>
           </motion.div>
 
+          {/* RIGHT — product preview */}
           <motion.div
   initial={{ opacity: 0, y: 32 }}
   animate={{ opacity: 1, y: 0 }}
@@ -708,6 +744,7 @@ const [selectedRole, setSelectedRole] = useState("");
         </div>
       </section>
 
+      {/* ── TRUSTED BY MARQUEE ── */}
       <div style={{ borderTop: "1px solid #f1f5f9", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 32px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 24, paddingTop: 20, marginBottom: 4 }}>
@@ -718,6 +755,7 @@ const [selectedRole, setSelectedRole] = useState("");
         <Marquee />
       </div>
 
+      {/* ── TABBED FEATURE SHOWCASE ── */}
       <section style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px" }}>
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={fadeUp} style={{ marginBottom: 48 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#2563eb", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>PLATFORM OVERVIEW</div>
@@ -748,6 +786,7 @@ const [selectedRole, setSelectedRole] = useState("");
         </AnimatePresence>
       </section>
 
+      {/* ── ALTERNATING FEATURE SECTIONS ── */}
       {FEATURES.map((feat, idx) => {
         const isEven = idx % 2 === 0;
         return (
@@ -781,6 +820,7 @@ const [selectedRole, setSelectedRole] = useState("");
         );
       })}
 
+      {/* ── COMPARISON TABLE ── */}
       <section style={{ borderTop: "1px solid #f1f5f9" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px" }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} style={{ textAlign: "center", marginBottom: 48 }}>
@@ -809,6 +849,7 @@ const [selectedRole, setSelectedRole] = useState("");
         </div>
       </section>
 
+      {/* ── INTEGRATIONS ── */}
       <section style={{ borderTop: "1px solid #f1f5f9", background: "#f8fafc" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px" }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} style={{ textAlign: "center", marginBottom: 56 }}>
@@ -830,6 +871,7 @@ const [selectedRole, setSelectedRole] = useState("");
         </div>
       </section>
 
+      {/* ── TESTIMONIALS ── */}
       <section style={{ borderTop: "1px solid #f1f5f9" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px" }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} style={{ marginBottom: 48 }}>
@@ -844,7 +886,7 @@ const [selectedRole, setSelectedRole] = useState("");
               <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-40px" }} custom={i} variants={fadeUp}
                 whileHover={{ scale: 1.02, boxShadow: "0 8px 24px rgba(0,0,0,0.07)" }}
                 style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "28px 24px", transition: "box-shadow 0.15s" }}>
-                <div style={{ fontSize: 32, color: "#e2e8f0", fontWeight: 800, lineHeight: 1, marginBottom: 16 }}>&quot;</div>
+                <div style={{ fontSize: 32, color: "#e2e8f0", fontWeight: 800, lineHeight: 1, marginBottom: 16 }}>"</div>
                 <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.7, marginBottom: 24, fontWeight: 400 }}>{t.quote}</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 38, height: 38, borderRadius: "50%", background: t.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{t.initials}</div>
@@ -859,6 +901,7 @@ const [selectedRole, setSelectedRole] = useState("");
         </div>
       </section>
 
+      {/* ── PRICING CTA ── */}
       <section style={{ borderTop: "1px solid #f1f5f9" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px" }}>
           <div style={{ background: "#0f172a", borderRadius: 16, padding: "64px 56px", display: "grid", gridTemplateColumns: "0.95fr 1.25fr", gap: 64, alignItems: "center" }}>
@@ -888,6 +931,7 @@ const [selectedRole, setSelectedRole] = useState("");
                       ))}
                     </div>
                   </div>
+                  {/* Clerk-powered plan CTA */}
                   <SignUpButton mode="modal">
                     <button style={{ background: plan.highlight ? "#67779b" : "rgba(255,255,255,0.1)", border: "none", fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer", padding: "10px 18px", borderRadius: 7, whiteSpace: "nowrap", transition: "opacity 0.15s", fontFamily: "inherit" }}
                       onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
@@ -902,6 +946,7 @@ const [selectedRole, setSelectedRole] = useState("");
         </div>
       </section>
 
+      {/* ── FINAL CTA BANNER ── */}
       <section style={{ borderTop: "1px solid #f1f5f9", background: "#f8fafc" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 32px", textAlign: "center" }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
@@ -917,6 +962,7 @@ const [selectedRole, setSelectedRole] = useState("");
         </div>
       </section>
 
+      {/* ── FOOTER ── */}
       <footer style={{ borderTop: "1px solid #e2e8f0", background: "#fff" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "56px 32px 32px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }}>

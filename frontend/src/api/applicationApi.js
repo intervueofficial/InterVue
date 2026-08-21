@@ -29,10 +29,10 @@ export const applicationApi = {
     return data;
   },
 
-  selectApplicant: async (applicationId, token) => {
+  selectApplicant: async (applicationId, scheduledAt, token) => {
     const { data } = await axiosInstance.patch(
       `/applications/${applicationId}/select`,
-      {},
+      scheduledAt ? { scheduledAt } : {},
       authHeader(token)
     );
     return data;

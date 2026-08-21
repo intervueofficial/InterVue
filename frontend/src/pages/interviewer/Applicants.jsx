@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye, RefreshCw, ArrowUpDown } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye, RefreshCw, ArrowUpDown, CalendarClock, Zap, X } from "lucide-react";
 
 import { jobApi } from "../../api/jobApi";
 import { applicationApi } from "../../api/applicationApi";
@@ -87,12 +87,142 @@ function sortApplications(applications, sortKey) {
   });
 }
 
+// Local datetime formatted for an <input type="datetime-local"> default
+// value — "now + 24h", rounded to the next 15 minutes for a tidy default.
+function defaultScheduleValue() {
+  const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  d.setMinutes(Math.ceil(d.getMinutes() / 15) * 15, 0, 0);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
+function ScheduleInterviewModal({ application, onClose, onConfirm, isSubmitting }) {
+  const [mode, setMode] = useState("later"); // "now" | "later"
+  const [value, setValue] = useState(defaultScheduleValue());
+
+  if (!application) return null;
+
+  const candidateName = application.candidate?.name || "this candidate";
+  const isPast = mode === "later" && value && new Date(value).getTime() <= Date.now();
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: "rgba(15,23,42,0.5)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl bg-white overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+              Schedule Interview
+            </p>
+            <p className="text-base font-semibold text-slate-900 mt-0.5">{candidateName}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-50">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => setMode("now")}
+              className={`flex items-center justify-center gap-1.5 rounded-lg border py-2.5 text-sm font-semibold transition-colors ${
+                mode === "now"
+                  ? "border-green-600 bg-green-50 text-green-700"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <Zap size={14} />
+              Instant Interview
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("later")}
+              className={`flex items-center justify-center gap-1.5 rounded-lg border py-2.5 text-sm font-semibold transition-colors ${
+                mode === "later"
+                  ? "border-green-600 bg-green-50 text-green-700"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <CalendarClock size={14} />
+              Pick Date & Time
+            </button>
+          </div>
+
+          {mode === "now" ? (
+            <p className="text-xs text-slate-500 leading-relaxed">
+              The candidate will get their interview invite immediately with no scheduled
+              date shown — they can join whenever they're ready.
+            </p>
+          ) : (
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Interview Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                value={value}
+                min={defaultScheduleValueMin()}
+                onChange={(e) => setValue(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {isPast ? (
+                <p className="text-xs text-red-600 mt-1.5">Pick a time in the future.</p>
+              ) : (
+                <p className="text-xs text-slate-500 mt-1.5">
+                  The candidate gets a "shortlisted" email now confirming this date & time
+                  — their interview link and code follow separately, exactly 1 hour before
+                  the interview.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 px-6 pb-6">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-slate-200 text-slate-600 py-2.5 text-sm font-semibold hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            disabled={isSubmitting || isPast}
+            onClick={() => onConfirm(mode === "now" ? null : new Date(value).toISOString())}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-green-600 hover:bg-green-700 text-white py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
+            {isSubmitting ? "Sending Invite..." : "Confirm & Send Invite"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function defaultScheduleValueMin() {
+  const d = new Date(Date.now() + 5 * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
 const Applicants = () => {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState("");
   const [actingOn, setActingOn] = useState(null);
   const [viewingApplication, setViewingApplication] = useState(null);
+  const [schedulingApplication, setSchedulingApplication] = useState(null);
   const [sortKey, setSortKey] = useState("experience_desc");
 
   // Interviewers see all jobs (open + closed) so they can review past postings too
@@ -167,11 +297,13 @@ const Applicants = () => {
     queryClient.invalidateQueries({ queryKey: ["applicants", selectedJobId] });
 
   const selectMutation = useMutation({
-    mutationFn: async (id) => applicationApi.selectApplicant(id, await getToken()),
+    mutationFn: async ({ id, scheduledAt }) =>
+      applicationApi.selectApplicant(id, scheduledAt, await getToken()),
     onSuccess: () => {
       toast.success("Candidate selected — session created & email sent");
       invalidate();
       setActingOn(null);
+      setSchedulingApplication(null);
     },
     onError: (e) => {
       toast.error(e.response?.data?.message || "Failed to select candidate");
@@ -344,10 +476,7 @@ const Applicants = () => {
                         <>
                           <button
                             disabled={actingOn === app._id}
-                            onClick={() => {
-                              setActingOn(app._id);
-                              selectMutation.mutate(app._id);
-                            }}
+                            onClick={() => setSchedulingApplication(app)}
                             className="flex items-center gap-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold disabled:opacity-50"
                           >
                             {actingOn === app._id && selectMutation.isPending ? (
@@ -386,6 +515,16 @@ const Applicants = () => {
       <CandidateProfileModal
         application={viewingApplication}
         onClose={() => setViewingApplication(null)}
+      />
+
+      <ScheduleInterviewModal
+        application={schedulingApplication}
+        isSubmitting={selectMutation.isPending}
+        onClose={() => setSchedulingApplication(null)}
+        onConfirm={(scheduledAt) => {
+          setActingOn(schedulingApplication._id);
+          selectMutation.mutate({ id: schedulingApplication._id, scheduledAt });
+        }}
       />
     </AppShell>
   );

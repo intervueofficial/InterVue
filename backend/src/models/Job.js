@@ -64,6 +64,18 @@ const jobSchema = new mongoose.Schema(
       default: "open",
     },
 
+    // Shown to a candidate in the "application received" assurance
+    // email right after they apply — e.g. "5" -> "You can expect to
+    // hear back within 5 days." Lets the interviewer/admin set a
+    // realistic, honest expectation per job instead of a generic
+    // hardcoded window.
+    expectedResponseDays: {
+      type: Number,
+      default: 7,
+      min: 1,
+      max: 90,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

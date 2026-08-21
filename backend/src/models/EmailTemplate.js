@@ -11,7 +11,13 @@ const emailTemplateSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      enum: ["candidate_selected", "candidate_rejected", "candidate_hired"],
+      enum: [
+        "candidate_applied",
+        "candidate_selected",
+        "interview_reminder",
+        "candidate_rejected",
+        "candidate_hired",
+      ],
     },
 
     subject: {

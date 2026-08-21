@@ -10,15 +10,43 @@ import EmailTemplate from "../models/EmailTemplate.js";
 // body is plain text — one or more paragraphs separated by a blank
 // line — not HTML. resend.js wraps it in the existing branded layout.
 export const DEFAULT_TEMPLATES = {
+  candidate_applied: {
+    subject: "Application Received | {{jobTitle}} | InterVue",
+    body: `Dear {{candidateName}},
+
+Thank you for applying for the position of {{jobTitle}}. This email confirms that we've received your application.
+
+Our team is reviewing applications carefully, and you can expect to hear back from us within {{waitDays}}. There's nothing further you need to do in the meantime — we'll be in touch as soon as a decision is made on the next steps.
+
+We appreciate your patience and your interest in joining our team.
+
+Kind regards,
+InterVue Recruitment Team`,
+  },
+
   candidate_selected: {
     subject: "Interview Invitation | {{jobTitle}} | InterVue",
     body: `Dear {{candidateName}},
 
 We are pleased to inform you that your profile has been shortlisted for the position of {{jobTitle}}.
 
-You have been invited to participate in an online interview through the InterVue interview platform. Please review the details below.
+Please see your confirmed interview details below.
 
 We look forward to speaking with you and wish you the very best for your interview.
+
+Kind regards,
+InterVue Recruitment Team`,
+  },
+
+  interview_reminder: {
+    subject: "Your interview starts in 1 hour | {{jobTitle}} | InterVue",
+    body: `Dear {{candidateName}},
+
+This is a reminder that your interview for the position of {{jobTitle}} is starting in about 1 hour, on {{interviewDate}} at {{interviewTime}}.
+
+Your interview access link and code are included below. Please make sure you have a stable internet connection and that your camera and microphone are working before you join.
+
+We look forward to speaking with you shortly.
 
 Kind regards,
 InterVue Recruitment Team`,
@@ -58,7 +86,9 @@ InterVue Recruitment Team`,
 // Supported placeholders per template key — used by the admin UI to show
 // what's available when editing, and to build preview sample data.
 export const TEMPLATE_PLACEHOLDERS = {
+  candidate_applied: ["candidateName", "jobTitle", "waitDays"],
   candidate_selected: ["candidateName", "jobTitle"],
+  interview_reminder: ["candidateName", "jobTitle", "interviewDate", "interviewTime"],
   candidate_rejected: ["candidateName", "jobTitle"],
   candidate_hired: ["candidateName", "jobTitle"],
 };
@@ -77,14 +107,26 @@ export function substitutePlaceholders(text, data = {}) {
  * so this only runs the seed check once per cold start, cached on the
  * module).
  */
+/**
+ * Inserts any of the default templates that don't already exist in the
+ * DB. Runs per-key (not just "collection is empty") so that adding a
+ * new template type to DEFAULT_TEMPLATES later — like
+ * candidate_applied/interview_reminder were added here — automatically
+ * seeds just the new one(s) on an existing production DB that already
+ * has the older templates, instead of silently never creating them.
+ * Cheap to call on every read: the whole thing no-ops once every key
+ * exists, cached per cold start via `seeded`.
+ */
 let seeded = false;
 export async function ensureEmailTemplatesSeeded() {
   if (seeded) return;
 
-  const count = await EmailTemplate.countDocuments();
-  if (count === 0) {
+  const existingKeys = new Set(await EmailTemplate.distinct("key"));
+  const missing = Object.entries(DEFAULT_TEMPLATES).filter(([key]) => !existingKeys.has(key));
+
+  if (missing.length > 0) {
     await EmailTemplate.insertMany(
-      Object.entries(DEFAULT_TEMPLATES).map(([key, tpl]) => ({
+      missing.map(([key, tpl]) => ({
         key,
         subject: tpl.subject,
         body: tpl.body,

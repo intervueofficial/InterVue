@@ -65,6 +65,15 @@ const sessionSchema = new mongoose.Schema(
       default: "",
     },
 
+    // Set once the day-before reminder email has gone out (see
+    // lib/inngest.js's sendInterviewReminders cron), so the same
+    // session never gets reminded twice even if the cron overlaps its
+    // own matching window on a re-run.
+    reminderSentAt: {
+      type: Date,
+      default: null,
+    },
+
 startedAt: {
   type: Date,
   default: null,

@@ -4,7 +4,8 @@ import Session from "../models/Session.js";
 import SessionViolation from "../models/SessionViolation.js";
 import { streamClient, chatClient } from "../lib/stream.js";
 import { checkEligibility } from "../utils/checkEligibility.js";
-import { sendSelectionEmail, sendRejectionEmail, sendHiredEmail } from "../lib/resend.js";
+import { sendSelectionEmail, sendRejectionEmail, sendHiredEmail, sendApplicationReceivedEmail } from "../lib/resend.js";
+import { formatInterviewDateTime, isMeaningfullyFuture } from "../utils/formatInterviewDateTime.js";
 import { ENV } from "../lib/env.js";
 import { generatePerformanceSummary } from "../utils/generatePerformanceSummary.js";
 import { generatePerformancePdf } from "../utils/generatePerformancePdf.js";
@@ -79,6 +80,26 @@ export async function applyToJob(req, res) {
       failedCriteria,
       status: isEligible ? "applied" : "not_eligible",
     });
+
+    // "Waiting" assurance email — only for candidates who actually
+    // entered the review queue. Not-eligible candidates get an
+    // immediate on-screen reason instead (see EligibilityModal on the
+    // frontend), so there's nothing to "wait" on for them. Never let a
+    // flaky email provider fail the application itself — this is
+    // best-effort and swallowed on error.
+    if (isEligible) {
+      try {
+        const days = job.expectedResponseDays || 7;
+        await sendApplicationReceivedEmail({
+          to: req.user.email,
+          name: req.user.name,
+          jobTitle: job.title,
+          waitDays: `${days} day${days === 1 ? "" : "s"}`,
+        });
+      } catch (emailError) {
+        console.error("sendApplicationReceivedEmail:", emailError.message);
+      }
+    }
 
     return res.status(201).json({
       success: true,
@@ -178,10 +199,22 @@ export async function selectApplicant(req, res) {
 
     const callId = "session_" + Date.now();
 
+    // Interviewer can optionally pick a future date/time for the
+    // interview (see the scheduling modal on the frontend Applicants
+    // page); defaults to right now, preserving the original
+    // instant-interview behavior when no date is chosen. Only a valid
+    // future date is honored — anything invalid or in the past falls
+    // back to "now" rather than silently failing the whole request.
+    const requestedScheduledAt = req.body?.scheduledAt ? new Date(req.body.scheduledAt) : null;
+    const scheduledAt =
+      requestedScheduledAt && !Number.isNaN(requestedScheduledAt.getTime())
+        ? requestedScheduledAt
+        : new Date();
+
     const session = await Session.create({
       title: `Interview — ${application.job.title}`,
       description: `Interview for ${application.job.title}, scheduled after shortlisting.`,
-      scheduledAt: new Date(),
+      scheduledAt,
       createdBy: req.user._id,
       interviewer: req.user._id,
       candidate: application.candidate._id,
@@ -210,13 +243,36 @@ export async function selectApplicant(req, res) {
 
     const sessionLink = `${ENV.CLIENT_URL || ""}/session/${session._id}`;
 
+    // Real interview link/code policy: if the interview is scheduled
+    // more than ~65 minutes out, the shortlist email confirms the date
+    // & time ONLY — no join link yet. The link goes out separately,
+    // exactly 1 hour before the interview, via the reminder cron below
+    // (send-interview-join-reminders in lib/inngest.js). If it's an
+    // "Instant Interview" (now, or less than ~65 minutes away — not
+    // enough runway for a meaningful separate reminder), the link goes
+    // out immediately in this same email instead, and we mark the
+    // reminder as already "sent" so the cron doesn't also send one.
+    const isScheduledForLater = isMeaningfullyFuture(scheduledAt, 65 * 60 * 1000);
+
+    const { interviewDate, interviewTime } = formatInterviewDateTime(scheduledAt);
+
     await sendSelectionEmail({
       to: application.candidate.email,
       name: application.candidate.name,
       jobTitle: application.job.title,
-      sessionCode: callId,
-      sessionLink,
+      interviewDate,
+      interviewTime,
+      isScheduledForLater,
+      sessionCode: isScheduledForLater ? undefined : callId,
+      sessionLink: isScheduledForLater ? undefined : sessionLink,
     });
+
+    if (!isScheduledForLater) {
+      // Link already sent above — nothing left for the cron to do for
+      // this session.
+      session.reminderSentAt = new Date();
+      await session.save();
+    }
 
     return res.json({ success: true, application, session });
   } catch (error) {

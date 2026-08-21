@@ -7,6 +7,7 @@ const emptyJob = {
   department: "",
   location: "Remote",
   employmentType: "Full-time",
+  expectedResponseDays: 7,
   criteria: {
     requiredDegrees: [],
     minExperience: 0,
@@ -108,6 +109,25 @@ const JobForm = ({ open, job, onCancel, onSubmit, loading }) => {
               <option>Internship</option>
               <option>Contract</option>
             </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-slate-700">
+              Expected Response Time (days)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={90}
+              value={form.expectedResponseDays ?? 7}
+              onChange={(e) => update("expectedResponseDays", Number(e.target.value))}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-slate-500 mt-1.5">
+              Shown to candidates in their "application received" email — e.g. "You can
+              expect to hear back within {form.expectedResponseDays ?? 7} days." Set an
+              honest window your team can actually meet.
+            </p>
           </div>
 
           <div className="border-t pt-5">

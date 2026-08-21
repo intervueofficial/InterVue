@@ -1,7 +1,12 @@
 import { Inngest } from "inngest";
 import { connectDB } from "./db.js";
 import User from "../models/User.js";
+import Session from "../models/Session.js";
+import Application from "../models/Application.js";
 import { deleteStreamUser, upsertStreamUser } from "./stream.js";
+import { sendInterviewReminderEmail } from "./resend.js";
+import { formatInterviewDateTime } from "../utils/formatInterviewDateTime.js";
+import { ENV } from "./env.js";
 
 export const inngest = new Inngest({ id: "InterVue" });
 
@@ -62,4 +67,78 @@ const deleteUserFromDB = inngest.createFunction(
   }
 );
 
-export const functions = [syncUser, deleteUserFromDB];
+// ==========================
+// Join-link reminder — sent exactly 1 hour before the interview
+// ==========================
+// This is the ONLY place the real interview link/code gets emailed for
+// interviews scheduled meaningfully in advance (see selectApplicant in
+// applicationController.js — the initial shortlist email deliberately
+// omits the link for anything more than ~65 minutes out). Runs every 5
+// minutes and looks for sessions whose scheduledAt falls ~1 hour from
+// now (a 10-minute catch window, comfortably wider than the 5-minute
+// cadence so nothing slips through), that haven't already had their
+// link sent. This requires Inngest to actually be registered/synced
+// for this app (the /api/inngest endpoint in server.js) — on Render
+// that happens automatically on deploy via the Inngest Cloud
+// connection using INNGEST_EVENT_KEY/INNGEST_SIGNING_KEY; if reminders
+// don't seem to be firing, check the Inngest dashboard's "Functions"
+// tab to confirm this one synced.
+const sendInterviewJoinReminders = inngest.createFunction(
+  {
+    id: "send-interview-join-reminders",
+    triggers: [{ cron: "*/5 * * * *" }],
+  },
+  async () => {
+    await connectDB();
+
+    const now = Date.now();
+    const windowStart = new Date(now + 55 * 60 * 1000); // ~55 min out
+    const windowEnd = new Date(now + 65 * 60 * 1000); // ~65 min out
+
+    const sessions = await Session.find({
+      status: { $in: ["scheduled", "waiting"] },
+      reminderSentAt: null,
+      scheduledAt: { $gte: windowStart, $lte: windowEnd },
+    })
+      .populate("candidate", "name email")
+      .populate("interviewer", "name email");
+
+    for (const session of sessions) {
+      try {
+        if (!session.candidate?.email) continue;
+
+        // Job title isn't stored on Session directly — look it up via
+        // the Application this session was created from.
+        const application = await Application.findOne({ session: session._id }).populate(
+          "job",
+          "title"
+        );
+        const jobTitle = application?.job?.title || session.title;
+
+        const { interviewDate, interviewTime } = formatInterviewDateTime(session.scheduledAt);
+        const sessionLink = `${ENV.CLIENT_URL || ""}/session/${session._id}`;
+
+        await sendInterviewReminderEmail({
+          to: session.candidate.email,
+          name: session.candidate.name,
+          jobTitle,
+          interviewDate,
+          interviewTime,
+          sessionCode: session.callId,
+          sessionLink,
+        });
+
+        session.reminderSentAt = new Date();
+        await session.save();
+      } catch (error) {
+        // One candidate's bad data (missing job, email provider hiccup)
+        // shouldn't stop reminders going out to everyone else in this run.
+        console.error(`send-interview-join-reminders (session ${session._id}):`, error.message);
+      }
+    }
+
+    return { checked: sessions.length };
+  }
+);
+
+export const functions = [syncUser, deleteUserFromDB, sendInterviewJoinReminders];

@@ -14,6 +14,7 @@ export async function createJob(req, res) {
       location,
       employmentType,
       criteria,
+      expectedResponseDays,
     } = req.body;
 
     if (!title) {
@@ -35,6 +36,7 @@ export async function createJob(req, res) {
         requiredSkills: criteria?.requiredSkills || [],
         qualificationNote: criteria?.qualificationNote || "",
       },
+      expectedResponseDays: expectedResponseDays || 7,
       createdBy: req.user._id,
     });
 
