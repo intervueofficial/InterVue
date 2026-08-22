@@ -69,9 +69,17 @@ const syncUser = inngest.createFunction(
       );
     } catch (err) {
       if (err.code === 11000) {
-        user = await User.findOne({
-          $or: [{ clerkId: newUser.clerkId }, { email: newUser.email }],
-        });
+        // See protectRoute.js for why this retries instead of a single
+        // findOne — the winning writer's insert can take a moment to
+        // become visible to this read even though it already committed.
+        for (let attempt = 0; attempt < 6 && !user; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 500));
+          }
+          user = await User.findOne({
+            $or: [{ clerkId: newUser.clerkId }, { email: newUser.email }],
+          });
+        }
       } else {
         throw err;
       }

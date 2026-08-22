@@ -85,8 +85,19 @@ export const protectRoute = [
           // surface from the upsert itself under heavy concurrency.
           // If so, someone else's request just won — read back what
           // they created instead of failing the request.
+          //
+          // The winning insert can take a moment to become visible to
+          // this read (e.g. right after a deploy, under a connection
+          // burst) even though it already committed — so retry a few
+          // times over ~1.5s before giving up, instead of failing on
+          // the very first miss.
           if (err.code === 11000) {
-            user = await User.findOne({ $or: [{ clerkId }, { email }] });
+            for (let attempt = 0; attempt < 6 && !user; attempt++) {
+              if (attempt > 0) {
+                await new Promise((r) => setTimeout(r, 500));
+              }
+              user = await User.findOne({ $or: [{ clerkId }, { email }] });
+            }
           } else {
             throw err;
           }

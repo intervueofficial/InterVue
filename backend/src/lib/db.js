@@ -20,7 +20,18 @@ export const connectDB = async () => {
     return connectingPromise;
   }
 
-  connectingPromise = mongoose.connect(ENV.DB_URL);
+  // readPreference: "primary" — without this, a driver/cluster default
+  // of "primaryPreferred" or similar can let this app's own reads land
+  // on a secondary that hasn't replicated a write it just made a moment
+  // earlier. That shows up as protectRoute/syncUser's upsert hitting
+  // E11000 (someone else already inserted the doc) followed by a
+  // fallback findOne() that returns null for a few seconds even though
+  // the document exists on the primary — exactly the
+  // "Failed to create or locate user ... after upsert" errors seen in
+  // production right after a deploy/traffic burst.
+  connectingPromise = mongoose.connect(ENV.DB_URL, {
+    readPreference: "primary",
+  });
 
   try {
     const conn = await connectingPromise;
