@@ -107,6 +107,15 @@ function extractDob(text) {
   const looseDateMatch = text.match(/\b([0-3]?\d[\/\-][01]?\d[\/\-](19|20)\d{2})\b/);
   if (looseDateMatch) return looseDateMatch[1].replace(/-/g, "/");
 
+  // OCR sometimes drops/merges one of the two slashes on the DOB line
+  // (observed in testing: "DOB: 0401/2008" instead of "04/01/2008").
+  // Fall back to a plain DDMM/YYYY or DDMMYYYY digit blob near the
+  // DOB/Date of Birth label before giving up to year-of-birth-only.
+  const mergedMatch = text.match(
+    /(?:DOB|Date of Birth)[:\s]*([0-3]\d)[\/\-.]?([01]\d)[\/\-.]?((?:19|20)\d{2})/i
+  );
+  if (mergedMatch) return `${mergedMatch[1]}/${mergedMatch[2]}/${mergedMatch[3]}`;
+
   const yobMatch = text.match(/(?:Year of Birth|YoB)[:\s]*(\d{4})/i);
   if (yobMatch) return yobMatch[1];
 

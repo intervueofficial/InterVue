@@ -17,6 +17,14 @@ import { THEME } from "../constants/theme";
  * the card, and job applications are blocked until this is done (see
  * candidateProfile.isComplete on the backend).
  */
+// Higher ideal resolution than the previous 1280x720 — more pixels per
+// printed digit meaningfully helps Tesseract read the Aadhaar number
+// reliably. "ideal" still lets the browser fall back on devices/cameras
+// that can't hit this, so it's a safe increase.
+const AADHAAR_CAMERA_CONSTRAINTS = {
+  video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+};
+
 function IdentityVerificationCard({ index = 0 }) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
@@ -47,9 +55,7 @@ function IdentityVerificationCard({ index = 0 }) {
     setExtracted(null);
     setCameraOpen(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      const stream = await navigator.mediaDevices.getUserMedia(AADHAAR_CAMERA_CONSTRAINTS);
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch {
@@ -83,9 +89,7 @@ function IdentityVerificationCard({ index = 0 }) {
   const retake = async () => {
     setCaptured(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      const stream = await navigator.mediaDevices.getUserMedia(AADHAAR_CAMERA_CONSTRAINTS);
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch {
@@ -107,7 +111,22 @@ function IdentityVerificationCard({ index = 0 }) {
       setCameraOpen(false);
       setReviewOpen(true);
     },
-    onError: (e) => toast.error(e.response?.data?.message || "Couldn't read that card."),
+    onError: (e) => {
+      const data = e.response?.data;
+      toast.error(data?.message || "Couldn't read that card.");
+
+      // OCR found no valid Aadhaar number, but the card is genuinely in
+      // frame — don't dead-end the candidate on a retake loop. Open the
+      // same review screen pre-filled with whatever partial fields OCR
+      // did manage, so they can type the number in manually. The
+      // Verhoeff checksum in confirmVerification still guards against a
+      // bad/typo'd entry, same as any OCR-sourced value.
+      if (data?.needsManualEntry) {
+        setExtracted(data.extracted || { name: "", dob: "", aadhaarNumber: "", aadhaarNumberValid: false, otherCandidates: [] });
+        setCameraOpen(false);
+        setReviewOpen(true);
+      }
+    },
   });
 
   const confirmMutation = useMutation({
@@ -339,8 +358,9 @@ function IdentityVerificationCard({ index = 0 }) {
 
               <div className="p-5 space-y-4">
                 <p className="text-xs" style={{ color: THEME.inkMuted }}>
-                  Read from your card automatically — double-check these are correct before
-                  confirming. Once confirmed, name and date of birth can't be changed.
+                  {extracted.aadhaarNumber
+                    ? "Read from your card automatically — double-check these are correct before confirming. Once confirmed, name and date of birth can't be changed."
+                    : "We couldn't read the Aadhaar number automatically — please fill in or correct the fields below from your card. Once confirmed, name and date of birth can't be changed."}
                 </p>
 
                 {!extracted.aadhaarNumberValid && (
@@ -352,8 +372,9 @@ function IdentityVerificationCard({ index = 0 }) {
                       border: `1px solid ${THEME.warningBorder}`,
                     }}
                   >
-                    This Aadhaar number didn't pass validation — please double check the digits
-                    against your card.
+                    {extracted.aadhaarNumber
+                      ? "This Aadhaar number didn't pass validation — please double check the digits against your card."
+                      : "Enter the 12-digit Aadhaar number from your card below."}
                   </p>
                 )}
 
