@@ -119,7 +119,7 @@ export async function applyToJob(req, res) {
 export async function getMyApplications(req, res) {
   try {
     const applications = await Application.find({ candidate: req.user._id })
-      .populate("job", "title department location status")
+      .populate("job", "title fieldOfStudy location status")
       .populate("session")
       .sort({ createdAt: -1 });
 
@@ -523,7 +523,7 @@ export async function submitDecision(req, res) {
 export async function getWaitlist(req, res) {
   try {
     const applications = await Application.find({ finalDecision: "waitlisted" })
-      .populate("job", "title department location")
+      .populate("job", "title fieldOfStudy location")
       .populate("candidate", "name email")
       .populate("session")
       .sort({ decidedAt: -1 });

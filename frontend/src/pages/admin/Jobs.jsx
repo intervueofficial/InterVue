@@ -198,7 +198,7 @@ const Jobs = () => {
                         <MapPin size={13} color={THEME.inkFaint} /> {job.location}
                       </span>
                       <span>{job.employmentType}</span>
-                      {job.department && <span>{job.department}</span>}
+                      {job.fieldOfStudy && <span>{job.fieldOfStudy}</span>}
                     </div>
 
                     {job.criteria?.requiredDegrees?.length > 0 && (

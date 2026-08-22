@@ -18,7 +18,7 @@ export const getAllApplications = async (req, res) => {
 
     const applications = await Application.find(filter)
       .populate("candidate", "name email profileImage")
-      .populate("job", "title department location")
+      .populate("job", "title fieldOfStudy location")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({

@@ -219,10 +219,10 @@ const JobDetailsModal = ({ job, onClose, profileComplete, identityRequired, onAp
                     {job.employmentType}
                   </span>
                 )}
-                {job.department && (
+                {job.fieldOfStudy && (
                   <span className="flex items-center gap-1.5">
                     <Building2 size={12} />
-                    {job.department}
+                    {job.fieldOfStudy}
                   </span>
                 )}
               </div>
@@ -472,10 +472,10 @@ function JobRow({ job, profileComplete, identityRequired, onApply, isApplying, o
                 {job.employmentType}
               </span>
             )}
-            {job.department && (
+            {job.fieldOfStudy && (
               <span className="flex items-center gap-1.5">
                 <ChevronRight size={12} />
-                {job.department}
+                {job.fieldOfStudy}
               </span>
             )}
           </div>

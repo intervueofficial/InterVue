@@ -224,7 +224,7 @@ const Pipeline = () => {
                             {app.job?.title || "—"}
                           </p>
                           <p className="text-xs" style={{ color: THEME.inkFaint }}>
-                            {app.job?.department}
+                            {app.job?.fieldOfStudy}
                           </p>
                         </td>
                         <td className="px-6">

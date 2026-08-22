@@ -13,7 +13,11 @@ const jobSchema = new mongoose.Schema(
       default: "",
     },
 
-    department: {
+    // Renamed from "department" -> mirrors the candidate profile's
+    // own "Field of Study" field (see User.js candidateProfile), so a
+    // job posting and a candidate's education speak the same
+    // vocabulary instead of an unrelated org department label.
+    fieldOfStudy: {
       type: String,
       default: "",
     },

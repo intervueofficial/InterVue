@@ -10,7 +10,7 @@ export async function createJob(req, res) {
     const {
       title,
       description,
-      department,
+      fieldOfStudy,
       location,
       employmentType,
       criteria,
@@ -27,7 +27,7 @@ export async function createJob(req, res) {
     const job = await Job.create({
       title,
       description,
-      department,
+      fieldOfStudy,
       location,
       employmentType,
       criteria: {

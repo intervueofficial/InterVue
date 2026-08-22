@@ -4,7 +4,7 @@ import { X, Loader2, Plus, Trash2 } from "lucide-react";
 const emptyJob = {
   title: "",
   description: "",
-  department: "",
+  fieldOfStudy: "",
   location: "Remote",
   employmentType: "Full-time",
   expectedResponseDays: 7,
@@ -17,7 +17,11 @@ const emptyJob = {
 };
 
 const JobForm = ({ open, job, onCancel, onSubmit, loading }) => {
-  const [form, setForm] = useState(job || emptyJob);
+  // Spread over emptyJob (not just `job || emptyJob`) so editing a job
+  // created before the department -> fieldOfStudy rename doesn't leave
+  // the input uncontrolled (undefined value) if that job doc predates
+  // the field.
+  const [form, setForm] = useState(job ? { ...emptyJob, ...job } : emptyJob);
   const [degreeInput, setDegreeInput] = useState("");
   const [skillInput, setSkillInput] = useState("");
 
@@ -79,13 +83,17 @@ const JobForm = ({ open, job, onCancel, onSubmit, loading }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-semibold text-slate-700">Department</label>
+              <label className="text-sm font-semibold text-slate-700">Field of Study</label>
               <input
-                value={form.department}
-                onChange={(e) => update("department", e.target.value)}
-                placeholder="e.g. Engineering"
+                value={form.fieldOfStudy}
+                onChange={(e) => update("fieldOfStudy", e.target.value)}
+                placeholder="e.g. Computer Science"
                 className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-xs text-slate-500 mt-1.5">
+                Matches the "Field of Study" candidates fill in their own profile — e.g.
+                "Computer Science", "Electronics", "Mechanical Engineering".
+              </p>
             </div>
             <div>
               <label className="text-sm font-semibold text-slate-700">Location</label>
