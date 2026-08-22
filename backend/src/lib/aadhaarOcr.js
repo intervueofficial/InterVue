@@ -205,18 +205,22 @@ function extractName(text) {
   return "";
 }
 
-// Runs one OCR pass. `pageSegMode`, when given, is a Tesseract PSM
-// value (see https://tesseract-ocr.github.io/tessdoc/ImproveQuality)
-// applied via worker.setParameters — the one-shot `Tesseract.recognize`
+// Runs one OCR pass. `options.pageSegMode`, when given, is a Tesseract
+// PSM value; `options.charWhitelist`, when given, restricts the
+// character classifier to only those characters (see
+// https://tesseract-ocr.github.io/tessdoc/ImproveQuality) — both
+// applied via worker.setParameters. The one-shot `Tesseract.recognize`
 // convenience function doesn't expose engine parameters like this, only
 // worker-setup options, which is why we go through createWorker
 // ourselves instead.
-async function runOcr(dataUrl, pageSegMode) {
+async function runOcr(dataUrl, options = {}) {
+  const { pageSegMode, charWhitelist } = options;
   const worker = await createWorker("eng");
   try {
-    if (pageSegMode) {
-      await worker.setParameters({ tessedit_pageseg_mode: pageSegMode });
-    }
+    const params = {};
+    if (pageSegMode) params.tessedit_pageseg_mode = pageSegMode;
+    if (charWhitelist) params.tessedit_char_whitelist = charWhitelist;
+    if (Object.keys(params).length) await worker.setParameters(params);
     const { data } = await worker.recognize(dataUrl);
     return data?.text || "";
   } finally {
@@ -246,22 +250,39 @@ export async function extractAadhaarFields(dataUrl) {
   // layout-guessing step and just reads the block top-to-bottom, which
   // consistently captured the full name correctly in testing where PSM
   // 3 did not.
-  let rawText = await runOcr(dataUrl, "6");
+  let rawText = await runOcr(dataUrl, { pageSegMode: "6" });
   let aadhaarCandidates = extractAadhaarCandidates(rawText);
 
   // The 12-digit Aadhaar number sits by itself at the bottom of the
   // card, apart from any paragraph of text, and even PSM 6 can still
-  // miss or mangle it. If neither pass above turned up a Verhoeff-valid
+  // miss or mangle it. If pass 1 didn't turn up a Verhoeff-valid
   // number, retry with "sparse text" mode (PSM 11), which looks for
   // text wherever it is on the page without assuming any block
   // structure at all — much better suited to an isolated digit string,
   // though in testing it was worse at grouping the multi-word name
   // onto one line, which is why it's a fallback rather than the
-  // primary pass. We merge its output in rather than replace the first
-  // pass, so a good name reading from pass 1 is never thrown away.
+  // primary pass. We merge its output in rather than replace pass 1,
+  // so a good name reading from pass 1 is never thrown away.
   if (!aadhaarCandidates.some(isValidAadhaarChecksum)) {
-    const sparseText = await runOcr(dataUrl, "11");
+    const sparseText = await runOcr(dataUrl, { pageSegMode: "11" });
     rawText = `${rawText}\n${sparseText}`;
+    aadhaarCandidates = extractAadhaarCandidates(rawText);
+  }
+
+  // Still nothing valid? Last resort: a pass restricted to a
+  // digits-only character set. Tesseract's classifier normally has to
+  // choose between every letter and digit it knows for each glyph —
+  // telling it up front that only digits are possible removes the
+  // letter-shaped distractors that cause a lot of digit misreads
+  // (0/O, 1/I, 5/S, 8/B), at the cost of this pass being useless for
+  // the name. Only worth the extra OCR round-trip after both general
+  // passes above have already failed.
+  if (!aadhaarCandidates.some(isValidAadhaarChecksum)) {
+    const digitsText = await runOcr(dataUrl, {
+      pageSegMode: "11",
+      charWhitelist: "0123456789 ",
+    });
+    rawText = `${rawText}\n${digitsText}`;
     aadhaarCandidates = extractAadhaarCandidates(rawText);
   }
 
