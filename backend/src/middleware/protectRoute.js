@@ -74,58 +74,66 @@ export const protectRoute = [
         // that race atomically: whichever request arrives first
         // inserts the document, the other one just reads the same
         // document back via `new: true` instead of erroring.
-        try {
-          user = await User.findOneAndUpdate(
-            { $or: matchConditions },
-            {
-              $setOnInsert: {
-                clerkId,
-                name,
-                // Omit email entirely when blank rather than storing "".
-                // Combined with the schema's email index now being
-                // sparse (see User.js), this means multiple users with
-                // no email yet don't collide with each other on the
-                // unique index — each just has no email field at all,
-                // instead of every one of them fighting over the same
-                // literal "" value.
-                ...(email ? { email } : {}),
-                profileImage,
-                role:
-                  email === process.env.ADMIN_EMAIL?.toLowerCase()
-                    ? "admin"
-                    : null,
-                isActive: true,
-              },
-            },
-            { new: true, upsert: true }
-          );
-          isNewUser = true;
-        } catch (err) {
-          // Belt-and-braces: a genuine duplicate-key error can still
-          // surface from the upsert itself under heavy concurrency.
-          // If so, someone else's request just won — read back what
-          // they created instead of failing the request.
-          //
-          // The winning insert can take a moment to become visible to
-          // this read (e.g. right after a deploy, under a connection
-          // burst) even though it already committed — so retry a few
-          // times over ~1.5s before giving up, instead of failing on
-          // the very first miss.
-          if (err.code === 11000) {
-            for (let attempt = 0; attempt < 6 && !user; attempt++) {
-              if (attempt > 0) {
-                await new Promise((r) => setTimeout(r, 500));
-              }
-              user = await User.findOne({ $or: matchConditions });
+        const upsertPayload = {
+          $setOnInsert: {
+            clerkId,
+            name,
+            // Omit email entirely when blank rather than storing "".
+            // Combined with the schema's email index now being
+            // sparse (see User.js), this means multiple users with
+            // no email yet don't collide with each other on the
+            // unique index — each just has no email field at all,
+            // instead of every one of them fighting over the same
+            // literal "" value.
+            ...(email ? { email } : {}),
+            profileImage,
+            role:
+              email === process.env.ADMIN_EMAIL?.toLowerCase()
+                ? "admin"
+                : null,
+            isActive: true,
+          },
+        };
+
+        // Retry the ATOMIC UPSERT itself on conflict, not a plain
+        // findOne — re-running findOneAndUpdate({upsert:true}) is safe
+        // to repeat: once the winning writer's document is visible, this
+        // just matches and returns it (no insert attempted, no error).
+        // A plain findOne retry loop was still throwing "Failed to
+        // create or locate user" under real-world load, so this is the
+        // more robust version of the same idea. lastErr is kept so the
+        // final failure (if it still happens) reports the real
+        // underlying Mongo error instead of a generic message.
+        let lastErr = null;
+        for (let attempt = 0; attempt < 10 && !user; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 500));
+          }
+          try {
+            const rawResult = await User.findOneAndUpdate(
+              { $or: matchConditions },
+              upsertPayload,
+              { new: true, upsert: true, rawResult: true }
+            );
+            user = rawResult.value;
+            // rawResult.lastErrorObject.upserted is only set when this
+            // call actually performed the insert — reliable regardless
+            // of which retry attempt it happened on, unlike guessing
+            // from the attempt index.
+            isNewUser = !!rawResult.lastErrorObject?.upserted;
+          } catch (err) {
+            lastErr = err;
+            if (err.code !== 11000) {
+              throw err;
             }
-          } else {
-            throw err;
+            // else: someone else won this round — loop and retry.
           }
         }
 
         if (!user) {
           throw new Error(
-            `Failed to create or locate user for clerkId=${clerkId} after upsert`
+            `Failed to create or locate user for clerkId=${clerkId} after upsert` +
+              (lastErr ? ` (last error: ${lastErr.message})` : "")
           );
         }
 

@@ -70,27 +70,35 @@ const syncUser = inngest.createFunction(
     // findOneAndUpdate(..., { upsert: true }) treats "already exists"
     // as success instead of an error: whichever side got there first
     // wins, this just reads/creates the same document either way.
+    //
+    // See protectRoute.js for why this retries the atomic upsert itself
+    // (not a plain findOne) on conflict.
     let user;
-    try {
-      user = await User.findOneAndUpdate(
-        { $or: matchConditions },
-        { $setOnInsert: newUser },
-        { new: true, upsert: true }
-      );
-    } catch (err) {
-      if (err.code === 11000) {
-        // See protectRoute.js for why this retries instead of a single
-        // findOne — the winning writer's insert can take a moment to
-        // become visible to this read even though it already committed.
-        for (let attempt = 0; attempt < 6 && !user; attempt++) {
-          if (attempt > 0) {
-            await new Promise((r) => setTimeout(r, 500));
-          }
-          user = await User.findOne({ $or: matchConditions });
-        }
-      } else {
-        throw err;
+    let lastErr = null;
+    for (let attempt = 0; attempt < 10 && !user; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 500));
       }
+      try {
+        user = await User.findOneAndUpdate(
+          { $or: matchConditions },
+          { $setOnInsert: newUser },
+          { new: true, upsert: true }
+        );
+      } catch (err) {
+        lastErr = err;
+        if (err.code !== 11000) {
+          throw err;
+        }
+      }
+    }
+
+    if (!user) {
+      console.error(
+        `syncUser: Failed to create or locate user for clerkId=${newUser.clerkId} after upsert` +
+          (lastErr ? ` (last error: ${lastErr.message})` : "")
+      );
+      return;
     }
 
     await upsertStreamUser({
