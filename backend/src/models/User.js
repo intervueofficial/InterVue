@@ -65,17 +65,19 @@ interviewerApproval: {
 // Identity Verification (Duplicate-Account Prevention)
 // ==========================
 // A candidate can trivially sign up for unlimited accounts with new
-// email addresses — email/phone uniqueness alone can't stop that. This
-// verifies identity via DigiLocker (Aadhaar-backed, government OAuth),
-// which UIDAI itself already deduplicates biometrically at issuance —
-// one Aadhaar per person, guaranteed at the source.
+// email addresses — email/phone uniqueness alone can't stop that.
+// This verifies identity by having the candidate scan their physical
+// Aadhaar card via a live in-browser camera capture (no gallery
+// upload — see AadhaarCameraCapture.jsx), OCR'd server-side
+// (lib/aadhaarOcr.js) to extract name, DOB, and Aadhaar number.
 //
 // We never store the raw Aadhaar number — only a one-way SHA-256 hash
-// of (normalized name + DOB + last 4 digits), which is enough to
-// enforce "one verified identity = one account" via the unique index
-// below, without taking on Aadhaar-number storage/compliance risk.
+// of it, which is enough to enforce "one verified identity = one
+// account" via the unique index below, without taking on Aadhaar-
+// number storage/compliance risk. The captured image itself is never
+// persisted — it's processed in memory for the OCR pass and discarded.
 identityVerification: {
-  provider: { type: String, default: "" }, // "digilocker"
+  provider: { type: String, default: "" }, // "aadhaar-ocr"
   verified: { type: Boolean, default: false },
   aadhaarHash: {
     type: String,
@@ -85,16 +87,22 @@ identityVerification: {
     // user — not leaving it unset. A `sparse` index only excludes
     // documents where the field is genuinely MISSING, not ones where
     // it's present with value null, so every unverified user (i.e.
-    // everyone, since nobody's done DigiLocker verification yet) was
-    // colliding with every other one on that shared null value. This
-    // was the real cause of the "Failed to create or locate user"
-    // errors chased throughout this whole debugging session — leaving
-    // this field genuinely unset until a real hash exists is what
-    // makes the sparse unique index behave as intended.
+    // everyone, since nobody's done verification yet) was colliding
+    // with every other one on that shared null value. This was the
+    // real cause of the "Failed to create or locate user" errors
+    // chased throughout an earlier debugging session — leaving this
+    // field genuinely unset until a real hash exists is what makes
+    // the sparse unique index behave as intended. Same reasoning
+    // applies to every other field in this sub-schema below.
     unique: true,
     sparse: true,
   },
+  // Name and DOB as read directly off the scanned card — these become
+  // the permanent, locked source of truth for the candidate's identity
+  // once verified (see authController.getMe / protectRoute.js, which
+  // stop syncing `name` from Clerk once this is set).
   verifiedName: { type: String, default: "" },
+  verifiedDob: { type: String, default: "" }, // as OCR'd, e.g. "DD/MM/YYYY"
   maskedAadhaar: { type: String, default: "" }, // e.g. "XXXXXXXX1234"
   verifiedAt: { type: Date, default: null },
 },

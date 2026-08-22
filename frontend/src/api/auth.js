@@ -62,7 +62,7 @@ export const authApi = {
 };
 
 // =======================================
-// Identity Verification (DigiLocker) — see backend/IDENTITY_VERIFICATION_SETUP.md
+// Identity Verification (live-camera Aadhaar OCR scan)
 // =======================================
 export const identityApi = {
   async getStatus(token) {
@@ -72,22 +72,22 @@ export const identityApi = {
     return data;
   },
 
-  // Returns { redirectUrl } — the caller should navigate the browser
-  // there (window.location.href = redirectUrl) since DigiLocker needs a
-  // full-page redirect, not an XHR.
-  async startVerification(token) {
-    const { data } = await axios.get("/identity/verify/start", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  // Sends one captured camera frame (data URL) for server-side OCR.
+  // Doesn't save anything — returns extracted fields for the candidate
+  // to review/correct before confirmVerification.
+  async scanAadhaar(imageDataUrl, token) {
+    const { data } = await axios.post(
+      "/identity/verify/scan",
+      { image: imageDataUrl },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return data;
   },
 
-  // Mock consent flow (DIGILOCKER_MOCK_MODE=true on the server) — used
-  // by frontend/src/pages/MockDigiLocker.jsx in place of a real
-  // DigiLocker OAuth round-trip.
-  async submitMockVerification({ name, dob, aadhaarNumber }, token) {
+  // Saves the (candidate-confirmed) verification.
+  async confirmVerification({ name, dob, aadhaarNumber }, token) {
     const { data } = await axios.post(
-      "/identity/verify/mock-submit",
+      "/identity/verify/confirm",
       { name, dob, aadhaarNumber },
       { headers: { Authorization: `Bearer ${token}` } }
     );

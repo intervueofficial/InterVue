@@ -357,7 +357,7 @@ const JobDetailsModal = ({ job, onClose, profileComplete, identityRequired, onAp
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                 title={
                   identityRequired
-                    ? "Verify your identity via DigiLocker in your Profile before applying"
+                    ? "Scan your Aadhaar card in your Profile to verify your identity before applying"
                     : undefined
                 }
               >
@@ -540,11 +540,11 @@ const CandidateJobs = () => {
 
   const jobs = data?.jobs || [];
   const profileComplete = authUser?.candidateProfile?.isComplete;
-  // Only actually blocks applying once the server has identity
-  // verification turned on (REQUIRE_IDENTITY_VERIFICATION=true) — see
-  // backend/IDENTITY_VERIFICATION_SETUP.md.
-  const identityRequired =
-    Boolean(identityStatus?.required) && !identityStatus?.verification?.verified;
+  // profileComplete already requires identity verification too (see
+  // backend authController.js's isComplete rule) — this is only kept
+  // separately so the "why can't I apply" banner can point candidates
+  // at the right missing step instead of a generic message.
+  const identityRequired = !identityStatus?.verification?.verified;
   const selectedJob = jobs.find((j) => j._id === selectedJobId) || null;
 
   const applyMutation = useMutation({
@@ -595,7 +595,7 @@ const CandidateJobs = () => {
           >
             <div className="flex items-center gap-2.5 text-sm" style={{ color: "#92400E" }}>
               <AlertCircle size={16} />
-              <span>Verify your identity via DigiLocker before applying to a role.</span>
+              <span>Scan your Aadhaar card to verify your identity before applying to a role.</span>
             </div>
             <Link
               to="/candidate/profile"

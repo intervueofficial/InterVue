@@ -124,24 +124,18 @@ export async function applyToJob(req, res) {
 
     const profile = req.user.candidateProfile;
 
+    // profile.isComplete now factors in Aadhaar verification as well
+    // as the education/skills fields (see authController.js), so this
+    // one check covers both — no separate identity-verification gate
+    // needed here.
     if (!profile || !profile.isComplete) {
+      const identityVerified = Boolean(req.user.identityVerification?.verified);
       return res.status(400).json({
         success: false,
-        message:
-          "Please complete your profile (education, experience, skills) before applying.",
-      });
-    }
-
-    // Duplicate-account guard: once enabled (REQUIRE_IDENTITY_VERIFICATION=true
-    // after DigiLocker is configured — see IDENTITY_VERIFICATION_SETUP.md),
-    // a candidate must verify their identity once via DigiLocker before
-    // their first job application. Off by default so the app keeps
-    // working before that's set up.
-    if (ENV.REQUIRE_IDENTITY_VERIFICATION && !req.user.identityVerification?.verified) {
-      return res.status(403).json({
-        success: false,
-        code: "IDENTITY_NOT_VERIFIED",
-        message: "Please verify your identity via DigiLocker before applying to jobs.",
+        code: identityVerified ? undefined : "IDENTITY_NOT_VERIFIED",
+        message: identityVerified
+          ? "Please complete your profile (education, experience, skills) before applying."
+          : "Please verify your identity (Aadhaar scan) and complete your profile before applying.",
       });
     }
 

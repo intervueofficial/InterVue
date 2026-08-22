@@ -18,6 +18,8 @@ import {
   Briefcase,
   CheckCircle2,
   ExternalLink,
+  Lock,
+  Cake,
 } from "lucide-react";
 
 import useAuthUser from "../../hooks/useAuthUser";
@@ -277,11 +279,16 @@ const Profile = () => {
     uploadResumeMutation.mutate(file);
   };
 
+  const isIdentityVerified = Boolean(authUser?.identityVerification?.verified);
+
+  // Mirrors the backend's isComplete rule exactly (authController.js) —
+  // education fields, at least one skill, AND identity verification.
   const requiredFields = [
     form.degree,
     form.fieldOfStudy,
     form.yearOfGraduation,
     form.skills.length > 0,
+    isIdentityVerified,
   ];
   const completedCount = requiredFields.filter(Boolean).length;
   const isComplete = completedCount === requiredFields.length;
@@ -419,8 +426,8 @@ const Profile = () => {
                 border: `1px solid ${THEME.warningBorder}`,
               }}
             >
-              Add your degree, field of study, graduation year, and at least one skill to be
-              able to apply for jobs.
+              Add your degree, field of study, graduation year, at least one skill, and verify
+              your identity to be able to apply for jobs.
             </p>
           )}
         </motion.div>
@@ -434,6 +441,26 @@ const Profile = () => {
           title="Contact & education"
           index={1}
         >
+          {isIdentityVerified && (
+            <div className="grid sm:grid-cols-2 gap-5 mb-5">
+              <Field label="Full Name (from Aadhaar)" icon={Lock}>
+                <div
+                  className={`${fieldClass} flex items-center`}
+                  style={{ ...inputStyle, background: THEME.surface2, color: THEME.inkMuted }}
+                >
+                  {authUser?.identityVerification?.verifiedName || authUser?.name}
+                </div>
+              </Field>
+              <Field label="Date of Birth (from Aadhaar)" icon={Cake}>
+                <div
+                  className={`${fieldClass} flex items-center`}
+                  style={{ ...inputStyle, background: THEME.surface2, color: THEME.inkMuted }}
+                >
+                  {authUser?.identityVerification?.verifiedDob || "—"}
+                </div>
+              </Field>
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 gap-5">
             <Field label="Phone" icon={Phone}>
               <input

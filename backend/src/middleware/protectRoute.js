@@ -177,7 +177,12 @@ export const protectRoute = [
 
       let hasChanges = false;
 
-      if (user.name !== name) {
+      // Once identity is verified via Aadhaar scan, the candidate's
+      // name is locked to whatever was read off their card
+      // (identityVerificationController.confirmVerification) — stop
+      // syncing it from Clerk here, or every request would silently
+      // overwrite the verified name back to the Clerk profile name.
+      if (!user.identityVerification?.verified && user.name !== name) {
         user.name = name;
         hasChanges = true;
       }

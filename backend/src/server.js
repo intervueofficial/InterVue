@@ -100,7 +100,7 @@ app.use("/api/applications", applicationRoute);
 app.use("/api/ai", aiGeneratorRoute);
 app.use("/api/subscription", subscriptionRoute);
 
-// Identity Verification (DigiLocker) — duplicate-account prevention
+// Identity Verification (live-camera Aadhaar OCR scan) — duplicate-account prevention
 app.use("/api/identity", identityRoute);
 
 // ================= Health Check =================

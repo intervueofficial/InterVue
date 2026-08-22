@@ -1,30 +1,22 @@
 import User from "../models/User.js";
-import { ENV } from "../lib/env.js";
 import {
-  isDigiLockerConfigured,
-  buildAuthorizeUrl,
-  exchangeCodeForToken,
-  fetchAadhaarRecord,
+  extractAadhaarFields,
   computeAadhaarHash,
-  signState,
-  verifyState,
-} from "../lib/digilocker.js";
+  maskAadhaar,
+  isValidAadhaarChecksum,
+} from "../lib/aadhaarOcr.js";
 
 /**
- * Shared by both the real DigiLocker callback and the mock-submit
- * endpoint: given a verified identity record, either link it to `user`
- * or reject it as a duplicate of an already-verified account. This is
- * where the actual "one Aadhaar = one account" guarantee lives — the
- * `findOne` check plus the model's unique index on `aadhaarHash`
- * together stop the same identity from ever verifying twice, whether
- * that identity comes in via real DigiLocker or the mock form.
+ * Given a confirmed identity record (name + dob + aadhaarNumber, after
+ * the candidate has reviewed/corrected whatever OCR produced), either
+ * link it to `user` or reject it as a duplicate of an already-verified
+ * account. This is where the actual "one Aadhaar = one account"
+ * guarantee lives — the `findOne` check plus the model's unique index
+ * on `aadhaarHash` together stop the same identity from ever verifying
+ * twice.
  */
-async function finalizeVerification(user, record, provider) {
-  if (!record?.last4 || !record?.dob) {
-    return { ok: false, status: "failed", reason: "incomplete_record" };
-  }
-
-  const aadhaarHash = computeAadhaarHash(record);
+async function finalizeVerification(user, { name, dob, aadhaarNumber }) {
+  const aadhaarHash = computeAadhaarHash(aadhaarNumber);
 
   const existing = await User.findOne({
     "identityVerification.aadhaarHash": aadhaarHash,
@@ -35,18 +27,32 @@ async function finalizeVerification(user, record, provider) {
     return {
       ok: false,
       status: "duplicate",
-      reason: "This identity is already linked to another InterVue account.",
+      reason: "This Aadhaar is already linked to another InterVue account.",
     };
   }
 
   user.identityVerification = {
-    provider,
+    provider: "aadhaar-ocr",
     verified: true,
     aadhaarHash,
-    verifiedName: record.name || "",
-    maskedAadhaar: record.last4 ? `XXXXXXXX${record.last4}` : "",
+    verifiedName: name.trim(),
+    verifiedDob: dob.trim(),
+    maskedAadhaar: maskAadhaar(aadhaarNumber),
     verifiedAt: new Date(),
   };
+
+  // Lock the account's display name to the verified name from here on
+  // — protectRoute.js stops syncing `name` from Clerk once this is set.
+  user.name = name.trim();
+
+  // Re-evaluate profile completeness now that verification just
+  // changed — isComplete requires both the profile fields AND
+  // verification (see authController.js), so a candidate who already
+  // filled everything else becomes eligible to apply right after this.
+  if (user.candidateProfile) {
+    const p = user.candidateProfile;
+    p.isComplete = !!(p.degree && p.fieldOfStudy && p.yearOfGraduation && p.skills?.length > 0);
+  }
 
   try {
     await user.save();
@@ -58,7 +64,7 @@ async function finalizeVerification(user, record, provider) {
       return {
         ok: false,
         status: "duplicate",
-        reason: "This identity is already linked to another InterVue account.",
+        reason: "This Aadhaar is already linked to another InterVue account.",
       };
     }
     throw saveError;
@@ -73,142 +79,105 @@ async function finalizeVerification(user, record, provider) {
 export async function getVerificationStatus(req, res) {
   return res.status(200).json({
     success: true,
-    configured: isDigiLockerConfigured(),
-    mockMode: ENV.DIGILOCKER_MOCK_MODE,
-    required: ENV.REQUIRE_IDENTITY_VERIFICATION,
     verification: req.user.identityVerification || { verified: false },
   });
 }
 
 // =======================================
-// GET /api/identity/verify/start
-// Returns a redirect URL for the frontend to send the browser to — real
-// DigiLocker's authorize screen, or (in mock mode) our own same-origin
-// mock consent page.
+// POST /api/identity/verify/scan
+// Body: { image: "data:image/jpeg;base64,..." } — a single frame
+// captured from the candidate's live camera (never a gallery upload —
+// enforced client-side in AadhaarCameraCapture.jsx).
+//
+// Runs OCR and returns the extracted fields WITHOUT saving anything,
+// so the frontend can show a review/correction screen before the
+// candidate commits — OCR on a phone photo of a card is genuinely
+// error-prone (glare, tilt, worn cards), so we never treat a raw OCR
+// pass as final.
 // =======================================
-export async function startVerification(req, res) {
+export async function scanAadhaar(req, res) {
   try {
-    if (!isDigiLockerConfigured()) {
-      return res.status(503).json({
-        success: false,
-        message:
-          "Identity verification isn't configured yet. See backend/IDENTITY_VERIFICATION_SETUP.md.",
-      });
-    }
-
     if (req.user.identityVerification?.verified) {
       return res.status(200).json({ success: true, alreadyVerified: true });
     }
 
-    const state = signState(req.user.clerkId);
-    return res.status(200).json({ success: true, redirectUrl: buildAuthorizeUrl(state) });
-  } catch (error) {
-    console.error("startVerification:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-}
-
-// =======================================
-// GET /api/identity/verify/callback
-// Public route — real DigiLocker redirects the user's browser here
-// directly (no Authorization header), so the user is identified via the
-// signed `state` param instead of protectRoute. Always ends in a
-// redirect back to the candidate's Profile page with a ?identity=...
-// query param the frontend reads to show a toast. Not used in mock mode
-// (see submitMockVerification below instead).
-// =======================================
-export async function handleCallback(req, res) {
-  const frontendBase = (ENV.CLIENT_URL || "").replace(/\/$/, "");
-
-  const redirectWithStatus = (status, reason) => {
-    const params = new URLSearchParams({ identity: status });
-    if (reason) params.set("reason", reason);
-    return res.redirect(`${frontendBase}/candidate/profile?${params.toString()}`);
-  };
-
-  try {
-    if (ENV.DIGILOCKER_MOCK_MODE) {
-      return redirectWithStatus("failed", "mock_mode_active");
+    const { image } = req.body || {};
+    if (!image) {
+      return res.status(400).json({ success: false, message: "No image was captured." });
     }
 
-    const { code, state, error } = req.query;
+    const result = await extractAadhaarFields(image);
 
-    if (error) return redirectWithStatus("failed", String(error));
-    if (!code || !state) return redirectWithStatus("failed", "missing_code");
-
-    const clerkId = verifyState(String(state));
-    if (!clerkId) return redirectWithStatus("failed", "invalid_or_expired_state");
-
-    const user = await User.findOne({ clerkId });
-    if (!user) return redirectWithStatus("failed", "user_not_found");
-
-    if (user.identityVerification?.verified) {
-      return redirectWithStatus("already_verified");
-    }
-
-    const tokenData = await exchangeCodeForToken(String(code));
-    const record = await fetchAadhaarRecord(tokenData.access_token);
-
-    const result = await finalizeVerification(user, record, "digilocker");
-    return redirectWithStatus(result.status, result.ok ? undefined : result.reason);
-  } catch (error) {
-    console.error("DigiLocker callback error:", error.message);
-    return redirectWithStatus("failed", "server_error");
-  }
-}
-
-// =======================================
-// POST /api/identity/verify/mock-submit
-// Only active when DIGILOCKER_MOCK_MODE=true. Called by the frontend's
-// mock consent page (frontend/src/pages/MockDigiLocker.jsx) — an
-// authenticated request (not a third-party redirect), so it uses
-// protectRoute like a normal API call rather than the signed-state
-// trick the real callback needs.
-//
-// This exists for group/college projects that don't have a registered
-// organization to get real DigiLocker partner credentials — it runs
-// the exact same duplicate-account logic (finalizeVerification above)
-// against fake, user-entered identity data instead of a real DigiLocker
-// round-trip, so the core feature (block duplicate accounts by hashed
-// identity) is fully real and demoable without government approval.
-// =======================================
-export async function submitMockVerification(req, res) {
-  try {
-    if (!ENV.DIGILOCKER_MOCK_MODE) {
-      return res.status(404).json({
+    if (!result.aadhaarNumber) {
+      return res.status(422).json({
         success: false,
-        message: "Mock verification is not enabled on this server.",
+        message:
+          "Couldn't read an Aadhaar number from that photo. Hold the card flat, make sure it's well-lit with no glare, and try again.",
       });
     }
 
+    return res.status(200).json({
+      success: true,
+      extracted: {
+        name: result.name,
+        dob: result.dob,
+        aadhaarNumber: result.aadhaarNumber,
+        aadhaarNumberValid: isValidAadhaarChecksum(result.aadhaarNumber),
+        otherCandidates: result.aadhaarCandidates.slice(1, 4),
+      },
+    });
+  } catch (error) {
+    console.error("scanAadhaar:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Couldn't process that image. Please try again.",
+    });
+  }
+}
+
+// =======================================
+// POST /api/identity/verify/confirm
+// Body: { name, dob, aadhaarNumber } — the fields from scanAadhaar's
+// response, after the candidate has reviewed and corrected them if
+// needed. This is the step that actually saves the verification.
+// =======================================
+export async function confirmVerification(req, res) {
+  try {
     if (req.user.identityVerification?.verified) {
       return res.status(200).json({ success: true, status: "already_verified" });
     }
 
     const { name, dob, aadhaarNumber } = req.body || {};
 
-    if (!name || !name.trim() || !dob) {
-      return res.status(400).json({ success: false, message: "Name and date of birth are required." });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Name is required." });
+    }
+    if (!dob || !dob.trim()) {
+      return res.status(400).json({ success: false, message: "Date of birth is required." });
     }
 
     const digitsOnly = String(aadhaarNumber || "").replace(/\D/g, "");
     if (digitsOnly.length !== 12) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Aadhaar number must be 12 digits." });
+    }
+    if (!isValidAadhaarChecksum(digitsOnly)) {
       return res.status(400).json({
         success: false,
-        message: "Enter a 12-digit Aadhaar number (this is mock data — any 12 digits work).",
+        message: "That doesn't look like a valid Aadhaar number. Please re-check the digits.",
       });
     }
 
-    const record = { name: name.trim(), dob, last4: digitsOnly.slice(-4) };
-    const result = await finalizeVerification(req.user, record, "digilocker-mock");
+    const result = await finalizeVerification(req.user, { name, dob, aadhaarNumber: digitsOnly });
 
     if (!result.ok) {
       return res.status(409).json({ success: false, status: result.status, message: result.reason });
     }
 
-    return res.status(200).json({ success: true, status: "verified" });
+    return res.status(200).json({ success: true, status: "verified", user: req.user });
   } catch (error) {
-    console.error("submitMockVerification:", error);
+    console.error("confirmVerification:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 }

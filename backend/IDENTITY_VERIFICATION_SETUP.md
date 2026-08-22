@@ -1,158 +1,114 @@
-# Identity Verification (DigiLocker) — Setup Guide
+# Identity Verification (Live Aadhaar Camera Scan) — Reference
 
 ## What this solves
 
 Email/phone uniqueness alone can't stop a candidate from creating
-unlimited accounts (new Gmail = new account). This feature adds a
-one-time **"Verify with DigiLocker"** step on the candidate's Profile
-page. The candidate authenticates directly against UIDAI (Aadhaar +
-OTP, on the government's own servers), and we only ever receive a
-masked, pre-verified identity record back — never the raw Aadhaar
-number, only a one-way hash of it, uniquely indexed in MongoDB so the
-same identity can never verify a second account.
+unlimited accounts (new email = new account) and applying to the same
+job multiple times hoping one gets shortlisted. This feature adds a
+one-time **Aadhaar card scan** step on the candidate's Profile page.
+The candidate opens their device camera (gallery upload is not
+allowed — see `AadhaarCameraCapture` behavior in
+`IdentityVerificationCard.jsx`), captures a live photo of their
+physical Aadhaar card, and the backend OCRs it to extract:
 
-## Two ways to run this: Mock mode vs. real DigiLocker
+- **Name** — locked to the account from then on
+- **Date of birth** — locked to the account from then on
+- **Aadhaar number** — never stored raw, only a one-way SHA-256 hash,
+  uniquely indexed in MongoDB so the same identity can never verify a
+  second account
 
-**If you don't have a registered organization (most group/college
-projects), use Mock Mode — it's ready to go right now, no signup, no
-approval, fully free, and demonstrates the real feature.**
+**Phone is the one exception** — it's not on the card in a form OCR
+can reliably read, so it stays a manual, editable field.
 
-Real DigiLocker "Requester" partner access (the production OAuth
-integration) requires representing a registered organization — a date
-of incorporation, an official domain email, etc. That's a genuine
-requirement of the government portal, not something a standalone
-student project can self-serve around. Mock Mode exists specifically
-for this situation.
+A candidate cannot apply to any job until `candidateProfile.isComplete`
+is true, and that now requires identity verification in addition to
+the existing education/skills fields (see `authController.js`).
 
----
+## How it works end to end
 
-## Option A — Mock Mode (recommended for a college project)
+1. Candidate clicks **"Scan Aadhaar Card"** on Profile →
+   `IdentityVerificationCard.jsx` opens a live camera view via
+   `getUserMedia` (no `<input type="file">` anywhere in this flow).
+2. Candidate captures a frame → `POST /api/identity/verify/scan` sends
+   the captured JPEG (base64) to the backend.
+3. `identityVerificationController.scanAadhaar` runs OCR
+   (`lib/aadhaarOcr.js`, via `tesseract.js`) and returns the extracted
+   `{ name, dob, aadhaarNumber, aadhaarNumberValid, otherCandidates }`
+   — **nothing is saved yet**.
+4. The frontend shows a review screen with those fields in **editable**
+   inputs, because OCR on a phone photo of a card is genuinely
+   error-prone (glare, tilt, worn cards, mixed-script text) — the
+   candidate confirms or corrects them.
+5. Candidate clicks **Confirm & Verify** →
+   `POST /api/identity/verify/confirm` with the (possibly corrected)
+   fields. The backend validates the Aadhaar number's **Verhoeff
+   checksum** (the same check-digit algorithm UIDAI itself uses), hashes
+   it, and checks the hash against every other user's
+   `identityVerification.aadhaarHash`.
+6. If it's new → saved, `user.name` is locked to the verified name, and
+   `candidateProfile.isComplete` is re-evaluated.
+   If it's a duplicate → rejected with
+   `"This Aadhaar is already linked to another InterVue account."`
 
-### What it is
+## Why OCR extraction is imperfect, and how the code compensates
 
-A local, same-origin "consent screen" that stands in for DigiLocker's
-real UI. The person enters a name, DOB, and a 12-digit number (openly
-labeled as fake/demo data — nothing real is sent anywhere). The
-backend then runs the **exact same** duplicate-blocking logic as the
-real integration would: hash `(name + DOB + last 4 digits)`, check it
-against the unique index, reject if it's already used.
+Reading a government ID off a phone-camera photo is not as reliable as
+a cryptographically-signed API response would be. Specific mitigations
+already built in:
 
-This means the actual feature you're being graded/reviewed on — "one
-verified identity can only ever back one account" — is **fully real
-and demoable**, even though the identity data itself is self-reported
-rather than pulled from UIDAI.
+- **Verhoeff checksum validation** (`isValidAadhaarChecksum` in
+  `lib/aadhaarOcr.js`) — an OCR misread of the 12-digit number will
+  fail this check with overwhelming probability, so a bad read is
+  caught before it can be saved as someone's permanent identity.
+- **Mandatory human review step** — `scanAadhaar` never saves anything;
+  the candidate always sees and can edit the extracted fields before
+  `confirmVerification` commits them.
+- **Multiple digit-run candidates surfaced** — if OCR finds more than
+  one 12-digit run on the card (e.g. it also picked up a VID or another
+  printed number), all candidates are returned so the review screen can
+  show them as a hint.
 
-### Setup (2 minutes)
+None of this guarantees a perfect read every time — if OCR performs
+badly in your testing environment (poor lighting, low-end webcam), that
+shows up as the candidate needing to hand-correct fields on the review
+screen, not as a silent bad save.
 
-In `backend/.env`:
+## What's implemented in the codebase
 
-```env
-DIGILOCKER_MOCK_MODE=true
-```
-
-That's it — restart the backend. No other DIGILOCKER_* vars are
-needed in this mode.
-
-### How to demo it
-
-1. Log in as a candidate, go to **My Profile** → click
-   **"Verify with DigiLocker."**
-2. You'll land on `/mock-digilocker` — a consent-style screen clearly
-   labeled **"MOCK / DEMO ENVIRONMENT."**
-3. Enter any name, DOB, and any 12 digits → **Approve & Continue.**
-4. You're redirected back to Profile, now showing "Verified via
-   DigiLocker."
-5. **To demonstrate the actual duplicate-block:** log in as a
-   *second* candidate account and repeat the same 12 digits + same
-   name + DOB. It will correctly come back as
-   **"This identity is already linked to another InterVue account"**
-   — that's the unique index on `User.identityVerification.aadhaarHash`
-   doing its job.
-
-### For your project report
-
-You can honestly describe this as: *"Integrated against the real
-DigiLocker OAuth2 Authorized-Partner API specification end-to-end
-(`backend/src/lib/digilocker.js`), with a mock identity provider
-substituted for the actual government consent screen, since production
-partner access requires a registered organization that a standalone
-student project doesn't have. The duplicate-account prevention logic
-itself — hashing and uniquely indexing the verified identity — is
-fully functional and independent of which provider supplies the
-identity data."*
-
----
-
-## Option B — Real DigiLocker (only if you later get organizational access)
-
-If your college/institution is willing to register (e.g. your
-department wants this live for a real deployment later), here's the
-real path — verified current URLs as of writing:
-
-1. **Free developer account** (no org needed for this step):
-   `https://partners.apisetu.gov.in/signup` — sign up with an email +
-   phone.
-2. **Public sandbox playground** (test against mock data, no approval
-   wait): `https://sandbox.api-setu.in/` → DigiLocker → "Try in
-   Sandbox."
-3. **Full production Requester registration** (does require a real
-   organization — incorporation date, official domain email, manual
-   approval): `https://www.digilocker.gov.in/web/partners/requesters`
-
-If you complete registration and get real `client_id`/`client_secret`,
-set:
-
-```env
-DIGILOCKER_MOCK_MODE=false
-DIGILOCKER_CLIENT_ID=your_client_id
-DIGILOCKER_CLIENT_SECRET=your_client_secret
-DIGILOCKER_REDIRECT_URI=http://localhost:5001/api/identity/verify/callback
-DIGILOCKER_BASE_URL=https://digilocker.meripehchaan.gov.in
-```
-
-Nothing else changes — `lib/digilocker.js` and the controller already
-branch on `DIGILOCKER_MOCK_MODE`, so flipping it swaps the whole flow
-from mock to real without touching any other code.
-
-> **Field-name caveat**: the exact JSON/XML field names DigiLocker
-> returns can vary slightly by gateway. `parseAadhaarJson` /
-> `parseAadhaarXml` in `lib/digilocker.js` are written defensively, but
-> sanity-check them against a real sandbox response the first time you
-> test end-to-end.
-
----
-
-## Turning enforcement on (either mode)
-
-Once you're happy with testing (mock or real), set:
-
-```env
-REQUIRE_IDENTITY_VERIFICATION=true
-```
-
-From then on, unverified candidates see a "Verify Identity" prompt
-instead of an Apply button on the Jobs board, and
-`POST /api/applications/:jobId/apply` rejects them with
-`code: "IDENTITY_NOT_VERIFIED"`.
-
-Leave it `false`/unset any time you want the app to work normally
-without this gate — nothing else in the app depends on it.
-
-## What's already wired up in the codebase
-
-- `backend/src/lib/digilocker.js` — OAuth2 client + mock-mode
-  branching + the identity hash function.
+- `backend/src/lib/aadhaarOcr.js` — OCR extraction (name/DOB/Aadhaar
+  number), Verhoeff checksum validation, and the one-way hash function.
 - `backend/src/controllers/identityVerificationController.js` +
-  `backend/src/routes/identityRoute.js` — `/api/identity/status`,
-  `/verify/start`, `/verify/callback` (real), `/verify/mock-submit`
-  (mock).
+  `backend/src/routes/identityRoute.js` — `GET /api/identity/status`,
+  `POST /verify/scan` (OCR only), `POST /verify/confirm` (saves).
 - `backend/src/models/User.js` — `identityVerification` subdocument
   with a **unique + sparse index** on `aadhaarHash` — the actual DB
-  constraint that blocks a duplicate identity.
-- `frontend/src/components/IdentityVerificationCard.jsx` — shown on
-  the candidate's Profile page.
-- `frontend/src/pages/MockDigiLocker.jsx` — the mock consent screen.
-- `frontend/src/pages/candidate/Jobs.jsx` — Apply button/banner is
-  identity-gated once `REQUIRE_IDENTITY_VERIFICATION=true`.
+  constraint that blocks a duplicate identity, plus a race-condition
+  safety net in `confirmVerification` (duplicate key error → same
+  rejection, in case two verifications land concurrently).
+- `backend/src/middleware/protectRoute.js` — stops syncing `user.name`
+  from Clerk once identity is verified, so the locked verified name
+  can't be silently overwritten on a later request.
+- `backend/src/controllers/authController.js` — `candidateProfile.isComplete`
+  requires identity verification in addition to the existing
+  education/skills fields.
 - `backend/src/controllers/applicationController.js` — `applyToJob`
-  blocks unverified candidates once enabled.
+  blocks any candidate whose profile isn't complete, which now
+  includes verification.
+- `frontend/src/components/IdentityVerificationCard.jsx` — the camera
+  capture + review/confirm UI, shown on the candidate's Profile page.
+- `frontend/src/pages/candidate/Profile.jsx` — Name and DOB render as
+  locked, read-only fields once verified; the profile-completeness
+  meter includes verification.
+- `frontend/src/pages/candidate/Jobs.jsx` — Apply button/banner is
+  gated on profile completeness (which includes verification).
+
+## Local testing notes
+
+- `getUserMedia` requires a secure context — `localhost` is fine, but
+  testing from another device on your network needs HTTPS or it'll be
+  blocked by the browser.
+- OCR runs server-side via `tesseract.js`; the first request after a
+  server restart will be slightly slower while it initializes.
+- No environment variables are required for this feature — there's no
+  mock/real mode split anymore, since OCR runs the same way in every
+  environment.

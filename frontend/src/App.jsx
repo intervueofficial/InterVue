@@ -47,7 +47,6 @@ import MyInterviews from "./pages/candidate/MyInterviews";
 import Results from "./pages/candidate/Results";
 import CandidateJobs from "./pages/candidate/Jobs";
 import CandidateProfile from "./pages/candidate/Profile";
-import MockDigiLocker from "./pages/MockDigiLocker";
 
 // Interviewer (job applicants)
 import Applicants from "./pages/interviewer/Applicants";
@@ -157,15 +156,6 @@ function App() {
           element={
             !isSignedIn ? <SignUpPage /> : <Navigate replace to={dashboard} />
           }
-        />
-
-        {/* Mock DigiLocker consent screen — only reachable when the
-            backend has DIGILOCKER_MOCK_MODE=true (see
-            backend/IDENTITY_VERIFICATION_SETUP.md). Requires being
-            signed in, same as every other authenticated page. */}
-        <Route
-          path="/mock-digilocker"
-          element={isSignedIn ? <MockDigiLocker /> : <Navigate replace to="/sign-in" />}
         />
 
         {/* Mock Interview — in production, /bot is proxied at the Vercel

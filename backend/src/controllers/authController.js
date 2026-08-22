@@ -217,7 +217,8 @@ export const uploadProfileResume = async (req, res) => {
       profile.degree &&
       profile.fieldOfStudy &&
       profile.yearOfGraduation &&
-      profile.skills?.length > 0
+      profile.skills?.length > 0 &&
+      req.user.identityVerification?.verified
     );
 
     await req.user.save();
@@ -266,12 +267,16 @@ export const updateCandidateProfile = async (req, res) => {
       resumeUrl: resumeUrl || "",
     };
 
-    // Consider the profile "complete" once the core required fields are filled
+    // Consider the profile "complete" once the core required fields are
+    // filled AND identity has been verified via Aadhaar scan — a
+    // candidate can't apply to jobs until both are done (see
+    // applicationController.applyToJob).
     profile.isComplete = !!(
       profile.degree &&
       profile.fieldOfStudy &&
       profile.yearOfGraduation &&
-      profile.skills.length > 0
+      profile.skills.length > 0 &&
+      req.user.identityVerification?.verified
     );
 
     req.user.candidateProfile = profile;
