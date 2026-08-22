@@ -422,22 +422,23 @@ const Applicants = () => {
             No applicants for this job yet.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
             <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
               <tr>
-                <th className="text-left px-6 py-4">Candidate</th>
-                <th className="text-left px-6 py-4">Degree</th>
-                <th className="text-left px-6 py-4">Experience</th>
-                <th className="text-left px-6 py-4">Skills</th>
-                <th className="text-left px-6 py-4">AI Fit</th>
-                <th className="text-left px-6 py-4">Status</th>
-                <th className="text-right px-6 py-4">Action</th>
+                <th className="text-left px-6 py-4 font-semibold">Candidate</th>
+                <th className="text-left px-6 py-4 font-semibold">Degree</th>
+                <th className="text-left px-6 py-4 font-semibold">Experience</th>
+                <th className="text-left px-6 py-4 font-semibold w-[220px]">Skills</th>
+                <th className="text-left px-6 py-4 font-semibold">AI Fit</th>
+                <th className="text-left px-6 py-4 font-semibold">Status</th>
+                <th className="text-right px-6 py-4 font-semibold">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {sortedApplications.map((app) => (
-                <tr key={app._id} className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4">
+                <tr key={app._id} className="hover:bg-slate-50/50 align-top">
+                  <td className="px-6 py-4 align-top">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden shrink-0">
                         {app.candidate?.profileImage ? (
@@ -456,35 +457,47 @@ const Applicants = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-slate-600 align-top">
                     {app.profileSnapshot?.degree}
                     <div className="text-xs text-slate-400">
                       {app.profileSnapshot?.fieldOfStudy}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-slate-600 align-top whitespace-nowrap">
                     {app.profileSnapshot?.experienceYears} yrs
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 align-top">
                     {app.totalRequiredSkills > 0 && (
-                      <div className="text-[11px] font-semibold text-emerald-600 mb-1">
-                        {app.skillMatchCount}/{app.totalRequiredSkills} required skills matched
+                      <div className="text-[11px] font-semibold text-emerald-600 mb-1.5">
+                        {app.skillMatchCount}/{app.totalRequiredSkills} required matched
                       </div>
                     )}
-                    <div className="flex flex-wrap gap-1 max-w-[220px]">
-                      {(app.profileSnapshot?.skills || []).map((s, i) => (
-                        <span key={i} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
+                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      {(app.profileSnapshot?.skills || []).slice(0, 4).map((s, i) => (
+                        <span
+                          key={i}
+                          className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full whitespace-nowrap"
+                        >
                           {s}
                         </span>
                       ))}
+                      {(app.profileSnapshot?.skills?.length ?? 0) > 4 && (
+                        <button
+                          onClick={() => setViewingApplication(app)}
+                          className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full hover:bg-slate-200"
+                          title="View all skills in profile"
+                        >
+                          +{app.profileSnapshot.skills.length - 4} more
+                        </button>
+                      )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 align-top">
                     {app.isEligible ? (
                       app.aiFitScore != null ? (
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                            className={`text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${
                               app.aiFitScore >= 75
                                 ? "bg-emerald-50 text-emerald-700"
                                 : app.aiFitScore >= 50
@@ -518,7 +531,7 @@ const Applicants = () => {
                             refreshFitScoreMutation.mutate(app._id);
                           }}
                           disabled={refreshingFitScoreId === app._id}
-                          className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+                          className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 disabled:opacity-50 whitespace-nowrap"
                         >
                           {refreshingFitScoreId === app._id ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -532,8 +545,8 @@ const Applicants = () => {
                       <span className="text-xs text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[app.status]}`}>
+                  <td className="px-6 py-4 align-top">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_BADGE[app.status]}`}>
                       {app.status.replace("_", " ")}
                     </span>
                     {!app.isEligible && app.failedCriteria?.length > 0 && (
@@ -542,11 +555,11 @@ const Applicants = () => {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end items-center gap-2">
+                  <td className="px-6 py-4 text-right align-top">
+                    <div className="flex justify-end items-center gap-2 flex-wrap">
                       <button
                         onClick={() => setViewingApplication(app)}
-                        className="flex items-center gap-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 text-xs font-semibold"
+                        className="flex items-center gap-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-2 text-xs font-semibold whitespace-nowrap"
                       >
                         <Eye size={14} />
                         View Profile
@@ -554,7 +567,7 @@ const Applicants = () => {
 
                       <button
                         onClick={() => setGeneratingFor({ application: app })}
-                        className="flex items-center gap-1 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-3 py-2 text-xs font-semibold"
+                        className="flex items-center gap-1 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-3 py-2 text-xs font-semibold whitespace-nowrap"
                         title="Generate interview questions tailored to this candidate's resume"
                       >
                         <Sparkles size={14} />
@@ -566,7 +579,7 @@ const Applicants = () => {
                           <button
                             disabled={actingOn === app._id}
                             onClick={() => setSchedulingApplication(app)}
-                            className="flex items-center gap-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                            className="flex items-center gap-1 rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-2 text-xs font-semibold disabled:opacity-50 whitespace-nowrap"
                           >
                             {actingOn === app._id && selectMutation.isPending ? (
                               <Loader2 className="animate-spin" size={14} />
@@ -581,7 +594,7 @@ const Applicants = () => {
                               setActingOn(app._id);
                               rejectMutation.mutate(app._id);
                             }}
-                            className="flex items-center gap-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                            className="flex items-center gap-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-xs font-semibold disabled:opacity-50 whitespace-nowrap"
                           >
                             {actingOn === app._id && rejectMutation.isPending ? (
                               <Loader2 className="animate-spin" size={14} />
@@ -598,6 +611,7 @@ const Applicants = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
