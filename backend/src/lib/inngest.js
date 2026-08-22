@@ -26,27 +26,61 @@ const syncUser = inngest.createFunction(
       image_url,
     } = event.data;
 
-const email =
-  email_addresses?.[0]?.email_address?.toLowerCase() || "";
+    const email =
+      email_addresses?.[0]?.email_address?.toLowerCase() || "";
 
-const newUser = {
-  clerkId: id,
-  email,
-  name: `${first_name || ""} ${last_name || ""}`.trim(),
-  profileImage: image_url || "",
-  role:
-    email === process.env.ADMIN_EMAIL.toLowerCase()
-      ? "admin"
-      : "candidate",
-  isActive: true,
-};
+    const newUser = {
+      clerkId: id,
+      email,
+      name: `${first_name || ""} ${last_name || ""}`.trim(),
+      profileImage: image_url || "",
+      // Bug fix: this used process.env.ADMIN_EMAIL.toLowerCase() with
+      // no optional chaining — if ADMIN_EMAIL isn't set in this
+      // environment, that throws a TypeError on every single webhook
+      // delivery, which is why every sync-user run was failing.
+      // protectRoute.js already guards this the same way.
+      role:
+        email === process.env.ADMIN_EMAIL?.toLowerCase()
+          ? "admin"
+          : "candidate",
+      isActive: true,
+    };
 
-await User.create(newUser);
+    // Why this is no longer a plain User.create(): protectRoute.js
+    // *also* creates the Mongo user on first authenticated request
+    // (deliberately — webhooks can't reach localhost in dev, so that
+    // path exists as a fallback). In production both paths are live at
+    // once: the instant someone signs up, this webhook fires AND their
+    // browser calls /auth/me. Whichever wins creates the user first;
+    // when this webhook lost that race, User.create() threw E11000 on
+    // the unique clerkId/email index, Inngest retried a few times over
+    // several minutes, then marked the run Failed — even though nothing
+    // was actually wrong, the user already existed.
+    //
+    // findOneAndUpdate(..., { upsert: true }) treats "already exists"
+    // as success instead of an error: whichever side got there first
+    // wins, this just reads/creates the same document either way.
+    let user;
+    try {
+      user = await User.findOneAndUpdate(
+        { $or: [{ clerkId: newUser.clerkId }, { email: newUser.email }] },
+        { $setOnInsert: newUser },
+        { new: true, upsert: true }
+      );
+    } catch (err) {
+      if (err.code === 11000) {
+        user = await User.findOne({
+          $or: [{ clerkId: newUser.clerkId }, { email: newUser.email }],
+        });
+      } else {
+        throw err;
+      }
+    }
 
     await upsertStreamUser({
       id: newUser.clerkId.toString(),
-      name: newUser.name,
-      image: newUser.profileImage,
+      name: user?.name || newUser.name,
+      image: user?.profileImage || newUser.profileImage,
     });
   }
 );

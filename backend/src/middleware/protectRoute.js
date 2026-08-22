@@ -43,31 +43,76 @@ export const protectRoute = [
       // FIRST LOGIN
       // ===============================
       if (!user) {
-        user = await User.create({
-          clerkId,
-          name,
-          email,
-          profileImage,
-          role:
-            email === process.env.ADMIN_EMAIL?.toLowerCase()
-              ? "admin"
-              : null,
-          isActive: true,
-        });
+        let isNewUser = false;
 
-        console.log(`✅ New user created: ${email}`);
+        // Why upsert instead of a plain create(): on a brand new
+        // sign-in the frontend fires GET /auth/me and POST
+        // /auth/select-role at (almost) the same instant (see
+        // useAuthUser + useSyncRole). Both requests land here
+        // concurrently, both see "no user yet", and both used to call
+        // User.create() with the same clerkId/email — the second one
+        // threw a Mongo E11000 duplicate-key error on the unique
+        // index, which fell into the catch below as a bare 500. The
+        // Clerk account existed (visible in the Clerk dashboard) but
+        // whichever request lost the race never got a usable Mongo
+        // user back, so its dashboard never loaded.
+        //
+        // findOneAndUpdate(..., { upsert: true }) lets Mongo resolve
+        // that race atomically: whichever request arrives first
+        // inserts the document, the other one just reads the same
+        // document back via `new: true` instead of erroring.
+        try {
+          user = await User.findOneAndUpdate(
+            { $or: [{ clerkId }, { email }] },
+            {
+              $setOnInsert: {
+                clerkId,
+                name,
+                email,
+                profileImage,
+                role:
+                  email === process.env.ADMIN_EMAIL?.toLowerCase()
+                    ? "admin"
+                    : null,
+                isActive: true,
+              },
+            },
+            { new: true, upsert: true }
+          );
+          isNewUser = true;
+        } catch (err) {
+          // Belt-and-braces: a genuine duplicate-key error can still
+          // surface from the upsert itself under heavy concurrency.
+          // If so, someone else's request just won — read back what
+          // they created instead of failing the request.
+          if (err.code === 11000) {
+            user = await User.findOne({ $or: [{ clerkId }, { email }] });
+          } else {
+            throw err;
+          }
+        }
 
-        // Clerk webhooks need a public HTTPS endpoint to reach this
-        // server (they can't hit localhost without a tunnel), so the
-        // Inngest "sync-user" webhook that normally handles this may
-        // never fire in local development. Upsert here too so Stream
-        // Chat/Video always knows about the user regardless of whether
-        // the webhook is reachable.
-        await upsertStreamUser({
-          id: user.clerkId,
-          name: user.name,
-          image: user.profileImage,
-        });
+        if (!user) {
+          throw new Error(
+            `Failed to create or locate user for clerkId=${clerkId} after upsert`
+          );
+        }
+
+        if (isNewUser) {
+          console.log(`✅ New user created: ${email}`);
+
+          // Clerk webhooks need a public HTTPS endpoint to reach this
+          // server (they can't hit localhost without a tunnel), so the
+          // Inngest "sync-user" webhook that normally handles this may
+          // never fire in local development. Upsert here too so Stream
+          // Chat/Video always knows about the user regardless of whether
+          // the webhook is reachable.
+          await upsertStreamUser({
+            id: user.clerkId,
+            name: user.name,
+            image: user.profileImage,
+          });
+        }
       }
 
       // ===============================
