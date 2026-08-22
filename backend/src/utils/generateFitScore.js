@@ -1,10 +1,6 @@
 import axios from "axios";
 import { jsonrepair } from "jsonrepair";
 
-// Same OpenRouter multi-model fallback pattern as
-// generatePerformanceSummary.js — kept as a separate, small copy rather
-// than a shared import so each caller can tune its own prompt/token
-// budget independently without risking cross-feature regressions.
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const PRIMARY_MODEL = process.env.OPENROUTER_PRIMARY_MODEL || "openai/gpt-4o-mini";
@@ -113,13 +109,6 @@ const FALLBACK_RESULT = (reason) => ({
   resumeQualitySignal: "",
 });
 
-/**
- * Generates an explainable 0-100 AI fit assessment for one application.
- * Never throws — on any failure (missing key, all models down, bad
- * JSON) it returns a fallback object with score: null, so callers can
- * treat "not yet scored" and "scoring failed" the same way and never
- * block the apply flow or a decision on this.
- */
 export async function generateFitScore(input) {
   if (!process.env.OPENROUTER_API_KEY) {
     console.warn("generateFitScore: OPENROUTER_API_KEY not set, skipping.");

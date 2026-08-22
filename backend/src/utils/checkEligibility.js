@@ -1,10 +1,3 @@
-/**
- * Strict eligibility check:
- * Every required criterion must be satisfied.
- * Skill comparison is case-insensitive and supports
- * common naming variations (React ↔ React.js, Node ↔ Node.js, etc.).
- */
-
 const skillAliases = {
   "react.js": "react",
   reactjs: "react",
@@ -75,7 +68,7 @@ export function checkEligibility(job, profile) {
 
   const minExperience = Number(criteria.minExperience || 0);
 
-  // Degree Check
+  
   if (requiredDegrees.length > 0) {
     const candidateDegree = (profile.degree || "")
       .trim()
@@ -92,7 +85,7 @@ export function checkEligibility(job, profile) {
     }
   }
 
-  // Experience Check
+  
   const candidateExperience = Number(
     profile.experienceYears || 0
   );
@@ -103,7 +96,7 @@ export function checkEligibility(job, profile) {
     );
   }
 
-  // Skills Check
+  
   const candidateSkills = profile.skills || [];
 
   const missingSkills = requiredSkills.filter((requiredSkill) => {

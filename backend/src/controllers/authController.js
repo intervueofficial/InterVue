@@ -22,7 +22,7 @@ export const selectRole = async (req, res) => {
   try {
     const { role } = req.body;
 
-    // Validate role
+    
     if (!["admin", "interviewer", "candidate"].includes(role)) {
       return res.status(400).json({
         success: false,
@@ -30,7 +30,7 @@ export const selectRole = async (req, res) => {
       });
     }
 
-    // Only configured admin email can become admin
+    
     const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
 
     if (
@@ -43,7 +43,7 @@ export const selectRole = async (req, res) => {
       });
     }
 
-    // Update role
+    
     req.user.role = role;
 
     await req.user.save();
@@ -62,13 +62,6 @@ export const selectRole = async (req, res) => {
   }
 };
 
-// =======================================
-// Upload Candidate Profile Picture (Cloudinary)
-// =======================================
-// The candidate uploads a photo from My Profile. It's stored on the same
-// `profileImage` field the rest of the app already reads (e.g. Stream
-// chat/video, the admin Users table) — so once uploaded it's automatically
-// what an interviewer sees on the candidate's profile card in Applicants.
 export const uploadProfileImage = async (req, res) => {
   try {
     if (!isCloudinaryConfigured) {
@@ -88,8 +81,8 @@ export const uploadProfileImage = async (req, res) => {
       });
     }
 
-    // Expects a data URL (e.g. "data:image/png;base64,...."), which is
-    // what the browser's FileReader.readAsDataURL produces.
+    
+    
     if (!image.startsWith("data:image/")) {
       return res.status(400).json({
         success: false,
@@ -101,10 +94,10 @@ export const uploadProfileImage = async (req, res) => {
       folder: "intervue/profile-pictures",
       public_id: req.user.clerkId,
       overwrite: true,
-      // Overwriting a public_id does NOT bust Cloudinary's own CDN cache
-      // by default — without this, the old photo can keep being served
-      // globally for a while even though our DB already points at the
-      // new one.
+      
+      
+      
+      
       invalidate: true,
       resource_type: "image",
       transformation: [
@@ -129,13 +122,6 @@ export const uploadProfileImage = async (req, res) => {
   }
 };
 
-// =======================================
-// Upload Candidate Resume (Cloudinary)
-// =======================================
-// The candidate uploads a PDF/Word doc from My Profile. Stored as a raw
-// Cloudinary asset (not an image transform) and saved on
-// `candidateProfile.resumeUrl`, which the resume link/download button and
-// the admin/interviewer Applicants view read from.
 const ALLOWED_RESUME_MIME_TYPES = [
   "application/pdf",
   "application/msword",
@@ -161,7 +147,7 @@ export const uploadProfileResume = async (req, res) => {
       });
     }
 
-    // Expects a data URL (e.g. "data:application/pdf;base64,....")
+    
     const mimeMatch = resume.match(/^data:([^;]+);base64,/);
     const mimeType = mimeMatch?.[1];
 
@@ -172,7 +158,7 @@ export const uploadProfileResume = async (req, res) => {
       });
     }
 
-    // Rough size check on the base64 payload (~10MB limit, matching the UI)
+    
     const base64Data = resume.slice(resume.indexOf(",") + 1);
     const approxBytes = base64Data.length * 0.75;
     const MAX_BYTES = 10 * 1024 * 1024;
@@ -198,20 +184,20 @@ export const uploadProfileResume = async (req, res) => {
       resource_type: "raw",
       use_filename: true,
       filename_override: fileName || `${req.user.clerkId}-resume`,
-      // Cloudinary "raw" assets otherwise carry no file extension, which
-      // can leave browsers unsure how to open/download the link — this
-      // keeps it as a proper .pdf/.doc/.docx URL.
+      
+      
+      
       format: RESUME_EXTENSION_BY_MIME[mimeType],
     });
 
     req.user.candidateProfile = req.user.candidateProfile || {};
     req.user.candidateProfile.resumeUrl = upload.secure_url;
 
-    // Best-effort text extraction for AI context (question generation +
-    // fit score) — never blocks the upload itself if parsing fails.
+    
+    
     req.user.candidateProfile.resumeText = await extractResumeText(resume);
 
-    // Re-evaluate profile completeness now that the resume changed
+    
     const profile = req.user.candidateProfile;
     profile.isComplete = !!(
       profile.degree &&
@@ -267,10 +253,6 @@ export const updateCandidateProfile = async (req, res) => {
       resumeUrl: resumeUrl || "",
     };
 
-    // Consider the profile "complete" once the core required fields are
-    // filled AND identity has been verified via Aadhaar scan — a
-    // candidate can't apply to jobs until both are done (see
-    // applicationController.applyToJob).
     profile.isComplete = !!(
       profile.degree &&
       profile.fieldOfStudy &&

@@ -29,11 +29,8 @@ const jobSchema = new mongoose.Schema(
       default: "Full-time",
     },
 
-    // ==========================
-    // Eligibility Criteria
-    // ==========================
     criteria: {
-      // Accepted degrees, e.g. ["B.Tech", "M.Tech", "MCA"]
+      
       requiredDegrees: {
         type: [String],
         default: [],

@@ -1,9 +1,9 @@
 import Quiz from "../models/Quiz.js";
 import { logAction } from "../lib/auditLog.js";
 
-// =======================================
-// Get All Quizzes
-// =======================================
+
+
+
 export const getQuizzes = async (req, res) => {
   try {
     const quizzes = await Quiz.find()
@@ -24,9 +24,9 @@ export const getQuizzes = async (req, res) => {
   }
 };
 
-// =======================================
-// Get Quiz By Id
-// =======================================
+
+
+
 export const getQuizById = async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id).populate(
@@ -55,9 +55,9 @@ export const getQuizById = async (req, res) => {
   }
 };
 
-// =======================================
-// Create Quiz
-// =======================================
+
+
+
 export const createQuiz = async (req, res) => {
   try {
     const {
@@ -95,9 +95,9 @@ export const createQuiz = async (req, res) => {
     });
   }
 };
-// =======================================
-// Update Quiz
-// =======================================
+
+
+
 export const updateQuiz = async (req, res) => {
   try {
     const existing = await Quiz.findById(req.params.id);
@@ -160,9 +160,9 @@ export const updateQuiz = async (req, res) => {
   }
 };
 
-// =======================================
-// Delete Quiz
-// =======================================
+
+
+
 export const deleteQuiz = async (req, res) => {
   try {
     const existing = await Quiz.findById(req.params.id);

@@ -4,8 +4,6 @@ import { getTemplate, substitutePlaceholders, paragraphsToHtml } from "./emailTe
 
 export const resend = new ResendSafe();
 
-// Thin wrapper so a missing/invalid RESEND_API_KEY during local dev
-// doesn't crash the whole app on import — it just logs instead of sending.
 function ResendSafe() {
   const client = ENV.RESEND_API_KEY ? new Resend(ENV.RESEND_API_KEY) : null;
 
@@ -245,22 +243,6 @@ export async function sendSelectionEmail({
   interviewTime,
   isScheduledForLater,
 }) {
-  // Subject and the narrative paragraphs below now come from the
-  // "candidate_selected" EmailTemplate in the DB (editable from
-  // Admin → Email Templates), falling back to the original hardcoded
-  // copy if no template exists yet. The header banner, date/time box,
-  // and (when present) interview-code/"Join Interview" button stay
-  // structural — they depend on data that isn't part of the editable
-  // template.
-  //
-  // sessionCode/sessionLink are only passed in for an "Instant
-  // Interview" (see selectApplicant in applicationController.js) —
-  // when the interviewer picks a real future date/time, this email
-  // confirms the date/time ONLY. The actual join link + code follow in
-  // a separate email exactly 1 hour before the interview (see
-  // sendInterviewReminderEmail + the send-interview-join-reminders
-  // cron in lib/inngest.js), so the candidate isn't holding onto a
-  // clickable link days in advance.
   const template = await getTemplate("candidate_selected");
   const data = { candidateName: name, jobTitle };
   const subject = substitutePlaceholders(template.subject, data);

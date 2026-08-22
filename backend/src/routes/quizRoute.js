@@ -12,11 +12,11 @@ import {
 
 const router = express.Router();
 
-// Public
+
 router.get("/", getQuizzes);
 router.get("/:id", getQuizById);
 
-// Admin + Interviewer (interviewer can only edit/delete their own — enforced in controller)
+
 router.post(
   "/",
   protectRoute,

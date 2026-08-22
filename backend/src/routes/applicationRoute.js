@@ -17,7 +17,7 @@ import {
 
 const router = express.Router();
 
-// Candidate
+
 router.post(
   "/:jobId/apply",
   protectRoute,
@@ -33,7 +33,7 @@ router.get(
   getMyApplications
 );
 
-// Interviewer / Admin
+
 router.get(
   "/job/:jobId",
   protectRoute,
@@ -62,7 +62,7 @@ router.post(
   refreshFitScore
 );
 
-// Post-interview decision flow
+
 router.get(
   "/by-session/:sessionId",
   protectRoute,

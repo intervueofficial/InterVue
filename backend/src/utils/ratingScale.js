@@ -1,14 +1,3 @@
-/**
- * Converts a 0-100 numeric score into a plain-language rating label.
- *
- * The AI performance report used to show raw percentages for coding,
- * quiz, and confidence/engagement scores. Those are now replaced
- * end-to-end (PDF, History table, candidate results view) with a
- * simple 5-tier letteric rating so the report reads like human
- * feedback instead of a bare number.
- *
- * Scale (ascending): Worst -> Good -> Better -> Best -> Excellent
- */
 export const RATING_SCALE = [
   { max: 20, label: "Worst" },
   { max: 40, label: "Good" },

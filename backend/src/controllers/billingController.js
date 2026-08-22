@@ -1,19 +1,19 @@
 import Subscription from "../models/Subscription.js";
 import { logAction } from "../lib/auditLog.js";
 
-// Rough interview-prep pricing used only to derive an MRR figure from
-// plan counts — there is no real payment gateway, so this is a display
-// estimate, not billed revenue. Double-check these numbers before
-// treating the MRR card as anything more than a rough figure.
+
+
+
+
 const PLAN_PRICE_INR = {
   free: 0,
   pro: 499,
   premium: 1499,
 };
 
-// ==========================
-// List subscriptions
-// ==========================
+
+
+
 export const getSubscriptions = async (req, res) => {
   try {
     const subscriptions = await Subscription.find()
@@ -30,9 +30,9 @@ export const getSubscriptions = async (req, res) => {
   }
 };
 
-// ==========================
-// Cancel a subscription
-// ==========================
+
+
+
 export const cancelSubscription = async (req, res) => {
   try {
     const subscription = await Subscription.findById(req.params.id);
@@ -60,9 +60,9 @@ export const cancelSubscription = async (req, res) => {
   }
 };
 
-// ==========================
-// Billing stats — MRR, active count, plan breakdown, this month's churn
-// ==========================
+
+
+
 export const getSubscriptionStats = async (req, res) => {
   try {
     const [all, planBreakdownRaw, statusBreakdownRaw] = await Promise.all([
@@ -84,16 +84,16 @@ export const getSubscriptionStats = async (req, res) => {
     const activeCount = all.filter((s) => s.status === "active").length;
     const trialingCount = all.filter((s) => s.status === "trialing").length;
 
-    // MRR: sum of each active/trialing subscriber's plan price. Trialing
-    // subscribers are included at their plan price since that's the rate
-    // they'll convert to (or churn from) — a common SaaS convention for
-    // "forecast MRR", clearly not "collected revenue".
+    
+    
+    
+    
     const mrr = all
       .filter((s) => s.status === "active" || s.status === "trialing")
       .reduce((sum, s) => sum + (PLAN_PRICE_INR[s.plan] ?? 0), 0);
 
-    // Churn this month: subscriptions cancelled since the 1st of the
-    // current month.
+    
+    
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);

@@ -2,9 +2,9 @@ import Problem from "../models/Problem.js";
 import { gradeAgainstTestCases } from "../lib/judge.js";
 import { logAction } from "../lib/auditLog.js";
 
-// =======================================
-// Get All Problems
-// =======================================
+
+
+
 export const getProblems = async (req, res) => {
   try {
     const problems = await Problem.find()
@@ -25,9 +25,9 @@ export const getProblems = async (req, res) => {
   }
 };
 
-// =======================================
-// Get Problem By Id
-// =======================================
+
+
+
 export const getProblemById = async (req, res) => {
   try {
     const problem = await Problem.findById(req.params.id).populate(
@@ -56,9 +56,9 @@ export const getProblemById = async (req, res) => {
   }
 };
 
-// =======================================
-// Create Problem
-// =======================================
+
+
+
 export const createProblem = async (req, res) => {
   try {
     const problem = await Problem.create({
@@ -80,9 +80,9 @@ export const createProblem = async (req, res) => {
   }
 };
 
-// =======================================
-// Update Problem
-// =======================================
+
+
+
 export const updateProblem = async (req, res) => {
   try {
     const existing = await Problem.findById(req.params.id);
@@ -126,15 +126,15 @@ export const updateProblem = async (req, res) => {
   }
 };
 
-// =======================================
-// Grade Problem (practice mode — no session attached)
-// =======================================
-// Reuses the same LeetCode-style judge engine that live interview
-// sessions use (lib/judge.js), so practice mode and real interviews
-// grade identically — same per-test-case pass/fail, same error
-// reporting. Unlike the session version, this doesn't persist a score
-// anywhere; it's just "how am I doing right now" for a candidate
-// practicing on their own.
+
+
+
+
+
+
+
+
+
 export const gradeProblem = async (req, res) => {
   try {
     const { code, language } = req.body;
@@ -194,9 +194,9 @@ export const gradeProblem = async (req, res) => {
   }
 };
 
-// =======================================
-// Delete Problem
-// =======================================
+
+
+
 export const deleteProblem = async (req, res) => {
   try {
     const existing = await Problem.findById(req.params.id);

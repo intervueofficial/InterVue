@@ -6,15 +6,6 @@ import {
   isValidAadhaarChecksum,
 } from "../lib/aadhaarOcr.js";
 
-/**
- * Given a confirmed identity record (name + dob + aadhaarNumber, after
- * the candidate has reviewed/corrected whatever OCR produced), either
- * link it to `user` or reject it as a duplicate of an already-verified
- * account. This is where the actual "one Aadhaar = one account"
- * guarantee lives — the `findOne` check plus the model's unique index
- * on `aadhaarHash` together stop the same identity from ever verifying
- * twice.
- */
 async function finalizeVerification(user, { name, dob, aadhaarNumber }) {
   const aadhaarHash = computeAadhaarHash(aadhaarNumber);
 
@@ -41,14 +32,8 @@ async function finalizeVerification(user, { name, dob, aadhaarNumber }) {
     verifiedAt: new Date(),
   };
 
-  // Lock the account's display name to the verified name from here on
-  // — protectRoute.js stops syncing `name` from Clerk once this is set.
   user.name = name.trim();
 
-  // Re-evaluate profile completeness now that verification just
-  // changed — isComplete requires both the profile fields AND
-  // verification (see authController.js), so a candidate who already
-  // filled everything else becomes eligible to apply right after this.
   if (user.candidateProfile) {
     const p = user.candidateProfile;
     p.isComplete = !!(p.degree && p.fieldOfStudy && p.yearOfGraduation && p.skills?.length > 0);
@@ -57,9 +42,7 @@ async function finalizeVerification(user, { name, dob, aadhaarNumber }) {
   try {
     await user.save();
   } catch (saveError) {
-    // Safety net for a race between two concurrent verification
-    // attempts landing on the same hash — the unique index catches
-    // what the findOne check above might miss under concurrency.
+    
     if (saveError?.code === 11000) {
       return {
         ok: false,
@@ -73,9 +56,6 @@ async function finalizeVerification(user, { name, dob, aadhaarNumber }) {
   return { ok: true, status: "verified" };
 }
 
-// =======================================
-// GET /api/identity/status
-// =======================================
 export async function getVerificationStatus(req, res) {
   return res.status(200).json({
     success: true,
@@ -83,18 +63,6 @@ export async function getVerificationStatus(req, res) {
   });
 }
 
-// =======================================
-// POST /api/identity/verify/scan
-// Body: { image: "data:image/jpeg;base64,..." } — a single frame
-// captured from the candidate's live camera (never a gallery upload —
-// enforced client-side in AadhaarCameraCapture.jsx).
-//
-// Runs OCR and returns the extracted fields WITHOUT saving anything,
-// so the frontend can show a review/correction screen before the
-// candidate commits — OCR on a phone photo of a card is genuinely
-// error-prone (glare, tilt, worn cards), so we never treat a raw OCR
-// pass as final.
-// =======================================
 export async function scanAadhaar(req, res) {
   try {
     if (req.user.identityVerification?.verified) {
@@ -135,12 +103,6 @@ export async function scanAadhaar(req, res) {
   }
 }
 
-// =======================================
-// POST /api/identity/verify/confirm
-// Body: { name, dob, aadhaarNumber } — the fields from scanAadhaar's
-// response, after the candidate has reviewed and corrected them if
-// needed. This is the step that actually saves the verification.
-// =======================================
 export async function confirmVerification(req, res) {
   try {
     if (req.user.identityVerification?.verified) {

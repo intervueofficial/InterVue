@@ -15,22 +15,16 @@ const router = express.Router();
 
 
 
-// Get all problems
+
 router.get("/", getProblems);
 
-// Get single problem
+
 router.get("/:id", getProblemById);
 
-// Practice-mode grading — any authenticated user (candidates included)
+
 router.post("/:id/grade", protectRoute, gradeProblem);
 
-/*
-|--------------------------------------------------------------------------
-| Admin + Interviewer Routes
-| (interviewer can only edit/delete problems they created — enforced
-|  via ownership check in the controller)
-|--------------------------------------------------------------------------
-*/
+
 
 router.post(
   "/",

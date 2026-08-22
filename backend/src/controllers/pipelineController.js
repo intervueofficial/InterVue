@@ -1,13 +1,5 @@
 import Application from "../models/Application.js";
 
-// ==========================
-// All applications across every job — the interviewer side
-// (pages/interviewer/Applicants.jsx) only ever shows one job's
-// applicants at a time; this is the cross-job funnel view for admin.
-// Supports optional ?status= and ?job= filters, applied server-side so
-// large application tables don't have to ship every row to the client
-// just to filter three of them.
-// ==========================
 export const getAllApplications = async (req, res) => {
   try {
     const { status, job } = req.query;
@@ -31,9 +23,6 @@ export const getAllApplications = async (req, res) => {
   }
 };
 
-// ==========================
-// Funnel counts across all jobs, by status
-// ==========================
 export const getPipelineStats = async (req, res) => {
   try {
     const byStatusRaw = await Application.aggregate([

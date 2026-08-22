@@ -4,9 +4,6 @@ import { logAction } from "../lib/auditLog.js";
 import cloudinary, { isCloudinaryConfigured } from "../lib/cloudinary.js";
 import { extractResumeText, RESUME_MIME_TYPES } from "../lib/resumeParser.js";
 
-// ==========================
-// Admin: create a job posting
-// ==========================
 export async function createJob(req, res) {
   try {
     const {
@@ -51,9 +48,6 @@ export async function createJob(req, res) {
   }
 }
 
-// ==========================
-// Admin: list all jobs (any status)
-// ==========================
 export async function getAllJobs(req, res) {
   try {
     const jobs = await Job.find()
@@ -67,14 +61,11 @@ export async function getAllJobs(req, res) {
   }
 }
 
-// ==========================
-// Candidate: list only open jobs
-// ==========================
 export async function getOpenJobs(req, res) {
   try {
     const jobs = await Job.find({ status: "open" }).sort({ createdAt: -1 });
 
-    // Attach whether this candidate has already applied to each job
+    
     const applications = await Application.find({
       candidate: req.user._id,
       job: { $in: jobs.map((j) => j._id) },
@@ -116,9 +107,6 @@ export async function getJobById(req, res) {
   }
 }
 
-// ==========================
-// Admin: update a job (details, criteria, or open/close status)
-// ==========================
 export async function updateJob(req, res) {
   try {
     const job = await Job.findByIdAndUpdate(req.params.id, req.body, {
@@ -137,14 +125,6 @@ export async function updateJob(req, res) {
   }
 }
 
-// ==========================
-// Admin: upload the "example eligible resume" for a job
-// ==========================
-// Same Cloudinary raw-upload pattern as a candidate's own resume upload
-// (see authController.uploadProfileResume) — accepts a base64 data URL,
-// uploads it, then best-effort extracts its text (lib/resumeParser.js)
-// so it can be used as reference context for Feature 3's resume-aware
-// AI question generation.
 export async function uploadJobSampleResume(req, res) {
   try {
     if (!isCloudinaryConfigured) {
@@ -216,9 +196,6 @@ export async function uploadJobSampleResume(req, res) {
   }
 }
 
-// ==========================
-// Admin: delete a job
-// ==========================
 export async function deleteJob(req, res) {
   try {
     const job = await Job.findByIdAndDelete(req.params.id);

@@ -65,10 +65,10 @@ const sessionSchema = new mongoose.Schema(
       default: "",
     },
 
-    // Set once the day-before reminder email has gone out (see
-    // lib/inngest.js's sendInterviewReminders cron), so the same
-    // session never gets reminded twice even if the cron overlaps its
-    // own matching window on a re-run.
+    
+    
+    
+    
     reminderSentAt: {
       type: Date,
       default: null,
@@ -121,15 +121,15 @@ performanceReport: {
   generatedAt: { type: Date, default: null },
 },
 
-// ==========================
-// Collaborative whiteboard
-// One board per interview session. `elements`/`appState` mirror
-// Excalidraw's own scene format 1:1 (Mixed, since that shape is
-// version-managed by the Excalidraw library itself, not by us) so the
-// saved board can be handed straight back to <Excalidraw /> on reload.
-// `version` is a simple monotonically-increasing save counter used to
-// avoid an older auto-save race overwriting a newer one.
-// ==========================
+
+
+
+
+
+
+
+
+
 whiteboard: {
   elements: { type: [mongoose.Schema.Types.Mixed], default: [] },
   appState: { type: mongoose.Schema.Types.Mixed, default: {} },

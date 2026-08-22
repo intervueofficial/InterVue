@@ -5,10 +5,6 @@ import { runCode, buildHarness } from "../lib/judge.js";
 import User from "../models/User.js";
 import Job from "../models/Job.js";
 
-// Maps a candidate's numeric years-of-experience onto the same
-// dropdown labels the "Generate with AI" wizard's manual "Experience
-// Level" select already uses (see AIGeneratorWizard.jsx), so an
-// auto-filled value looks identical to a hand-picked one.
 function experienceYearsToLevel(years) {
   const n = Number(years) || 0;
   if (n < 1) return "Entry-level (0–1 years)";
@@ -18,14 +14,6 @@ function experienceYearsToLevel(years) {
   return "Staff / Lead (7+ years)";
 }
 
-/**
- * Builds the { role, experience, skills, topics } auto-fill payload for
- * a given candidate (and optionally the job they're being interviewed
- * for), used both by the standalone candidate-context endpoint (for the
- * frontend's "Auto-fill from candidate's resume" button) and internally
- * by generateQuestions when a candidateId is passed alongside/instead
- * of manually typed fields.
- */
 async function buildCandidateAutofill(candidateId, jobId) {
   const candidate = await User.findById(candidateId).select("candidateProfile name");
   if (!candidate) return null;
@@ -36,9 +24,7 @@ async function buildCandidateAutofill(candidateId, jobId) {
 
   const candidateSkills = Array.isArray(profile.skills) ? profile.skills : [];
   const jobSkills = job?.criteria?.requiredSkills || [];
-  // Union, candidate's own skills first — these are what the questions
-  // should actually probe; job-required skills fill in anything the
-  // candidate profile didn't list.
+
   const mergedSkills = [...new Set([...candidateSkills, ...jobSkills])];
 
   const role = job?.title || profile.fieldOfStudy || "Software Engineer";
@@ -51,13 +37,10 @@ async function buildCandidateAutofill(candidateId, jobId) {
     experience,
     skills,
     topics,
-    // Extra, non-form context folded into the prompt (not shown as a
-    // separate editable field) — see PromptOptimizer below.
     resumeContext: buildResumeContext({ profile, job }),
   };
 }
 
-/** Free-text summary of resume-derived signal, appended to the AI prompt as extra grounding context (not shown to the interviewer as a form field). */
 function buildResumeContext({ profile, job }) {
   const lines = [];
 
@@ -73,10 +56,6 @@ function buildResumeContext({ profile, job }) {
     lines.push(`Candidate's resume lists these skills: ${profile.skills.join(", ")}.`);
   }
   if (job?.sampleResumeText) {
-    // Truncated further here (on top of the cap already applied when it
-    // was extracted/stored) to keep this specific prompt's context
-    // budget small — this is meant as light "gold standard" grounding,
-    // not a full document dump.
     lines.push(
       `Reference: an example of a strong resume for this role includes the following background: ${job.sampleResumeText.slice(0, 1200)}`
     );
@@ -85,8 +64,6 @@ function buildResumeContext({ profile, job }) {
   return lines.join(" ");
 }
 
-// Maps the free-text "language" the AI puts on a generated problem
-// (e.g. "JavaScript", "Python 3") to the judge's language keys.
 function toJudgeLanguage(language = "") {
   const l = language.toLowerCase();
   if (l.includes("java") && !l.includes("script")) return "java";
@@ -110,19 +87,6 @@ if (!process.env.OPENROUTER_API_KEY) {
   console.log(`OPENROUTER_API_KEY loaded (starts with: ${process.env.OPENROUTER_API_KEY.slice(0, 8)}...)`);
 }
 
-/**
- * The AI writes both the problem AND the reference "answer" (solutionCode)
- * in the same call, but LLM-guessed expectedOutput strings are frequently
- * a little off from what real execution actually produces (spacing,
- * bracket/array formatting, key order, etc). Rather than trusting that
- * guess blindly, we actually call solutionCode's entryPoint function with
- * each test case's arguments — the exact same harness used later to grade
- * the candidate — and overwrite expectedOutput with what the reference
- * answer really returns. So the "answer" the candidate is graded against
- * is a verified, real result, not an LLM's guess at what it should look
- * like. Best-effort: any execution failure just leaves the AI's original
- * guess in place instead of blocking generation.
- */
 async function verifyProblemAgainstItsOwnSolution(problem) {
   if (
     !problem?.solutionCode ||
@@ -149,14 +113,10 @@ async function verifyProblemAgainstItsOwnSolution(problem) {
         });
 
         if (result.success && result.output) {
-          // Round-trip through JSON.parse/stringify to normalize
-          // formatting (whitespace, key order) rather than trusting the
-          // raw printed text verbatim.
           const parsed = JSON.parse(result.output.trim());
           return { ...tc, expectedOutput: JSON.stringify(parsed) };
         }
       } catch (_) {
-        // fall through to original test case below
       }
       return tc;
     })
@@ -167,13 +127,6 @@ async function verifyProblemAgainstItsOwnSolution(problem) {
 
 const RATE_LIMIT_CACHE = new Map();
 const RESPONSE_CACHE = new Map();
-
-// Simple in-memory counter for "AI generations made today", read by
-// Admin → System Health. Resets automatically whenever the calendar day
-// rolls over (checked lazily on each recordGeneration() call — no
-// scheduled job needed). In-memory means this resets on every server
-// restart/deploy, which is an acceptable trade-off for a lightweight
-// usage indicator; it's not meant to be a billing-grade counter.
 const GENERATION_STATS = { day: todayKey(), total: 0, fallback: 0 };
 
 function todayKey() {
@@ -191,8 +144,6 @@ function recordGeneration(result) {
   if (result?.fallback) GENERATION_STATS.fallback += 1;
 }
 
-// Read-only snapshot for the System Health controller — imported there
-// rather than duplicating this tracking logic.
 export function getGenerationStatsToday() {
   const key = todayKey();
   if (GENERATION_STATS.day !== key) {
@@ -420,15 +371,6 @@ function extractJSON(raw, expectArray) {
   const arrMatch = text.match(/\[[\s\S]*\]/);
   const objMatch = text.match(/\{[\s\S]*\}/);
 
-  // A response can legitimately contain BOTH bracket types — a problem
-  // object has array *fields* (tags, testCases, hints), and a quiz array
-  // has object *elements* with their own "options" array. Blindly
-  // preferring one bracket type over the other (as this used to) means
-  // that for a problem response, the regex slices out just the first
-  // array field instead of the surrounding object — jsonrepair then
-  // "successfully" repairs that fragment into a small, wrong-shaped
-  // array, which used to sail through as a false "success". The correct
-  // top-level value is whichever bracket actually opens first in the text.
   let candidate;
   if (arrMatch && objMatch) {
     candidate = arrMatch.index <= objMatch.index ? arrMatch[0] : objMatch[0];
@@ -440,22 +382,14 @@ function extractJSON(raw, expectArray) {
   try {
     parsed = JSON.parse(candidate);
   } catch (firstError) {
-    // Fall back to auto-repair for common LLM JSON issues:
-    // unescaped newlines/control chars inside strings, trailing commas,
-    // smart quotes, single quotes, etc.
+
     try {
       parsed = JSON.parse(jsonrepair(candidate));
     } catch (repairError) {
-      throw firstError; // surface the original error for logging
+      throw firstError;
     }
   }
 
-  // Defense-in-depth: even a "successfully parsed" result can be the
-  // wrong shape if a weaker model doesn't follow the schema, or if the
-  // bracket-selection heuristic above ever picks wrong on malformed
-  // output. Treat a shape mismatch the same as a parse failure so the
-  // caller retries the next model instead of returning bad data to the
-  // client with success: true.
   const isArrayResult = Array.isArray(parsed);
 
   if (expectArray && !isArrayResult) {
@@ -482,7 +416,7 @@ class APIClient {
           model,
           messages: [{ role: "user", content: prompt }],
           max_tokens: maxTokens,
-          temperature: 0.4, // lowered slightly — reduces creative formatting drift
+          temperature: 0.4,
           top_p: 0.9,
         },
         {
@@ -615,11 +549,6 @@ export const generateQuestions = async (req, res) => {
 
   const safeCount = Math.min(Math.max(parseInt(count) || 5, 1), type === "quiz" ? 15 : 1);
 
-  // resumeContext is resolved fresh per-request (not part of the cache
-  // key inputs directly) — candidateId itself is what's included below,
-  // so two different candidates never collide even if their typed
-  // role/experience/skills/topics happen to match after auto-fill +
-  // manual edits.
   let resumeContext = "";
   if (candidateId) {
     try {
@@ -638,9 +567,6 @@ export const generateQuestions = async (req, res) => {
     topics,
     difficulty,
     count: safeCount,
-    // Only present when this generation was tied to a specific
-    // candidate — keeps a plain manual generation's cache key
-    // unchanged from before.
     ...(candidateId ? { candidateId } : {}),
   });
 
@@ -725,16 +651,6 @@ export const generateQuestions = async (req, res) => {
   processQueue();
 };
 
-// =======================================
-// Candidate Context (resume auto-fill)
-// =======================================
-// Used by the interviewer's "Auto-fill from candidate's resume" button
-// on the Generate Questions panel — returns the role/experience/skills
-///topics values derived from the candidate's profile (and, if provided,
-// the job's criteria/sample resume), which the interviewer can then
-// still freely edit before generating. See buildCandidateAutofill()
-// above for the actual derivation logic, which generateQuestions also
-// calls internally when a candidateId is passed.
 export const getCandidateContext = async (req, res) => {
   try {
     const { candidateId } = req.params;

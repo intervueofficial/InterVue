@@ -63,7 +63,7 @@ export function generatePerformancePdf({
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", reject);
 
-      // Header
+      
       doc.fillColor("#1f2937").fontSize(22).font("Helvetica-Bold").text("InterVue");
       doc
         .fontSize(10)
@@ -75,13 +75,13 @@ export function generatePerformancePdf({
       doc.strokeColor("#e5e7eb").lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
       doc.moveDown(1);
 
-      // Candidate info
+      
       doc.fontSize(16).fillColor("#111827").font("Helvetica-Bold").text(candidateName);
       doc.fontSize(11).fillColor("#4b5563").font("Helvetica").text(`Role: ${jobTitle}`);
       doc.text(`Date: ${interviewDate}`);
       doc.moveDown(1);
 
-      // Ratings
+      
       doc.fontSize(13).fillColor("#111827").font("Helvetica-Bold").text("Ratings");
       doc.moveDown(0.3);
       scoreLine(doc, "Coding Skills", codingScore);
@@ -91,7 +91,7 @@ export function generatePerformancePdf({
 
       doc.strokeColor("#e5e7eb").lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
 
-      // Narrative sections
+      
       section(doc, "Overall Summary", summary.overallSummary);
       section(doc, "Coding Skills Feedback", summary.codingFeedback);
       section(doc, "Quiz Performance Feedback", summary.quizFeedback);

@@ -5,9 +5,9 @@ import {
 } from "../lib/emailTemplateDefaults.js";
 import { logAction } from "../lib/auditLog.js";
 
-// ==========================
-// List templates (seeds defaults on first call if the collection is empty)
-// ==========================
+
+
+
 export const getEmailTemplates = async (req, res) => {
   try {
     await ensureEmailTemplatesSeeded();
@@ -28,9 +28,9 @@ export const getEmailTemplates = async (req, res) => {
   }
 };
 
-// ==========================
-// Update one template's subject/body
-// ==========================
+
+
+
 export const updateEmailTemplate = async (req, res) => {
   try {
     const { key } = req.params;

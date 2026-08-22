@@ -12,11 +12,6 @@ export const requireRole = (...roles) => {
       });
     }
 
-    // Interviewer accounts additionally need admin approval before they
-    // can use any interviewer-gated route. Admin routes (requireRole
-    // never includes "admin" alongside a pending-approval concern here)
-    // are unaffected — this only fires when "interviewer" is one of the
-    // accepted roles AND the requester actually is one.
     if (
       req.user.role === "interviewer" &&
       req.user.interviewerApproval?.status !== "approved"

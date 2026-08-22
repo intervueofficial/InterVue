@@ -84,10 +84,10 @@ export async function getActiveSessions(req, res) {
   try {
     const { role, _id } = req.user;
 
-    // Admins manage the whole pipeline, so they can see every active
-    // session. Interviewers and candidates must only ever see sessions
-    // they are actually a party to — otherwise every interviewer/candidate
-    // would see every other candidate's private interview on this screen.
+    
+    
+    
+    
     const scopeFilter =
       role === "admin"
         ? {}
@@ -95,7 +95,7 @@ export async function getActiveSessions(req, res) {
         ? { interviewer: _id }
         : role === "candidate"
         ? { candidate: _id }
-        : { _id: null }; // unknown role → no sessions
+        : { _id: null }; 
 
     const sessions = await Session.find({
       status: {
@@ -140,7 +140,7 @@ export async function getMyRecentSessions(req, res) {
   try {
     const userId = req.user._id;
 
-    // get sessions where user is either host or participant
+    
     const sessions = await Session.find({
       status: "completed",
       $or: [
@@ -164,14 +164,14 @@ export async function getMyRecentSessions(req, res) {
   }
 }
 
-// ==========================
-// Interviewer/Admin: History page
-// A table of every completed interview session with the candidate's
-// profile snapshot and the AI performance report for that session
-// (ratings only — never raw percentages — plus a link to download the
-// full PDF). Interviewers only see sessions they ran; admins see every
-// session on the platform.
-// ==========================
+
+
+
+
+
+
+
+
 export async function getSessionHistory(req, res) {
   try {
     const { role, _id } = req.user;
@@ -192,9 +192,9 @@ export async function getSessionHistory(req, res) {
 
     const sessionIds = sessions.map((s) => s._id);
 
-    // Applications carry the job title, the final hire/reject decision,
-    // and the profile snapshot taken at application time (preferred
-    // over the candidate's live profile, which may have changed since).
+    
+    
+    
     const applications = await Application.find({ session: { $in: sessionIds } })
       .populate("job", "title")
       .select("session job finalDecision profileSnapshot feedback decidedAt");
@@ -348,12 +348,12 @@ export async function joinSession(
         req.user._id;
     }
 
-    // Make sure whoever just joined can actually read/write the
-    // session's chat channel. The channel is created at session-creation
-    // time with only the admin as a member (see createSession), so
-    // without this, the second person to join (usually the candidate)
-    // gets a Stream "not allowed to perform action ReadChannel" error
-    // the moment their client tries to watch() the channel.
+    
+    
+    
+    
+    
+    
     try {
       await chatClient
         .channel("messaging", session.callId)
@@ -450,7 +450,7 @@ session.currentStage =
 
     await session.save();
 console.log("Session saved as completed");
-    // Delete Stream Video (don't fail if it errors)
+    
     try {
       const call = streamClient.video.call("default", session.callId);
       console.log("Deleting Stream Call...");
@@ -887,8 +887,8 @@ export async function saveWhiteboard(req, res) {
       return res.status(403).json({ message: "Not authorized to edit this whiteboard" });
     }
 
-    // Stale-write guard: ignore a save whose version is behind what's
-    // already stored (e.g. a delayed auto-save landing after a newer one).
+    
+    
     const currentVersion = session.whiteboard?.version || 0;
     if (typeof version === "number" && version < currentVersion) {
       return res.json({ success: true, skipped: true, whiteboard: session.whiteboard });

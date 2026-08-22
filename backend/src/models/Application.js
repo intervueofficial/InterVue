@@ -14,9 +14,6 @@ const applicationSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Snapshot of the candidate's profile at the time of applying,
-    // so interviewers see exactly what was evaluated even if the
-    // candidate edits their profile later.
     profileSnapshot: {
       phone: String,
       degree: String,
@@ -38,16 +35,6 @@ const applicationSchema = new mongoose.Schema(
       default: [],
     },
 
-    // ==========================
-    // AI Candidate–Job Fit Score
-    // ==========================
-    // Explainable decision-support signal, distinct from the hard
-    // isEligible check above — a candidate can be eligible (passes the
-    // strict criteria) yet still have a low/high fit score, and this
-    // never overrides isEligible or auto-changes status. Generated via
-    // utils/generateFitScore.js right after an eligible application is
-    // created, and re-runnable on demand via
-    // POST /applications/:id/refresh-fit-score.
     aiFitScore: {
       type: Number,
       default: null,
@@ -74,10 +61,10 @@ const applicationSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        "not_eligible", // failed automated eligibility check
-        "applied", // eligible, waiting for interviewer review
-        "selected", // interviewer picked them, session created + email sent
-        "rejected", // interviewer passed on them
+        "not_eligible", 
+        "applied",
+        "selected", 
+        "rejected", 
       ],
       default: "applied",
     },
@@ -99,18 +86,12 @@ const applicationSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ==========================
-    // Post-interview decision
-    // (set after the interviewer ends the video session)
-    // ==========================
     finalDecision: {
       type: String,
       enum: ["pending", "hired", "rejected", "waitlisted"],
       default: "pending",
     },
 
-    // Latest feedback / custom message from the interviewer,
-    // used as the body of the email sent for the current decision.
     feedback: {
       type: String,
       default: "",
@@ -127,8 +108,6 @@ const applicationSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Full audit trail — a candidate can be waitlisted, revisited,
-    // and finally hired/rejected, each step logged here.
     decisionHistory: {
       type: [
         {
@@ -150,7 +129,6 @@ const applicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// A candidate can only apply once per job
 applicationSchema.index({ job: 1, candidate: 1 }, { unique: true });
 
 export default mongoose.model("Application", applicationSchema);

@@ -1,9 +1,9 @@
 import { getSettings } from "../models/Setting.js";
 import { logAction } from "../lib/auditLog.js";
 
-// ==========================
-// Read platform settings (currently just Maintenance Mode)
-// ==========================
+
+
+
 export const getPlatformSettings = async (req, res) => {
   try {
     const settings = await getSettings();
@@ -14,9 +14,9 @@ export const getPlatformSettings = async (req, res) => {
   }
 };
 
-// ==========================
-// Update platform settings
-// ==========================
+
+
+
 export const updatePlatformSettings = async (req, res) => {
   try {
     const { maintenanceMode, maintenanceMessage } = req.body;

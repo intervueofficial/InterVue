@@ -1,14 +1,5 @@
 import EmailTemplate from "../models/EmailTemplate.js";
 
-// The three email types this app has always sent, previously as
-// hardcoded strings inside lib/resend.js. These are now the seed data
-// for the EmailTemplate collection — the source of truth moves to the
-// DB, but if the DB has no template yet (fresh install, or the seed
-// hasn't run), sending falls back to this exact text so an email is
-// never sent broken or empty.
-//
-// body is plain text — one or more paragraphs separated by a blank
-// line — not HTML. resend.js wraps it in the existing branded layout.
 export const DEFAULT_TEMPLATES = {
   candidate_applied: {
     subject: "Application Received | {{jobTitle}} | InterVue",
@@ -123,8 +114,6 @@ InterVue Team`,
   },
 };
 
-// Supported placeholders per template key — used by the admin UI to show
-// what's available when editing, and to build preview sample data.
 export const TEMPLATE_PLACEHOLDERS = {
   candidate_applied: ["candidateName", "jobTitle", "waitDays"],
   candidate_selected: ["candidateName", "jobTitle"],
@@ -136,7 +125,6 @@ export const TEMPLATE_PLACEHOLDERS = {
   interviewer_rejected: ["interviewerName", "note"],
 };
 
-/** Replaces every {{key}} occurrence in a string with data[key] (or ""). */
 export function substitutePlaceholders(text, data = {}) {
   if (!text) return "";
   return text.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) =>
@@ -144,22 +132,6 @@ export function substitutePlaceholders(text, data = {}) {
   );
 }
 
-/**
- * Inserts the three default templates into the DB if the collection is
- * empty. Cheap to call on every read (findOne per key would be wasteful,
- * so this only runs the seed check once per cold start, cached on the
- * module).
- */
-/**
- * Inserts any of the default templates that don't already exist in the
- * DB. Runs per-key (not just "collection is empty") so that adding a
- * new template type to DEFAULT_TEMPLATES later — like
- * candidate_applied/interview_reminder were added here — automatically
- * seeds just the new one(s) on an existing production DB that already
- * has the older templates, instead of silently never creating them.
- * Cheap to call on every read: the whole thing no-ops once every key
- * exists, cached per cold start via `seeded`.
- */
 let seeded = false;
 export async function ensureEmailTemplatesSeeded() {
   if (seeded) return;
@@ -180,12 +152,6 @@ export async function ensureEmailTemplatesSeeded() {
   seeded = true;
 }
 
-/**
- * Returns { subject, body } for a template key — from the DB if present,
- * otherwise the hardcoded default. Never throws; a DB error just falls
- * back to the default so a broken template lookup can't block an email
- * that would otherwise have sent fine.
- */
 export async function getTemplate(key) {
   try {
     await ensureEmailTemplatesSeeded();
@@ -198,7 +164,6 @@ export async function getTemplate(key) {
   return DEFAULT_TEMPLATES[key] || { subject: "InterVue", body: "" };
 }
 
-/** Converts blank-line-separated paragraphs into the <p> markup the existing email layout uses. */
 export function paragraphsToHtml(text) {
   return text
     .split(/\n\s*\n/)

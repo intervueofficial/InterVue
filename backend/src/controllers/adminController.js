@@ -7,9 +7,6 @@ import {
   sendInterviewerRejectedEmail,
 } from "../lib/resend.js";
 
-// =======================================
-// Dashboard Statistics
-// =======================================
 export const getDashboardStats = async (req, res) => {
   try {
     const [
@@ -58,9 +55,6 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
-// =======================================
-// Get All Users
-// =======================================
 export const getUsers = async (req, res) => {
   try {
     const users = await User.find()
@@ -81,9 +75,6 @@ export const getUsers = async (req, res) => {
   }
 };
 
-// =======================================
-// Update User Role
-// =======================================
 export const updateUserRole = async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,9 +127,6 @@ export const updateUserRole = async (req, res) => {
   }
 };
 
-// =======================================
-// Enable / Disable User
-// =======================================
 export const toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -179,11 +167,6 @@ export const toggleUserStatus = async (req, res) => {
   }
 };
 
-// =======================================
-// Interviewer Approval
-// =======================================
-
-// List all interviewers currently awaiting a decision.
 export const getInterviewerRequests = async (req, res) => {
   try {
     const requests = await User.find({
@@ -307,9 +290,6 @@ export const rejectInterviewerRequest = async (req, res) => {
   }
 };
 
-// =======================================
-// Get All Sessions
-// =======================================
 export const getSessions = async (req, res) => {
   try {
     const sessions = await Session.find()
@@ -331,9 +311,6 @@ export const getSessions = async (req, res) => {
   }
 };
 
-// =======================================
-// Analytics
-// =======================================
 export const getAnalytics = async (req, res) => {
   try {
     const [
@@ -360,7 +337,6 @@ export const getAnalytics = async (req, res) => {
       }).select("startedAt endedAt"),
     ]);
 
-    // ── Sessions created per day, last 14 days ──────────────────
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
     fourteenDaysAgo.setHours(0, 0, 0, 0);
@@ -387,7 +363,6 @@ export const getAnalytics = async (req, res) => {
       });
     }
 
-    // ── Reduce grouped arrays into plain objects ────────────────
     const sessionsByStatus = sessionsByStatusRaw.reduce((acc, r) => {
       acc[r._id || "unknown"] = r.count;
       return acc;
@@ -403,7 +378,6 @@ export const getAnalytics = async (req, res) => {
       return acc;
     }, {});
 
-    // ── Derived metrics ──────────────────────────────────────────
     const completedCount = sessionsByStatus.completed || 0;
     const completionRate =
       totalSessions > 0

@@ -1,9 +1,5 @@
 import AuditLog from "../models/AuditLog.js";
 
-// ==========================
-// Paginated audit feed, most recent first
-// ?page=1&limit=25
-// ==========================
 export const getAuditLog = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);

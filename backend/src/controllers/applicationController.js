@@ -12,11 +12,6 @@ import { generatePerformanceSummary } from "../utils/generatePerformanceSummary.
 import { generatePerformancePdf } from "../utils/generatePerformancePdf.js";
 import { generateFitScore } from "../utils/generateFitScore.js";
 
-// ==========================
-// AI Fit Score — small in-memory cache
-// (same shape as aiGeneratorController.js's ResponseCache, kept local
-// here since it's a distinct feature with its own cache-key inputs)
-// ==========================
 const FIT_SCORE_CACHE = new Map();
 const FIT_SCORE_TTL_MS = 60 * 60 * 1000; // 1 hour — resumes don't change that often
 
@@ -27,13 +22,6 @@ function fitScoreCacheKey({ applicationId, resumeText, jobUpdatedAt }) {
     .digest("hex");
 }
 
-/**
- * Generates (or reuses a cached) AI fit score for one application and
- * saves it onto the Application document. Never throws — any failure
- * (missing AI key, model down, DB hiccup) is logged and swallowed so
- * callers never need to wrap this in their own try/catch, matching
- * generatePerformanceReport()'s convention elsewhere in this file.
- */
 async function computeFitScore(application, job, candidate, { force = false } = {}) {
   try {
     if (!application || !job || !candidate) return null;
@@ -88,9 +76,6 @@ async function computeFitScore(application, job, candidate, { force = false } = 
     Object.assign(application, update);
     await application.save();
 
-    // Only cache genuine successes — a fallback (score: null) shouldn't
-    // get pinned in the cache for an hour just because the AI provider
-    // hiccuped once.
     if (result.score !== null) {
       FIT_SCORE_CACHE.set(cacheKey, { data: update, timestamp: Date.now() });
       if (FIT_SCORE_CACHE.size > 200) {
@@ -106,9 +91,6 @@ async function computeFitScore(application, job, candidate, { force = false } = 
   }
 }
 
-// ==========================
-// Candidate: apply to a job
-// ==========================
 export async function applyToJob(req, res) {
   try {
     const { jobId } = req.params;
@@ -124,10 +106,6 @@ export async function applyToJob(req, res) {
 
     const profile = req.user.candidateProfile;
 
-    // profile.isComplete now factors in Aadhaar verification as well
-    // as the education/skills fields (see authController.js), so this
-    // one check covers both — no separate identity-verification gate
-    // needed here.
     if (!profile || !profile.isComplete) {
       const identityVerified = Boolean(req.user.identityVerification?.verified);
       return res.status(400).json({
@@ -171,12 +149,6 @@ export async function applyToJob(req, res) {
       status: isEligible ? "applied" : "not_eligible",
     });
 
-    // "Waiting" assurance email — only for candidates who actually
-    // entered the review queue. Not-eligible candidates get an
-    // immediate on-screen reason instead (see EligibilityModal on the
-    // frontend), so there's nothing to "wait" on for them. Never let a
-    // flaky email provider fail the application itself — this is
-    // best-effort and swallowed on error.
     if (isEligible) {
       try {
         const days = job.expectedResponseDays || 7;
@@ -190,9 +162,6 @@ export async function applyToJob(req, res) {
         console.error("sendApplicationReceivedEmail:", emailError.message);
       }
 
-      // Fire the AI fit assessment right away — only for candidates who
-      // actually cleared the hard eligibility bar (see computeFitScore's
-      // caller contract: never throws, so this can't fail the response).
       await computeFitScore(application, job, req.user);
     }
 
@@ -208,9 +177,6 @@ export async function applyToJob(req, res) {
   }
 }
 
-// ==========================
-// Candidate: my applications
-// ==========================
 export async function getMyApplications(req, res) {
   try {
     const applications = await Application.find({ candidate: req.user._id })
@@ -225,12 +191,6 @@ export async function getMyApplications(req, res) {
   }
 }
 
-// ==========================
-// Interviewer/Admin: tabular list of applicants for a job
-// (only candidates who passed the automated eligibility check
-// are worth the interviewer's time, but we show everyone with
-// their status so nothing is hidden.)
-// ==========================
 export async function getApplicantsForJob(req, res) {
   try {
     const { jobId } = req.params;
@@ -240,16 +200,9 @@ export async function getApplicantsForJob(req, res) {
 
     const applications = await Application.find({ job: jobId })
       .populate("candidate", "name email profileImage candidateProfile")
-      // Default sort: eligible candidates first, then most experienced
-      // first — with 500+ applicants an interviewer shouldn't have to
-      // scroll/open each one just to find the strongest candidates.
-      // Frontend still exposes other sort options on top of this.
+
       .sort({ isEligible: -1, "profileSnapshot.experienceYears": -1, createdAt: 1 });
 
-    // Attach a computed skill-match count (how many of the job's
-    // required skills this candidate's profile lists) so the frontend
-    // can offer "Best Skill Match" as a sort option without every
-    // client having to recompute the intersection itself.
     const applicationsWithMatch = applications.map((app) => {
       const candidateSkills = (app.profileSnapshot?.skills || []).map((s) =>
         s.toLowerCase().trim()
@@ -271,10 +224,6 @@ export async function getApplicantsForJob(req, res) {
   }
 }
 
-// ==========================
-// Interviewer/Admin: force a fresh AI fit score for one application
-// (e.g. after a candidate updates their resume) — bypasses the cache.
-// ==========================
 export async function refreshFitScore(req, res) {
   try {
     const application = await Application.findById(req.params.id)
@@ -310,10 +259,6 @@ export async function refreshFitScore(req, res) {
   }
 }
 
-// ==========================
-// Interviewer: select a candidate — creates an interview session
-// and emails the candidate the join details
-// ==========================
 export async function selectApplicant(req, res) {
   try {
     const application = await Application.findById(req.params.id)

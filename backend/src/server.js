@@ -37,13 +37,6 @@ const allowedOrigins = [
   "https://www.intervue.site",
 ];
 
-// ================= Core Middleware =================
-
-// CORS must run before body parsing — otherwise a request that's
-// rejected for being too large (see below) never reaches this
-// middleware, so its response has no Access-Control-Allow-Origin
-// header, and the browser reports it as a CORS failure instead of the
-// real error (a confusing red herring when debugging uploads).
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -140,23 +133,3 @@ const startServer = async () => {
 
 startServer();
 
-/*
-============================================
-InterVue Progress
-============================================
-✓ UI Changes
-✓ Quiz Page
-✓ Eye Ball Detection
-✓ Meet Recording
-✓ Interviewer Dashboard
-✓ Admin Dashboard
-✓ Admin Users
-✓ Admin Sessions
-✓ Admin Analytics
-✓ Problem CRUD (Backend)
-✓ Quiz CRUD
-✓ AI Generator (Problems + Quiz)
-⬜ Admin Settings
-⬜ Reports
-============================================
-*/

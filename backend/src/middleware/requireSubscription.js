@@ -1,24 +1,7 @@
 import Subscription from "../models/Subscription.js";
 
-// free < pro < premium — used to check "does this plan meet or exceed
-// the required tier" rather than an exact match, so a premium
-// subscriber isn't blocked from a pro-gated feature.
 const PLAN_RANK = { free: 0, pro: 1, premium: 2 };
 
-/**
- * requireSubscription("pro") -> blocks candidates whose active/trialing
- * plan rank is below "pro". Must run after protectRoute.
- *
- * A candidate with no Subscription document at all is treated as being
- * on the free plan (rather than erroring), since Subscription rows are
- * only created once someone actually upgrades — there's no free-plan
- * row created at signup.
- *
- * Only "active" and "trialing" subscriptions count toward access;
- * "past_due" and "cancelled" fall back to free-plan behavior even if a
- * higher plan is still recorded on the row, since payment/renewal isn't
- * current.
- */
 export const requireSubscription = (minPlan) => async (req, res, next) => {
   try {
     if (req.user?.role !== "candidate") return next();

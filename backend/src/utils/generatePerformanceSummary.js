@@ -92,13 +92,6 @@ const FALLBACK_SUMMARY = (reason) => ({
   confidenceFeedback: "",
 });
 
-/**
- * Generates a narrative performance summary from real session metrics.
- * Never throws — on any failure (missing key, all models down, bad JSON)
- * it returns a plain fallback object so the PDF/report generation
- * (and the hire/reject email it's attached to) is never blocked by an
- * AI-provider hiccup.
- */
 export async function generatePerformanceSummary(metrics) {
   if (!process.env.OPENROUTER_API_KEY) {
     console.warn("generatePerformanceSummary: OPENROUTER_API_KEY not set, using fallback text.");

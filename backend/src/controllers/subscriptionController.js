@@ -16,8 +16,8 @@ function toPublicShape(subscription) {
     status: subscription.status,
     currentPeriodEnd: subscription.currentPeriodEnd,
     cancelledAt: subscription.cancelledAt,
-    // Raw record too, in case the consuming frontend wants to show e.g.
-    // "you were on Pro until it lapsed" instead of just "free".
+    
+    
     raw: {
       plan: subscription.plan,
       status: subscription.status,
@@ -25,11 +25,11 @@ function toPublicShape(subscription) {
   };
 }
 
-// ==========================
-// GET /api/subscription/me
-// Candidates with no Subscription row are on the free plan by default —
-// no row is created until they actually upgrade.
-// ==========================
+
+
+
+
+
 export const getMySubscription = async (req, res) => {
   try {
     const subscription = await Subscription.findOne({ candidate: req.user._id }).sort({
@@ -46,16 +46,16 @@ export const getMySubscription = async (req, res) => {
   }
 };
 
-// ==========================
-// POST /api/subscription/upgrade   body: { plan: "pro" | "premium" }
-//
-// NOTE: no real payment gateway is wired up anywhere in this project
-// (see billingController.js). This immediately activates the requested
-// plan — there is no checkout, no card capture, nothing charged. It
-// exists so a subscription-gated feature has something real to unlock
-// against. Swap this out for an actual payment provider's webhook/
-// confirm-payment flow before this is real revenue.
-// ==========================
+
+
+
+
+
+
+
+
+
+
 export const upgradeMyPlan = async (req, res) => {
   try {
     const { plan } = req.body;
@@ -108,9 +108,9 @@ export const upgradeMyPlan = async (req, res) => {
   }
 };
 
-// ==========================
-// POST /api/subscription/cancel
-// ==========================
+
+
+
 export const cancelMySubscription = async (req, res) => {
   try {
     const subscription = await Subscription.findOne({ candidate: req.user._id }).sort({

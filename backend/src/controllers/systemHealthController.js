@@ -21,13 +21,13 @@ function formatUptime(seconds) {
   return parts.join(" ");
 }
 
-// ==========================
-// System Health snapshot
-// ==========================
-// Every check here is best-effort: a failed or unconfigured third-party
-// check must never crash this endpoint or the whole page — it just comes
-// back with available: false so the UI can show "unavailable" instead of
-// a fabricated number.
+
+
+
+
+
+
+
 export const getSystemHealth = async (req, res) => {
   const health = {
     app: {
@@ -59,16 +59,16 @@ export const getSystemHealth = async (req, res) => {
     },
   };
 
-  // Cloudinary usage requires a real API round-trip — only attempt it if
-  // credentials exist, and never let a failure (network, expired key,
-  // rate limit on their side) take the endpoint down.
+  
+  
+  
   if (isCloudinaryConfigured) {
     try {
       const usage = await cloudinary.api.usage();
       health.cloudinary = {
         available: true,
         configured: true,
-        credits: usage.credits, // { usage, limit, used_percent }
+        credits: usage.credits, 
         storageBytes: usage.storage?.usage ?? null,
         bandwidthBytes: usage.bandwidth?.usage ?? null,
         requests: usage.requests ?? null,
