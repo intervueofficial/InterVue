@@ -116,6 +116,24 @@ function extractDob(text) {
   );
   if (mergedMatch) return `${mergedMatch[1]}/${mergedMatch[2]}/${mergedMatch[3]}`;
 
+  // Last resort: every pattern above requires the "DOB"/"Date of Birth"
+  // label itself to be read correctly, which isn't guaranteed — it's
+  // printed small, right next to the Devanagari label, and Tesseract
+  // can garble it. Fall back to any bare 7-8 digit run in the text and
+  // accept it only if it's a plausible DDMMYYYY date, so we don't
+  // mistake an unrelated number (like a VID fragment) for a DOB.
+  const bareDigitRuns = text.replace(/[^\d\s]/g, " ").match(/\b\d{7,8}\b/g) || [];
+  for (const run of bareDigitRuns) {
+    const digits = run.length === 7 ? `0${run}` : run;
+    const day = Number(digits.slice(0, 2));
+    const month = Number(digits.slice(2, 4));
+    const year = Number(digits.slice(4, 8));
+    const currentYear = new Date().getFullYear();
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= currentYear) {
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+    }
+  }
+
   const yobMatch = text.match(/(?:Year of Birth|YoB)[:\s]*(\d{4})/i);
   if (yobMatch) return yobMatch[1];
 
@@ -125,7 +143,7 @@ function extractDob(text) {
 // Best-effort name extraction: Aadhaar prints the name on its own line,
 // generally the first all-letters line before the DOB/gender lines, in
 // a mix of the regional language and English. We only want the English
-// line — filter to ASCII-letter lines of plausible name length/shape.
+// portion.
 function extractName(text) {
   const lines = text
     .split("\n")
@@ -135,19 +153,29 @@ function extractName(text) {
   const noiseWords =
     /government|india|male|female|dob|date of birth|year of birth|aadhaar|uidai|unique identification|mobile/i;
 
-  const isNameShaped = (line) => {
-    if (!/^[A-Za-z.\s]{5,40}$/.test(line)) return false;
-    const words = line.split(/\s+/).filter(Boolean);
+  // 2-4 whitespace-separated ASCII-letter words (dots allowed for
+  // initials). This is a substring match run against each line, NOT a
+  // whole-line match — Tesseract sometimes merges the Devanagari name
+  // and the English name onto a single OCR "line" with no line break
+  // between them (e.g. "अभिषेक वाघ Abhishek Wagh"), and matching only
+  // ASCII characters naturally skips over the non-Latin script rather
+  // than rejecting the whole line because of it.
+  const namePattern = /[A-Za-z][A-Za-z.]{1,}(?:\s+[A-Za-z][A-Za-z.]{1,}){1,3}/g;
+
+  const isPlausibleName = (str) => {
+    if (noiseWords.test(str)) return false;
+    const words = str.trim().split(/\s+/);
     if (words.length < 2 || words.length > 4) return false;
     // Every word must be a real word-length token — this is what rules
     // out OCR noise like "ER te e" (a 1-letter word) winning just
     // because it happened to appear earlier in the text than the
-    // actual name line.
+    // actual name.
     return words.every((w) => w.replace(/\./g, "").length >= 2);
   };
 
-  const candidates = lines.filter((l) => !noiseWords.test(l) && isNameShaped(l));
-  if (candidates.length === 0) return "";
+  const candidatesByLine = lines.map((line) =>
+    (line.match(namePattern) || []).map((m) => m.trim()).filter(isPlausibleName)
+  );
 
   // Aadhaar always prints the English name directly above the
   // DOB/gender lines, so prefer whichever candidate sits closest above
@@ -155,13 +183,16 @@ function extractName(text) {
   const anchorIndex = lines.findIndex((l) => /dob|date of birth|male|female/i.test(l));
   if (anchorIndex > 0) {
     for (let i = anchorIndex - 1; i >= 0; i--) {
-      if (candidates.includes(lines[i])) {
-        return lines[i].replace(/\s+/g, " ").trim();
+      if (candidatesByLine[i]?.length) {
+        return candidatesByLine[i][0].replace(/\s+/g, " ").trim();
       }
     }
   }
 
-  return candidates[0].replace(/\s+/g, " ").trim();
+  for (const list of candidatesByLine) {
+    if (list.length) return list[0].replace(/\s+/g, " ").trim();
+  }
+  return "";
 }
 
 /**

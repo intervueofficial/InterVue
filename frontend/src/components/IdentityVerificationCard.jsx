@@ -195,8 +195,9 @@ function IdentityVerificationCard({ index = 0 }) {
               ) : (
                 <p className="text-xs mt-1" style={{ color: THEME.inkMuted }}>
                   Scan your Aadhaar card with your camera to verify your identity and prevent
-                  duplicate accounts. Required before you can apply to jobs. Your name and date of
-                  birth will be set from the card and can't be edited afterward.
+                  duplicate accounts. Required before you can apply to jobs. Your name, date of
+                  birth, and Aadhaar number will be set from the card and can't be changed
+                  afterward.
                 </p>
               )}
             </div>
@@ -353,8 +354,8 @@ function IdentityVerificationCard({ index = 0 }) {
               <div className="p-5 space-y-4">
                 <p className="text-xs" style={{ color: THEME.inkMuted }}>
                   Here's what we read from your card. These fields can't be edited directly — if
-                  anything looks wrong, retake the photo instead. Once confirmed, name and date of
-                  birth can't be changed.
+                  anything looks wrong, retake the photo instead. Once confirmed, name, date of
+                  birth, and Aadhaar number can't be changed.
                 </p>
 
                 {!canConfirm && (
