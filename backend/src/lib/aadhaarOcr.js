@@ -153,21 +153,31 @@ function extractName(text) {
   const noiseWords =
     /government|india|male|female|dob|date of birth|year of birth|aadhaar|uidai|unique identification|mobile/i;
 
-  // 2-4 whitespace-separated ASCII-letter words (dots allowed for
-  // initials). This is a substring match run against each line, NOT a
-  // whole-line match — Tesseract sometimes merges the Devanagari name
-  // and the English name onto a single OCR "line" with no line break
-  // between them (e.g. "अभिषेक वाघ Abhishek Wagh"), and matching only
-  // ASCII characters naturally skips over the non-Latin script rather
-  // than rejecting the whole line because of it.
-  const namePattern = /[A-Za-z][A-Za-z.]{1,}(?:\s+[A-Za-z][A-Za-z.]{1,}){1,3}/g;
+  // 2-4 whitespace-separated ASCII-letter words, each starting with a
+  // capital (dots allowed for initials). This is a substring match run
+  // against each line, NOT a whole-line match — Tesseract sometimes
+  // merges the Devanagari name and the English name onto a single OCR
+  // "line" with no line break between them (e.g. "अभिषेक वाघ Abhishek
+  // Wagh"), and matching only ASCII characters naturally skips over the
+  // non-Latin script rather than rejecting the whole line because of it.
+  //
+  // Requiring an initial capital on every word isn't just cosmetic: an
+  // Aadhaar card always prints the English name in Title Case, but when
+  // Tesseract fails to read the *Devanagari* name line just above it,
+  // it doesn't fail cleanly — it hallucinates Latin-lookalike glyphs
+  // from the Devanagari shapes, almost always lowercase junk like "wr
+  // ffl". That garbage line sits closer to the DOB/gender anchor than
+  // the real name, so without this check it would win the "closest
+  // candidate above the anchor" search below before we ever reach the
+  // actual name.
+  const namePattern = /[A-Z][A-Za-z.]{1,}(?:\s+[A-Z][A-Za-z.]{1,}){1,3}/g;
 
   const isPlausibleName = (str) => {
     if (noiseWords.test(str)) return false;
     const words = str.trim().split(/\s+/);
     if (words.length < 2 || words.length > 4) return false;
     // Every word must be a real word-length token — this is what rules
-    // out OCR noise like "ER te e" (a 1-letter word) winning just
+    // out OCR noise like "ER Te E" (a 1-letter word) winning just
     // because it happened to appear earlier in the text than the
     // actual name.
     return words.every((w) => w.replace(/\./g, "").length >= 2);
