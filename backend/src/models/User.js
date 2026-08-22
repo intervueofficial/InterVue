@@ -79,9 +79,20 @@ identityVerification: {
   verified: { type: Boolean, default: false },
   aadhaarHash: {
     type: String,
-    default: null,
+    // No `default: null` here on purpose. Mongoose applies schema
+    // defaults on upsert-insert by default (setDefaultsOnInsert),
+    // which was explicitly setting this to null on every single new
+    // user — not leaving it unset. A `sparse` index only excludes
+    // documents where the field is genuinely MISSING, not ones where
+    // it's present with value null, so every unverified user (i.e.
+    // everyone, since nobody's done DigiLocker verification yet) was
+    // colliding with every other one on that shared null value. This
+    // was the real cause of the "Failed to create or locate user"
+    // errors chased throughout this whole debugging session — leaving
+    // this field genuinely unset until a real hash exists is what
+    // makes the sparse unique index behave as intended.
     unique: true,
-    sparse: true, // allows many docs with no hash yet (unverified users)
+    sparse: true,
   },
   verifiedName: { type: String, default: "" },
   maskedAadhaar: { type: String, default: "" }, // e.g. "XXXXXXXX1234"

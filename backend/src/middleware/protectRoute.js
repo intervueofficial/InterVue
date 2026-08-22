@@ -113,7 +113,16 @@ export const protectRoute = [
             const rawResult = await User.findOneAndUpdate(
               { $or: matchConditions },
               upsertPayload,
-              { new: true, upsert: true, rawResult: true }
+              {
+                new: true,
+                upsert: true,
+                rawResult: true,
+                // Don't let Mongoose apply schema defaults on insert —
+                // see the aadhaarHash comment in User.js for why that
+                // silently broke a sparse unique index. $setOnInsert
+                // above already explicitly lists everything we want set.
+                setDefaultsOnInsert: false,
+              }
             );
             user = rawResult.value;
             // rawResult.lastErrorObject.upserted is only set when this

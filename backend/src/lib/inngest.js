@@ -83,7 +83,13 @@ const syncUser = inngest.createFunction(
         user = await User.findOneAndUpdate(
           { $or: matchConditions },
           { $setOnInsert: newUser },
-          { new: true, upsert: true }
+          {
+            new: true,
+            upsert: true,
+            // See protectRoute.js / User.js — don't let Mongoose apply
+            // schema defaults on insert.
+            setDefaultsOnInsert: false,
+          }
         );
       } catch (err) {
         lastErr = err;
