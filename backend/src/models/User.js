@@ -8,8 +8,15 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
+      // No longer `required: true` — a user can legitimately have no
+      // email yet (right after signup, or via an auth method that
+      // doesn't return one). We now omit the field entirely in that
+      // case (see protectRoute.js / inngest.js) rather than storing ""
+      // for everyone, so `sparse` below only enforces uniqueness among
+      // documents that actually have a real email — it no longer
+      // collides two different no-email users against each other.
       unique: true,
+      sparse: true,
     },
     profileImage: {
       type: String,

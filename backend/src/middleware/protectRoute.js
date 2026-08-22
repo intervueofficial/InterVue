@@ -29,10 +29,23 @@ export const protectRoute = [
 
       const profileImage = clerkUser.imageUrl || "";
 
-      // Find existing user by Clerk ID or Email
-      let user = await User.findOne({
-        $or: [{ clerkId }, { email }],
-      });
+      // Find existing user by Clerk ID or Email.
+      //
+      // IMPORTANT: only include email in the match when it's non-empty.
+      // Clerk can report an empty email (emailAddresses[0] missing) right
+      // after signup or for certain auth methods — if two different
+      // people both have email:"" at that moment, matching on email:""
+      // would find and hijack a COMPLETELY UNRELATED user's document
+      // (see the clerkId reassignment below), with two people's sign-ins
+      // then fighting over the same document's clerkId — the actual
+      // cause of the repeated "Failed to create or locate user" errors
+      // and users' data intermittently vanishing/reappearing.
+      const matchConditions = [{ clerkId }];
+      if (email) {
+        matchConditions.push({ email });
+      }
+
+      let user = await User.findOne({ $or: matchConditions });
 
       // Email exists but Clerk account changed
       if (user && user.clerkId !== clerkId) {
@@ -63,12 +76,19 @@ export const protectRoute = [
         // document back via `new: true` instead of erroring.
         try {
           user = await User.findOneAndUpdate(
-            { $or: [{ clerkId }, { email }] },
+            { $or: matchConditions },
             {
               $setOnInsert: {
                 clerkId,
                 name,
-                email,
+                // Omit email entirely when blank rather than storing "".
+                // Combined with the schema's email index now being
+                // sparse (see User.js), this means multiple users with
+                // no email yet don't collide with each other on the
+                // unique index — each just has no email field at all,
+                // instead of every one of them fighting over the same
+                // literal "" value.
+                ...(email ? { email } : {}),
                 profileImage,
                 role:
                   email === process.env.ADMIN_EMAIL?.toLowerCase()
@@ -96,7 +116,7 @@ export const protectRoute = [
               if (attempt > 0) {
                 await new Promise((r) => setTimeout(r, 500));
               }
-              user = await User.findOne({ $or: [{ clerkId }, { email }] });
+              user = await User.findOne({ $or: matchConditions });
             }
           } else {
             throw err;
@@ -145,7 +165,11 @@ export const protectRoute = [
         hasChanges = true;
       }
 
-      if (user.email !== email) {
+      // Only sync email when Clerk now reports a real one — never
+      // overwrite an existing email with "", and never set the field to
+      // "" for a user who has none yet (that's what caused the
+      // unique-index collisions between different no-email users).
+      if (email && user.email !== email) {
         user.email = email;
         hasChanges = true;
       }

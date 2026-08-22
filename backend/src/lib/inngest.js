@@ -31,7 +31,9 @@ const syncUser = inngest.createFunction(
 
     const newUser = {
       clerkId: id,
-      email,
+      // Omit email entirely when blank rather than storing "" — see the
+      // matching comment in protectRoute.js's upsert for why.
+      ...(email ? { email } : {}),
       name: `${first_name || ""} ${last_name || ""}`.trim(),
       profileImage: image_url || "",
       // Bug fix: this used process.env.ADMIN_EMAIL.toLowerCase() with
@@ -45,6 +47,14 @@ const syncUser = inngest.createFunction(
           : "candidate",
       isActive: true,
     };
+
+    // Only match on email when it's non-empty — matching on email:""
+    // would find and hijack an unrelated user who also has no email
+    // yet. See the matching comment in protectRoute.js.
+    const matchConditions = [{ clerkId: newUser.clerkId }];
+    if (email) {
+      matchConditions.push({ email });
+    }
 
     // Why this is no longer a plain User.create(): protectRoute.js
     // *also* creates the Mongo user on first authenticated request
@@ -63,7 +73,7 @@ const syncUser = inngest.createFunction(
     let user;
     try {
       user = await User.findOneAndUpdate(
-        { $or: [{ clerkId: newUser.clerkId }, { email: newUser.email }] },
+        { $or: matchConditions },
         { $setOnInsert: newUser },
         { new: true, upsert: true }
       );
@@ -76,9 +86,7 @@ const syncUser = inngest.createFunction(
           if (attempt > 0) {
             await new Promise((r) => setTimeout(r, 500));
           }
-          user = await User.findOne({
-            $or: [{ clerkId: newUser.clerkId }, { email: newUser.email }],
-          });
+          user = await User.findOne({ $or: matchConditions });
         }
       } else {
         throw err;

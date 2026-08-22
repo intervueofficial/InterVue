@@ -35,7 +35,7 @@ export const selectRole = async (req, res) => {
 
     if (
       role === "admin" &&
-      req.user.email.toLowerCase() !== adminEmail
+      req.user.email?.toLowerCase() !== adminEmail
     ) {
       return res.status(403).json({
         success: false,
