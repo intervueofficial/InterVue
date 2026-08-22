@@ -109,26 +109,10 @@ export async function scanAadhaar(req, res) {
     const result = await extractAadhaarFields(image);
 
     if (!result.aadhaarNumber) {
-      // OCR couldn't confidently find a 12-digit Aadhaar number. Rather
-      // than dead-ending the candidate here, hand back whatever partial
-      // fields OCR did manage (name/dob/any unconfirmed digit runs) so
-      // the frontend can open the same review screen pre-filled and let
-      // them type the number in by hand. The Verhoeff checksum in
-      // confirmVerification still guards against a bad manual entry, so
-      // this doesn't weaken the fraud check — it just avoids blocking a
-      // candidate whose photo was merely hard for OCR to read.
       return res.status(422).json({
         success: false,
         message:
-          "Couldn't read an Aadhaar number from that photo. Hold the card flat, make sure it's well-lit with no glare, and try again — or enter the details manually below.",
-        needsManualEntry: true,
-        extracted: {
-          name: result.name,
-          dob: result.dob,
-          aadhaarNumber: "",
-          aadhaarNumberValid: false,
-          otherCandidates: result.aadhaarCandidates.slice(0, 4),
-        },
+          "Couldn't read an Aadhaar number from that photo. Hold the card flat, make sure it's well-lit with no glare, and try again.",
       });
     }
 

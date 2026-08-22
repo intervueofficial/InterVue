@@ -98,6 +98,12 @@ function IdentityVerificationCard({ index = 0 }) {
     }
   };
 
+  const retakeFromReview = () => {
+    setReviewOpen(false);
+    setExtracted(null);
+    openCamera();
+  };
+
   const scanMutation = useMutation({
     mutationFn: async () => identityApi.scanAadhaar(captured, await getToken()),
     onSuccess: (res) => {
@@ -111,22 +117,7 @@ function IdentityVerificationCard({ index = 0 }) {
       setCameraOpen(false);
       setReviewOpen(true);
     },
-    onError: (e) => {
-      const data = e.response?.data;
-      toast.error(data?.message || "Couldn't read that card.");
-
-      // OCR found no valid Aadhaar number, but the card is genuinely in
-      // frame — don't dead-end the candidate on a retake loop. Open the
-      // same review screen pre-filled with whatever partial fields OCR
-      // did manage, so they can type the number in manually. The
-      // Verhoeff checksum in confirmVerification still guards against a
-      // bad/typo'd entry, same as any OCR-sourced value.
-      if (data?.needsManualEntry) {
-        setExtracted(data.extracted || { name: "", dob: "", aadhaarNumber: "", aadhaarNumberValid: false, otherCandidates: [] });
-        setCameraOpen(false);
-        setReviewOpen(true);
-      }
-    },
+    onError: (e) => toast.error(e.response?.data?.message || "Couldn't read that card."),
   });
 
   const confirmMutation = useMutation({
@@ -160,7 +151,10 @@ function IdentityVerificationCard({ index = 0 }) {
 
   const aadhaarDigits = (extracted?.aadhaarNumber || "").replace(/\D/g, "");
   const canConfirm =
-    extracted?.name?.trim() && extracted?.dob?.trim() && aadhaarDigits.length === 12;
+    extracted?.name?.trim() &&
+    extracted?.dob?.trim() &&
+    aadhaarDigits.length === 12 &&
+    extracted?.aadhaarNumberValid;
 
   return (
     <>
@@ -358,12 +352,12 @@ function IdentityVerificationCard({ index = 0 }) {
 
               <div className="p-5 space-y-4">
                 <p className="text-xs" style={{ color: THEME.inkMuted }}>
-                  {extracted.aadhaarNumber
-                    ? "Read from your card automatically — double-check these are correct before confirming. Once confirmed, name and date of birth can't be changed."
-                    : "We couldn't read the Aadhaar number automatically — please fill in or correct the fields below from your card. Once confirmed, name and date of birth can't be changed."}
+                  Here's what we read from your card. These fields can't be edited directly — if
+                  anything looks wrong, retake the photo instead. Once confirmed, name and date of
+                  birth can't be changed.
                 </p>
 
-                {!extracted.aadhaarNumberValid && (
+                {!canConfirm && (
                   <p
                     className="text-xs rounded-lg px-3 py-2"
                     style={{
@@ -372,9 +366,12 @@ function IdentityVerificationCard({ index = 0 }) {
                       border: `1px solid ${THEME.warningBorder}`,
                     }}
                   >
-                    {extracted.aadhaarNumber
-                      ? "This Aadhaar number didn't pass validation — please double check the digits against your card."
-                      : "Enter the 12-digit Aadhaar number from your card below."}
+                    {aadhaarDigits.length !== 12
+                      ? "Couldn't read a complete Aadhaar number from that photo."
+                      : !extracted.aadhaarNumberValid
+                      ? "This Aadhaar number didn't pass validation."
+                      : "Some details couldn't be read clearly."}{" "}
+                    Please retake the photo.
                   </p>
                 )}
 
@@ -385,12 +382,9 @@ function IdentityVerificationCard({ index = 0 }) {
                   >
                     Name
                   </label>
-                  <input
-                    value={extracted.name}
-                    onChange={(e) => setExtracted((f) => ({ ...f, name: e.target.value }))}
-                    className={fieldClass}
-                    style={inputStyle}
-                  />
+                  <div className={fieldClass} style={inputStyle}>
+                    {extracted.name?.trim() || <span style={{ color: THEME.inkFaint }}>Not detected</span>}
+                  </div>
                 </div>
 
                 <div>
@@ -400,13 +394,9 @@ function IdentityVerificationCard({ index = 0 }) {
                   >
                     Date of Birth
                   </label>
-                  <input
-                    value={extracted.dob}
-                    onChange={(e) => setExtracted((f) => ({ ...f, dob: e.target.value }))}
-                    placeholder="DD/MM/YYYY"
-                    className={fieldClass}
-                    style={inputStyle}
-                  />
+                  <div className={fieldClass} style={inputStyle}>
+                    {extracted.dob?.trim() || <span style={{ color: THEME.inkFaint }}>Not detected</span>}
+                  </div>
                 </div>
 
                 <div>
@@ -416,40 +406,41 @@ function IdentityVerificationCard({ index = 0 }) {
                   >
                     Aadhaar Number
                   </label>
-                  <input
-                    value={extracted.aadhaarNumber}
-                    onChange={(e) =>
-                      setExtracted((f) => ({
-                        ...f,
-                        aadhaarNumber: e.target.value.replace(/\D/g, "").slice(0, 12),
-                      }))
-                    }
-                    placeholder="12-digit number"
-                    className={fieldClass}
-                    style={inputStyle}
-                  />
-                  {extracted.otherCandidates?.length > 0 && (
-                    <p className="text-[11px] mt-1.5" style={{ color: THEME.inkFaint }}>
-                      Also spotted: {extracted.otherCandidates.join(", ")}
-                    </p>
-                  )}
+                  <div className={fieldClass} style={inputStyle}>
+                    {aadhaarDigits.length === 12 ? (
+                      extracted.aadhaarNumber
+                    ) : (
+                      <span style={{ color: THEME.inkFaint }}>Not detected</span>
+                    )}
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => confirmMutation.mutate()}
-                  disabled={!canConfirm || confirmMutation.isPending}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
-                  style={{ background: THEME.ink, color: THEME.surface }}
-                >
-                  {confirmMutation.isPending ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin" /> Verifying...
-                    </>
-                  ) : (
-                    "Confirm & Verify"
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={retakeFromReview}
+                    className="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
+                    style={{ color: THEME.ink, border: `1px solid ${THEME.border}` }}
+                  >
+                    <RotateCcw size={14} />
+                    Wrong, Retake
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => confirmMutation.mutate()}
+                    disabled={!canConfirm || confirmMutation.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
+                    style={{ background: THEME.ink, color: THEME.surface }}
+                  >
+                    {confirmMutation.isPending ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" /> Verifying...
+                      </>
+                    ) : (
+                      "Confirm & Verify"
+                    )}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

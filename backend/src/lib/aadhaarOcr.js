@@ -133,20 +133,35 @@ function extractName(text) {
     .filter(Boolean);
 
   const noiseWords =
-    /government|india|male|female|dob|date of birth|year of birth|aadhaar|uidai|unique identification/i;
+    /government|india|male|female|dob|date of birth|year of birth|aadhaar|uidai|unique identification|mobile/i;
 
-  for (const line of lines) {
-    if (noiseWords.test(line)) continue;
-    // Letters, spaces, dots only; 2-4 words; each word capitalized-ish.
-    if (
-      /^[A-Za-z.\s]{3,40}$/.test(line) &&
-      line.split(/\s+/).length >= 2 &&
-      line.split(/\s+/).length <= 4
-    ) {
-      return line.replace(/\s+/g, " ").trim();
+  const isNameShaped = (line) => {
+    if (!/^[A-Za-z.\s]{5,40}$/.test(line)) return false;
+    const words = line.split(/\s+/).filter(Boolean);
+    if (words.length < 2 || words.length > 4) return false;
+    // Every word must be a real word-length token — this is what rules
+    // out OCR noise like "ER te e" (a 1-letter word) winning just
+    // because it happened to appear earlier in the text than the
+    // actual name line.
+    return words.every((w) => w.replace(/\./g, "").length >= 2);
+  };
+
+  const candidates = lines.filter((l) => !noiseWords.test(l) && isNameShaped(l));
+  if (candidates.length === 0) return "";
+
+  // Aadhaar always prints the English name directly above the
+  // DOB/gender lines, so prefer whichever candidate sits closest above
+  // that anchor over just taking the first candidate in the text.
+  const anchorIndex = lines.findIndex((l) => /dob|date of birth|male|female/i.test(l));
+  if (anchorIndex > 0) {
+    for (let i = anchorIndex - 1; i >= 0; i--) {
+      if (candidates.includes(lines[i])) {
+        return lines[i].replace(/\s+/g, " ").trim();
+      }
     }
   }
-  return "";
+
+  return candidates[0].replace(/\s+/g, " ").trim();
 }
 
 /**
