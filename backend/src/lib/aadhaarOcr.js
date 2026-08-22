@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import Tesseract from "tesseract.js";
+import { createWorker } from "tesseract.js";
 
 /**
  * Live-camera Aadhaar card OCR (replaces the old DigiLocker OAuth
@@ -195,6 +195,25 @@ function extractName(text) {
   return "";
 }
 
+// Runs one OCR pass. `pageSegMode`, when given, is a Tesseract PSM
+// value (see https://tesseract-ocr.github.io/tessdoc/ImproveQuality)
+// applied via worker.setParameters — the one-shot `Tesseract.recognize`
+// convenience function doesn't expose engine parameters like this, only
+// worker-setup options, which is why we go through createWorker
+// ourselves instead.
+async function runOcr(dataUrl, pageSegMode) {
+  const worker = await createWorker("eng");
+  try {
+    if (pageSegMode) {
+      await worker.setParameters({ tessedit_pageseg_mode: pageSegMode });
+    }
+    const { data } = await worker.recognize(dataUrl);
+    return data?.text || "";
+  } finally {
+    await worker.terminate();
+  }
+}
+
 /**
  * @param {string} dataUrl - "data:image/jpeg;base64,...." captured
  *   frame from the live camera (see AadhaarCameraCapture.jsx).
@@ -206,11 +225,32 @@ export async function extractAadhaarFields(dataUrl) {
     throw new Error("A captured image is required.");
   }
 
-  const { data } = await Tesseract.recognize(dataUrl, "eng");
-  const rawText = data?.text || "";
+  // First pass: Tesseract's default page segmentation (PSM 3, "fully
+  // automatic"), which works well for the multi-line name/DOB block.
+  let rawText = await runOcr(dataUrl);
+  let aadhaarCandidates = extractAadhaarCandidates(rawText);
 
-  const aadhaarCandidates = extractAadhaarCandidates(rawText);
-  const aadhaarNumber = aadhaarCandidates[0] || "";
+  // The 12-digit Aadhaar number sits by itself at the bottom of the
+  // card, apart from any paragraph of text. PSM 3 assumes the page is
+  // organized into text blocks/columns, and in testing against real
+  // card photos it regularly skips that isolated number entirely,
+  // even when the rest of the card (name, DOB, gender) reads fine —
+  // which is exactly what was causing "Couldn't read an Aadhaar
+  // number from that photo" on perfectly legible photos. If the first
+  // pass didn't turn up a Verhoeff-valid number, retry with "sparse
+  // text" mode (PSM 11), which looks for text wherever it is on the
+  // page without assuming a paragraph layout — much better suited to
+  // an isolated digit string. We merge its output in rather than
+  // replace the first pass, since PSM 11 is in turn worse at grouping
+  // the multi-word name onto one line.
+  if (!aadhaarCandidates.some(isValidAadhaarChecksum)) {
+    const sparseText = await runOcr(dataUrl, "11");
+    rawText = `${rawText}\n${sparseText}`;
+    aadhaarCandidates = extractAadhaarCandidates(rawText);
+  }
+
+  const aadhaarNumber =
+    aadhaarCandidates.find(isValidAadhaarChecksum) || aadhaarCandidates[0] || "";
 
   return {
     name: extractName(rawText),

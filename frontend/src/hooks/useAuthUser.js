@@ -13,8 +13,6 @@ const useAuthUser = () => {
     queryFn: async () => {
       const token = await getToken();
 
-      console.log("CLERK TOKEN:", token);
-
       if (!token) {
         throw new Error("No Clerk token found");
       }
