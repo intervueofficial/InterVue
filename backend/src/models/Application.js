@@ -38,6 +38,39 @@ const applicationSchema = new mongoose.Schema(
       default: [],
     },
 
+    // ==========================
+    // AI Candidate–Job Fit Score
+    // ==========================
+    // Explainable decision-support signal, distinct from the hard
+    // isEligible check above — a candidate can be eligible (passes the
+    // strict criteria) yet still have a low/high fit score, and this
+    // never overrides isEligible or auto-changes status. Generated via
+    // utils/generateFitScore.js right after an eligible application is
+    // created, and re-runnable on demand via
+    // POST /applications/:id/refresh-fit-score.
+    aiFitScore: {
+      type: Number,
+      default: null,
+    },
+
+    aiFitSummary: {
+      type: String,
+      default: "",
+    },
+
+    aiFitBreakdown: {
+      skillsMatched: { type: [String], default: [] },
+      skillsMissing: { type: [String], default: [] },
+      experienceFit: { type: String, default: "" },
+      educationFit: { type: String, default: "" },
+      resumeQualitySignal: { type: String, default: "" },
+    },
+
+    aiFitGeneratedAt: {
+      type: Date,
+      default: null,
+    },
+
     status: {
       type: String,
       enum: [

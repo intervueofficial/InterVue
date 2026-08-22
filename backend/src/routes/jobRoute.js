@@ -10,6 +10,7 @@ import {
   getJobById,
   updateJob,
   deleteJob,
+  uploadJobSampleResume,
 } from "../controllers/jobController.js";
 
 const router = express.Router();
@@ -27,6 +28,12 @@ router.get(
 router.post("/", protectRoute, requireRole("admin"), createJob);
 router.get("/", protectRoute, requireRole("admin", "interviewer"), getAllJobs);
 router.patch("/:id", protectRoute, requireRole("admin"), updateJob);
+router.post(
+  "/:id/sample-resume",
+  protectRoute,
+  requireRole("admin"),
+  uploadJobSampleResume
+);
 router.delete("/:id", protectRoute, requireRole("admin"), deleteJob);
 
 // Shared: view a single job (admin, interviewer, candidate)

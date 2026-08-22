@@ -10,8 +10,11 @@ import {
   CreditCard,
   GitBranch,
   Mail,
-  History,
+  History as HistoryIcon,
+  Archive,
   HeartPulse,
+  UserCog,
+  Briefcase,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { UserButton } from "@clerk/clerk-react";
@@ -20,13 +23,19 @@ import { UserButton } from "@clerk/clerk-react";
 // operational pages), LIBRARY (content admins curate), INSIGHTS (read-only
 // reporting/observability). Settings stays outside any section, as the
 // last item, matching where it always was.
+//
+// Labels/order here mirror what's actually live (People/Quizzes/Jobs,
+// History under Workspace) rather than the older Users/Quiz naming —
+// keep this in sync if you rename things again.
 const sections = [
   {
     label: "Workspace",
     items: [
       { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-      { name: "Users", icon: Users, path: "/admin/users" },
       { name: "Sessions", icon: CalendarDays, path: "/admin/sessions" },
+      { name: "History", icon: Archive, path: "/admin/history" },
+      { name: "People", icon: Users, path: "/admin/users" },
+      { name: "Interviewer Requests", icon: UserCog, path: "/admin/interviewer-requests" },
       { name: "Billing", icon: CreditCard, path: "/admin/billing" },
       { name: "Pipeline", icon: GitBranch, path: "/admin/pipeline" },
     ],
@@ -35,7 +44,8 @@ const sections = [
     label: "Library",
     items: [
       { name: "Problems", icon: Code2, path: "/admin/problems" },
-      { name: "Quiz", icon: ClipboardList, path: "/admin/quiz" },
+      { name: "Quizzes", icon: ClipboardList, path: "/admin/quiz" },
+      { name: "Jobs", icon: Briefcase, path: "/admin/jobs" },
       { name: "Email Templates", icon: Mail, path: "/admin/email-templates" },
     ],
   },
@@ -43,7 +53,7 @@ const sections = [
     label: "Insights",
     items: [
       { name: "Analytics", icon: BarChart3, path: "/admin/analytics" },
-      { name: "Audit Log", icon: History, path: "/admin/audit-log" },
+      { name: "Audit Log", icon: HistoryIcon, path: "/admin/audit-log" },
       { name: "System Health", icon: HeartPulse, path: "/admin/system-health" },
     ],
   },

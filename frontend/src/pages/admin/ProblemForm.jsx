@@ -51,7 +51,7 @@ const sectionVariants = {
   }),
 };
 
-const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
+const ProblemForm = ({ problem = null, onClose, onSuccess, candidateId = null, jobId = null, candidateName = "" }) => {
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
@@ -220,6 +220,9 @@ const ProblemForm = ({ problem = null, onClose, onSuccess }) => {
             type="problem"
             onClose={handleCloseWizard}
             onApply={handleAIApply}
+            candidateId={candidateId}
+            jobId={jobId}
+            candidateName={candidateName}
           />
         )}
       </AnimatePresence>

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   CalendarIcon,
   UserCheckIcon,
@@ -7,14 +6,9 @@ import {
   BarChart3Icon,
   InboxIcon,
   SparklesIcon,
-  DownloadIcon,
-  Loader2Icon,
 } from "lucide-react";
-import { useAuth } from "@clerk/clerk-react";
-import toast from "react-hot-toast";
 
 import { useMyRecentSessions } from "../../hooks/useSessions";
-import { sessionApi } from "../../api/sessions";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
 import RatingBadge from "../../components/RatingBadge";
@@ -31,48 +25,6 @@ function DifficultyBadge({ difficulty }) {
     >
       {difficulty}
     </span>
-  );
-}
-
-function DownloadReportButton({ sessionId }) {
-  const { getToken } = useAuth();
-  const [downloading, setDownloading] = useState(false);
-
-  const handleDownload = async () => {
-    try {
-      setDownloading(true);
-      const token = await getToken();
-      const blob = await sessionApi.downloadReport(sessionId, token);
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `performance-report-${sessionId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      toast.error("Couldn't download the report. Please try again.");
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  return (
-    <button
-      onClick={handleDownload}
-      disabled={downloading}
-      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-60"
-      style={{ background: THEME.primary, color: "#fff" }}
-    >
-      {downloading ? (
-        <Loader2Icon size={12} className="animate-spin" />
-      ) : (
-        <DownloadIcon size={12} />
-      )}
-      Download Report (PDF)
-    </button>
   );
 }
 
@@ -108,8 +60,6 @@ function PerformanceReportSection({ session }) {
         {ratingRow("Quiz", report.quizScore)}
         {ratingRow("Confidence", report.confidenceScore)}
       </div>
-
-      <DownloadReportButton sessionId={session._id} />
     </div>
   );
 }

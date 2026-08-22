@@ -9,6 +9,9 @@ import {
   toggleUserStatus,
   getSessions,
   getAnalytics,
+  getInterviewerRequests,
+  approveInterviewerRequest,
+  rejectInterviewerRequest,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -24,6 +27,11 @@ router.get("/dashboard", getDashboardStats);
 router.get("/users", getUsers);
 router.patch("/users/:id/role", updateUserRole);
 router.patch("/users/:id/status", toggleUserStatus);
+
+// Interviewer Approval
+router.get("/interviewer-requests", getInterviewerRequests);
+router.patch("/interviewer-requests/:userId/approve", approveInterviewerRequest);
+router.patch("/interviewer-requests/:userId/reject", rejectInterviewerRequest);
 
 // Sessions
 router.get("/sessions", getSessions);

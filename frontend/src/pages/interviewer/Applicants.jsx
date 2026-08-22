@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye, RefreshCw, ArrowUpDown, CalendarClock, Zap, X } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Users, UserCircle, Eye, RefreshCw, ArrowUpDown, CalendarClock, Zap, X, Sparkles } from "lucide-react";
 
 import { jobApi } from "../../api/jobApi";
 import { applicationApi } from "../../api/applicationApi";
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
 import CandidateProfileModal from "./CandidateProfileModal";
+import ProblemForm from "../admin/ProblemForm";
+import QuizForm from "../admin/QuizForm";
 
 const STATUS_BADGE = {
   applied: "bg-blue-50 text-blue-700",
@@ -29,6 +31,14 @@ const AUTO_REFRESH_MS = 15000;
 // the chosen sort — they already failed the automated screening, so
 // they shouldn't compete with eligible candidates for the top slots.
 const SORT_OPTIONS = [
+  {
+    value: "ai_fit_desc",
+    label: "AI Fit Score",
+    // Applications never scored yet (aiFitScore: null) sink below
+    // scored ones rather than tying with a real 0 — "not yet scored"
+    // shouldn't outrank or be indistinguishable from "scored low".
+    compare: (a, b) => (b.aiFitScore ?? -1) - (a.aiFitScore ?? -1),
+  },
   {
     value: "experience_desc",
     label: "Most Experienced",
@@ -220,6 +230,7 @@ const Applicants = () => {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState("");
+  const [generatingFor, setGeneratingFor] = useState(null); // { application, type: "problem" | "quiz" } | null
   const [actingOn, setActingOn] = useState(null);
   const [viewingApplication, setViewingApplication] = useState(null);
   const [schedulingApplication, setSchedulingApplication] = useState(null);
@@ -324,6 +335,21 @@ const Applicants = () => {
     },
   });
 
+  const [refreshingFitScoreId, setRefreshingFitScoreId] = useState(null);
+
+  const refreshFitScoreMutation = useMutation({
+    mutationFn: async (id) => applicationApi.refreshFitScore(id, await getToken()),
+    onSuccess: () => {
+      toast.success("Fit score refreshed");
+      invalidate();
+      setRefreshingFitScoreId(null);
+    },
+    onError: (e) => {
+      toast.error(e.response?.data?.message || "Failed to refresh fit score");
+      setRefreshingFitScoreId(null);
+    },
+  });
+
   const lastUpdatedLabel = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : null;
@@ -403,6 +429,7 @@ const Applicants = () => {
                 <th className="text-left px-6 py-4">Degree</th>
                 <th className="text-left px-6 py-4">Experience</th>
                 <th className="text-left px-6 py-4">Skills</th>
+                <th className="text-left px-6 py-4">AI Fit</th>
                 <th className="text-left px-6 py-4">Status</th>
                 <th className="text-right px-6 py-4">Action</th>
               </tr>
@@ -453,6 +480,59 @@ const Applicants = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
+                    {app.isEligible ? (
+                      app.aiFitScore != null ? (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                              app.aiFitScore >= 75
+                                ? "bg-emerald-50 text-emerald-700"
+                                : app.aiFitScore >= 50
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-red-50 text-red-600"
+                            }`}
+                            title={app.aiFitSummary}
+                          >
+                            {app.aiFitScore}/100
+                          </span>
+                          <button
+                            onClick={() => {
+                              setRefreshingFitScoreId(app._id);
+                              refreshFitScoreMutation.mutate(app._id);
+                            }}
+                            disabled={refreshingFitScoreId === app._id}
+                            title="Refresh AI fit score"
+                            className="text-slate-400 hover:text-indigo-600 disabled:opacity-50"
+                          >
+                            {refreshingFitScoreId === app._id ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <RefreshCw size={13} />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setRefreshingFitScoreId(app._id);
+                            refreshFitScoreMutation.mutate(app._id);
+                          }}
+                          disabled={refreshingFitScoreId === app._id}
+                          className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+                        >
+                          {refreshingFitScoreId === app._id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={12} />
+                          )}
+                          Generate
+                        </button>
+                      )
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[app.status]}`}>
                       {app.status.replace("_", " ")}
                     </span>
@@ -470,6 +550,15 @@ const Applicants = () => {
                       >
                         <Eye size={14} />
                         View Profile
+                      </button>
+
+                      <button
+                        onClick={() => setGeneratingFor({ application: app })}
+                        className="flex items-center gap-1 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 px-3 py-2 text-xs font-semibold"
+                        title="Generate interview questions tailored to this candidate's resume"
+                      >
+                        <Sparkles size={14} />
+                        Generate Questions
                       </button>
 
                       {app.status === "applied" && (
@@ -526,6 +615,72 @@ const Applicants = () => {
           selectMutation.mutate({ id: schedulingApplication._id, scheduledAt });
         }}
       />
+
+      {/* "Generate Questions" — resume-aware AI generation for one
+          applicant. Choosing a type opens the same admin ProblemForm /
+          QuizForm used elsewhere, just pre-wired with this application's
+          candidateId + jobId so the wizard's "Auto-fill from candidate's
+          resume" button (see AIGeneratorWizard.jsx) has something to work
+          with. Manual editing is still fully available either way. */}
+      {generatingFor && !generatingFor.type && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6"
+          onClick={() => setGeneratingFor(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-slate-900">
+              Generate questions for {generatingFor.application.candidate?.name || "this candidate"}
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Choose what you'd like to generate. You'll be able to auto-fill from their resume,
+              then edit before generating.
+            </p>
+            <div className="mt-5 flex flex-col gap-2.5">
+              <button
+                onClick={() => setGeneratingFor((prev) => ({ ...prev, type: "problem" }))}
+                className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+              >
+                Coding Problem
+              </button>
+              <button
+                onClick={() => setGeneratingFor((prev) => ({ ...prev, type: "quiz" }))}
+                className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+              >
+                Quiz
+              </button>
+              <button
+                onClick={() => setGeneratingFor(null)}
+                className="mt-1 rounded-xl px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {generatingFor?.type === "problem" && (
+        <ProblemForm
+          candidateId={generatingFor.application.candidate?._id}
+          jobId={generatingFor.application.job?._id || selectedJobId}
+          candidateName={generatingFor.application.candidate?.name}
+          onClose={() => setGeneratingFor(null)}
+          onSuccess={() => setGeneratingFor(null)}
+        />
+      )}
+
+      {generatingFor?.type === "quiz" && (
+        <QuizForm
+          candidateId={generatingFor.application.candidate?._id}
+          jobId={generatingFor.application.job?._id || selectedJobId}
+          candidateName={generatingFor.application.candidate?.name}
+          onClose={() => setGeneratingFor(null)}
+          onSuccess={() => setGeneratingFor(null)}
+        />
+      )}
     </AppShell>
   );
 };

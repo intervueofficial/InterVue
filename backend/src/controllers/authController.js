@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import cloudinary, { isCloudinaryConfigured } from "../lib/cloudinary.js";
+import { extractResumeText } from "../lib/resumeParser.js";
 
 export const getMe = async (req, res) => {
   try {
@@ -205,6 +206,10 @@ export const uploadProfileResume = async (req, res) => {
 
     req.user.candidateProfile = req.user.candidateProfile || {};
     req.user.candidateProfile.resumeUrl = upload.secure_url;
+
+    // Best-effort text extraction for AI context (question generation +
+    // fit score) — never blocks the upload itself if parsing fails.
+    req.user.candidateProfile.resumeText = await extractResumeText(resume);
 
     // Re-evaluate profile completeness now that the resume changed
     const profile = req.user.candidateProfile;

@@ -43,26 +43,49 @@ const Jobs = () => {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
 
-  const createMutation = useMutation({
-    mutationFn: async (job) => jobApi.createJob(job, await getToken()),
-    onSuccess: () => {
-      toast.success("Job posted");
-      invalidate();
-      setOpenForm(false);
-    },
-    onError: (e) => toast.error(e.response?.data?.message || "Failed to post job"),
-  });
+  const [savingJob, setSavingJob] = useState(false);
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, job }) => jobApi.updateJob(id, job, await getToken()),
-    onSuccess: () => {
-      toast.success("Job updated");
+  const handleJobFormSubmit = async (form, sampleFile) => {
+    try {
+      setSavingJob(true);
+      const token = await getToken();
+
+      const result = editingJob
+        ? await jobApi.updateJob(editingJob._id, form, token)
+        : await jobApi.createJob(form, token);
+
+      const jobId = result?.job?._id;
+
+      if (sampleFile && jobId) {
+        try {
+          await jobApi.uploadSampleResume(
+            jobId,
+            { resume: sampleFile.dataUrl, fileName: sampleFile.fileName },
+            token
+          );
+        } catch (uploadError) {
+          console.error(uploadError);
+          toast.error(
+            uploadError.response?.data?.message ||
+              "Job saved, but the sample resume failed to upload."
+          );
+        }
+      }
+
+      toast.success(editingJob ? "Job updated" : "Job posted");
       invalidate();
       setOpenForm(false);
       setEditingJob(null);
-    },
-    onError: (e) => toast.error(e.response?.data?.message || "Failed to update job"),
-  });
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message ||
+          (editingJob ? "Failed to update job" : "Failed to post job")
+      );
+    } finally {
+      setSavingJob(false);
+    }
+  };
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (job) =>
@@ -282,16 +305,12 @@ const Jobs = () => {
       <JobForm
         open={openForm}
         job={editingJob}
-        loading={createMutation.isPending || updateMutation.isPending}
+        loading={savingJob}
         onCancel={() => {
           setOpenForm(false);
           setEditingJob(null);
         }}
-        onSubmit={(form) =>
-          editingJob
-            ? updateMutation.mutate({ id: editingJob._id, job: form })
-            : createMutation.mutate(form)
-        }
+        onSubmit={handleJobFormSubmit}
       />
 
       <DeleteModal

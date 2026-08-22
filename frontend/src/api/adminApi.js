@@ -222,6 +222,34 @@ getAnalytics: async (token) => {
   },
 
   // ==========================
+  // Interviewer Approval
+  // ==========================
+  getInterviewerRequests: async (token) => {
+    const { data } = await axiosInstance.get("/admin/interviewer-requests", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  },
+
+  approveInterviewerRequest: async (userId, note, token) => {
+    const { data } = await axiosInstance.patch(
+      `/admin/interviewer-requests/${userId}/approve`,
+      { note },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return data;
+  },
+
+  rejectInterviewerRequest: async (userId, note, token) => {
+    const { data } = await axiosInstance.patch(
+      `/admin/interviewer-requests/${userId}/reject`,
+      { note },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return data;
+  },
+
+  // ==========================
   // Platform Settings (Maintenance Mode)
   // ==========================
   getPlatformSettings: async (token) => {

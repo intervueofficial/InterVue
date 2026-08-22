@@ -6,6 +6,7 @@ import useAuthUser from "./hooks/useAuthUser";
 import useSyncRole from "./hooks/useSyncRole";
 import { THEME } from "./constants/theme";
 import AppLoader from "./components/AppLoader";
+import InterviewerPendingApproval from "./components/InterviewerPendingApproval";
 
 // Landing
 import HomePage from "./pages/HomePage";
@@ -38,6 +39,7 @@ import AuditLog from "./pages/admin/AuditLog";
 import EmailTemplates from "./pages/admin/EmailTemplates";
 import SystemHealth from "./pages/admin/SystemHealth";
 import AdminHistory from "./pages/admin/History";
+import InterviewerRequests from "./pages/admin/InterviewerRequests";
 
 // Candidate
 import CandidateDashboard from "./pages/candidate/Dashboard";
@@ -94,6 +96,10 @@ function App() {
 
   const role = authUser?.role;
 
+  const interviewerApprovalStatus = authUser?.interviewerApproval?.status;
+  const isUnapprovedInterviewer =
+    role === "interviewer" && interviewerApprovalStatus !== "approved";
+
   const dashboardRoutes = {
     admin: "/admin/dashboard",
     interviewer: "/dashboard",
@@ -101,6 +107,26 @@ function App() {
   };
 
   const dashboard = dashboardRoutes[role] || "/";
+
+  // Every interviewer-only route below renders through this instead of
+  // directly rendering its page component — an interviewer who isn't
+  // approved yet always sees the pending/rejected holding screen instead
+  // of the real dashboard/sidebar, rather than a silent 403 deep inside
+  // the page.
+  const interviewerRoute = (element) => {
+    if (role !== "interviewer") {
+      return <Navigate replace to={dashboard} />;
+    }
+    if (isUnapprovedInterviewer) {
+      return (
+        <InterviewerPendingApproval
+          status={interviewerApprovalStatus}
+          note={authUser?.interviewerApproval?.note}
+        />
+      );
+    }
+    return element;
+  };
 
   return (
     <>
@@ -195,6 +221,11 @@ function App() {
           />
 
           <Route
+            path="interviewer-requests"
+            element={<InterviewerRequests />}
+          />
+
+          <Route
             path="sessions"
             element={<Sessions />}
           />
@@ -249,35 +280,25 @@ function App() {
 
         <Route
           path="/dashboard"
-          element={
-            role === "interviewer"
-              ? <DashboardPage />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<DashboardPage />)}
         />
 
         <Route
           path="/problems"
-          element={
-            role === "interviewer"
-              ? <ProblemsPage />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<ProblemsPage />)}
         />
 
         <Route
           path="/problem/:id"
-          element={
-            role === "interviewer"
-              ? <ProblemPage />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<ProblemPage />)}
         />
 
         <Route
           path="/session/:id"
           element={
-            role === "interviewer" || role === "candidate"
+            role === "interviewer"
+              ? interviewerRoute(<SessionPage />)
+              : role === "candidate"
               ? <SessionPage />
               : <Navigate replace to={dashboard} />
           }
@@ -285,47 +306,27 @@ function App() {
 
         <Route
           path="/quiz"
-          element={
-            role === "interviewer"
-              ? <QuizePage />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<QuizePage />)}
         />
 
         <Route
           path="/sessions"
-          element={
-            role === "interviewer"
-              ? <Sessions />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<Sessions />)}
         />
 
         <Route
           path="/applicants"
-          element={
-            role === "interviewer"
-              ? <Applicants />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<Applicants />)}
         />
 
         <Route
           path="/history"
-          element={
-            role === "interviewer"
-              ? <InterviewerHistory />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<InterviewerHistory />)}
         />
 
         <Route
           path="/waitlist"
-          element={
-            role === "interviewer"
-              ? <Waitlist />
-              : <Navigate replace to={dashboard} />
-          }
+          element={interviewerRoute(<Waitlist />)}
         />
 
         {/* ================= CANDIDATE ================= */}

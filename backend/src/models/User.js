@@ -31,6 +31,30 @@ isActive: {
 },
 
 // ==========================
+// Interviewer Approval (Admin Gatekeeping)
+// ==========================
+// Anyone can select "interviewer" as their role at signup, but they
+// can't actually act as one until an admin approves them — see
+// requireRole.js, which additionally checks this status for the
+// "interviewer" role, and adminController.js's
+// approve/rejectInterviewerRequest.
+interviewerApproval: {
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+  },
+  requestedAt: { type: Date, default: null },
+  reviewedAt: { type: Date, default: null },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+  },
+  note: { type: String, default: "" },
+},
+
+// ==========================
 // Identity Verification (Duplicate-Account Prevention)
 // ==========================
 // A candidate can trivially sign up for unlimited accounts with new
@@ -77,6 +101,14 @@ candidateProfile: {
 
   resumeUrl: { type: String, default: "" },
 
+  // Best-effort extracted plain text of resumeUrl (see
+  // lib/resumeParser.js) — populated on upload in
+  // authController.uploadProfileResume. Used as AI context for
+  // resume-aware question generation (aiGeneratorController.js) and
+  // the AI fit score (utils/generateFitScore.js). Never shown directly
+  // to any user — it's model input, not a display field.
+  resumeText: { type: String, default: "" },
+
   isComplete: {
     type: Boolean,
     default: false,
@@ -85,6 +117,51 @@ candidateProfile: {
   },
   { timestamps: true } // createdAt, updatedAt
 );
+
+// Whenever role is (re)set to "interviewer" — at signup via selectRole,
+// or later by an admin via updateUserRole — the account should always
+// start out unapproved, even if it had a prior approved/rejected
+// history (e.g. demoted to candidate, then re-promoted). This is the
+// single source of truth for that default, so it applies no matter
+// which code path changes the role.
+function resetInterviewerApprovalToPending(target) {
+  target.interviewerApproval = {
+    status: "pending",
+    requestedAt: new Date(),
+    reviewedAt: null,
+    reviewedBy: null,
+    note: "",
+  };
+}
+
+// Handles `user.role = "interviewer"; await user.save()` (selectRole).
+userSchema.pre("save", function (next) {
+  if (this.isModified("role") && this.role === "interviewer") {
+    resetInterviewerApprovalToPending(this);
+  }
+  next();
+});
+
+// Handles `User.findByIdAndUpdate(id, { role: "interviewer" })`
+// (adminController.updateUserRole), which bypasses document
+// middleware/`pre("save")` entirely since it's query middleware.
+userSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+  const update = this.getUpdate() || {};
+  const nextRole = update.role ?? update.$set?.role;
+
+  if (nextRole === "interviewer") {
+    if (!update.$set) update.$set = {};
+    update.$set.interviewerApproval = {
+      status: "pending",
+      requestedAt: new Date(),
+      reviewedAt: null,
+      reviewedBy: null,
+      note: "",
+    };
+    this.setUpdate(update);
+  }
+  next();
+});
 
 const User = mongoose.model("User", userSchema);
 

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { X, UserCircle, Mail, Phone, GraduationCap, Briefcase, FileText } from "lucide-react";
+import { X, UserCircle, Mail, Phone, GraduationCap, Briefcase, FileText, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 
 // Shown when an interviewer clicks "View Profile" on an applicant row.
 // Surfaces the candidate's uploaded photo (Cloudinary) alongside the
@@ -153,6 +153,99 @@ const CandidateProfileModal = ({ application, onClose }) => {
                 )}
               </div>
             </div>
+
+            {application.aiFitScore != null && (
+              <div className="pt-5 border-t border-neutral-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles size={14} className="text-indigo-500" />
+                  <p className="text-xs text-neutral-400 uppercase font-semibold tracking-wide">
+                    AI Fit Assessment
+                  </p>
+                  <span
+                    className={`ml-auto text-xs font-bold px-2.5 py-1 rounded-full ${
+                      application.aiFitScore >= 75
+                        ? "bg-emerald-50 text-emerald-700"
+                        : application.aiFitScore >= 50
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-red-50 text-red-600"
+                    }`}
+                  >
+                    {application.aiFitScore}/100
+                  </span>
+                </div>
+
+                {application.aiFitSummary && (
+                  <p className="text-sm text-neutral-700 mt-2 leading-relaxed">
+                    {application.aiFitSummary}
+                  </p>
+                )}
+
+                {(application.aiFitBreakdown?.skillsMatched?.length > 0 ||
+                  application.aiFitBreakdown?.skillsMissing?.length > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    {application.aiFitBreakdown?.skillsMatched?.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-emerald-700 mb-1.5 flex items-center gap-1">
+                          <CheckCircle2 size={12} /> Matched
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {application.aiFitBreakdown.skillsMatched.map((s, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] font-medium bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {application.aiFitBreakdown?.skillsMissing?.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-red-500 mb-1.5 flex items-center gap-1">
+                          <XCircle size={12} /> Missing
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {application.aiFitBreakdown.skillsMissing.map((s, i) => (
+                            <span
+                              key={i}
+                              className="text-[11px] font-medium bg-red-50 text-red-600 px-2 py-1 rounded-full"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(application.aiFitBreakdown?.experienceFit ||
+                  application.aiFitBreakdown?.educationFit ||
+                  application.aiFitBreakdown?.resumeQualitySignal) && (
+                  <div className="mt-3 space-y-1.5 text-xs text-neutral-500">
+                    {application.aiFitBreakdown?.experienceFit && (
+                      <p>
+                        <span className="font-semibold text-neutral-600">Experience: </span>
+                        {application.aiFitBreakdown.experienceFit}
+                      </p>
+                    )}
+                    {application.aiFitBreakdown?.educationFit && (
+                      <p>
+                        <span className="font-semibold text-neutral-600">Education: </span>
+                        {application.aiFitBreakdown.educationFit}
+                      </p>
+                    )}
+                    {application.aiFitBreakdown?.resumeQualitySignal && (
+                      <p>
+                        <span className="font-semibold text-neutral-600">Resume: </span>
+                        {application.aiFitBreakdown.resumeQualitySignal}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

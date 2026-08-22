@@ -52,20 +52,6 @@ Kind regards,
 InterVue Recruitment Team`,
   },
 
-  candidate_waitlisted: {
-    subject: "Application Update | {{jobTitle}} | InterVue",
-    body: `Dear {{candidateName}},
-
-Thank you for taking the time to interview for the position of {{jobTitle}}. We wanted to update you on where things stand.
-
-Your application is currently on our waitlist. This means we haven't made a final decision yet, but you remain under active consideration alongside other strong candidates. We expect to have an update for you within {{waitDays}}.
-
-We understand waiting can be uncertain, and we appreciate your patience. We'll be in touch as soon as a decision is made — there's nothing further you need to do in the meantime.
-
-Kind regards,
-InterVue Recruitment Team`,
-  },
-
   candidate_rejected: {
     subject: "Application Update | {{jobTitle}} | InterVue",
     body: `Dear {{candidateName}},
@@ -77,6 +63,22 @@ After careful consideration, we have decided to move forward with other candidat
 This decision does not diminish the effort you invested in your application, and we sincerely appreciate your interest in joining our organization.
 
 We encourage you to stay connected with InterVue and apply for future opportunities that align with your skills and experience.
+
+Kind regards,
+InterVue Recruitment Team`,
+  },
+
+  candidate_waitlisted: {
+    subject: "Application Update | {{jobTitle}} | InterVue",
+    body: `Dear {{candidateName}},
+
+Thank you for your interest in the position of {{jobTitle}} and for taking the time to interview with our team.
+
+We wanted to let you know that you've been placed on our waitlist for this role. This means we don't have a final decision to share just yet, but you remain under active consideration alongside other candidates.
+
+There's nothing further you need to do at this stage — we'll follow up with an update as soon as a final decision is made.
+
+We appreciate your patience and your continued interest in joining our team.
 
 Kind regards,
 InterVue Recruitment Team`,
@@ -95,6 +97,30 @@ Congratulations once again, and welcome aboard!
 Kind regards,
 InterVue Recruitment Team`,
   },
+
+  interviewer_approved: {
+    subject: "Your InterVue interviewer access has been approved",
+    body: `Dear {{interviewerName}},
+
+Good news — your request to become an interviewer on InterVue has been approved by our admin team.
+
+You now have full access to the interviewer dashboard, including reviewing applicants, scheduling interviews, and generating interview content.
+
+Kind regards,
+InterVue Team`,
+  },
+
+  interviewer_rejected: {
+    subject: "Update on your InterVue interviewer request",
+    body: `Dear {{interviewerName}},
+
+Thank you for your interest in becoming an interviewer on InterVue. After review, we're unable to approve your interviewer access at this time.
+
+If you believe this was a mistake or would like more information, please reach out to our admin team.
+
+Kind regards,
+InterVue Team`,
+  },
 };
 
 // Supported placeholders per template key — used by the admin UI to show
@@ -103,9 +129,11 @@ export const TEMPLATE_PLACEHOLDERS = {
   candidate_applied: ["candidateName", "jobTitle", "waitDays"],
   candidate_selected: ["candidateName", "jobTitle"],
   interview_reminder: ["candidateName", "jobTitle", "interviewDate", "interviewTime"],
-  candidate_waitlisted: ["candidateName", "jobTitle", "waitDays"],
   candidate_rejected: ["candidateName", "jobTitle"],
+  candidate_waitlisted: ["candidateName", "jobTitle"],
   candidate_hired: ["candidateName", "jobTitle"],
+  interviewer_approved: ["interviewerName"],
+  interviewer_rejected: ["interviewerName", "note"],
 };
 
 /** Replaces every {{key}} occurrence in a string with data[key] (or ""). */

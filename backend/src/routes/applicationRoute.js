@@ -12,6 +12,7 @@ import {
   getApplicationBySession,
   submitDecision,
   getWaitlist,
+  refreshFitScore,
 } from "../controllers/applicationController.js";
 
 const router = express.Router();
@@ -52,6 +53,13 @@ router.patch(
   protectRoute,
   requireRole("interviewer", "admin"),
   rejectApplicant
+);
+
+router.post(
+  "/:id/refresh-fit-score",
+  protectRoute,
+  requireRole("interviewer", "admin"),
+  refreshFitScore
 );
 
 // Post-interview decision flow

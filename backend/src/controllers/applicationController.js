@@ -1,14 +1,110 @@
+import crypto from "crypto";
 import Application from "../models/Application.js";
 import Job from "../models/Job.js";
 import Session from "../models/Session.js";
 import SessionViolation from "../models/SessionViolation.js";
 import { streamClient, chatClient } from "../lib/stream.js";
 import { checkEligibility } from "../utils/checkEligibility.js";
-import { sendSelectionEmail, sendRejectionEmail, sendHiredEmail, sendApplicationReceivedEmail, sendWaitlistEmail } from "../lib/resend.js";
+import { sendSelectionEmail, sendRejectionEmail, sendWaitlistEmail, sendHiredEmail, sendApplicationReceivedEmail } from "../lib/resend.js";
 import { formatInterviewDateTime, isMeaningfullyFuture } from "../utils/formatInterviewDateTime.js";
 import { ENV } from "../lib/env.js";
 import { generatePerformanceSummary } from "../utils/generatePerformanceSummary.js";
 import { generatePerformancePdf } from "../utils/generatePerformancePdf.js";
+import { generateFitScore } from "../utils/generateFitScore.js";
+
+// ==========================
+// AI Fit Score — small in-memory cache
+// (same shape as aiGeneratorController.js's ResponseCache, kept local
+// here since it's a distinct feature with its own cache-key inputs)
+// ==========================
+const FIT_SCORE_CACHE = new Map();
+const FIT_SCORE_TTL_MS = 60 * 60 * 1000; // 1 hour — resumes don't change that often
+
+function fitScoreCacheKey({ applicationId, resumeText, jobUpdatedAt }) {
+  return crypto
+    .createHash("md5")
+    .update(JSON.stringify({ applicationId, resumeText, jobUpdatedAt }))
+    .digest("hex");
+}
+
+/**
+ * Generates (or reuses a cached) AI fit score for one application and
+ * saves it onto the Application document. Never throws — any failure
+ * (missing AI key, model down, DB hiccup) is logged and swallowed so
+ * callers never need to wrap this in their own try/catch, matching
+ * generatePerformanceReport()'s convention elsewhere in this file.
+ */
+async function computeFitScore(application, job, candidate, { force = false } = {}) {
+  try {
+    if (!application || !job || !candidate) return null;
+
+    const profile = candidate.candidateProfile || {};
+    const resumeText = profile.resumeText || "";
+
+    const cacheKey = fitScoreCacheKey({
+      applicationId: application._id.toString(),
+      resumeText,
+      jobUpdatedAt: job.updatedAt?.toISOString?.() || "",
+    });
+
+    if (!force) {
+      const cached = FIT_SCORE_CACHE.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < FIT_SCORE_TTL_MS) {
+        Object.assign(application, cached.data);
+        await application.save();
+        return cached.data;
+      }
+    }
+
+    const result = await generateFitScore({
+      candidateName: candidate.name || "Candidate",
+      jobTitle: job.title,
+      jobDescription: job.description,
+      requiredDegrees: job.criteria?.requiredDegrees || [],
+      requiredSkills: job.criteria?.requiredSkills || [],
+      minExperience: job.criteria?.minExperience || 0,
+      qualificationNote: job.criteria?.qualificationNote || "",
+      sampleResumeText: job.sampleResumeText || "",
+      candidateDegree: profile.degree,
+      candidateFieldOfStudy: profile.fieldOfStudy,
+      candidateExperienceYears: profile.experienceYears,
+      candidateSkills: profile.skills || [],
+      candidateResumeText: resumeText,
+    });
+
+    const update = {
+      aiFitScore: result.score,
+      aiFitSummary: result.summary,
+      aiFitBreakdown: {
+        skillsMatched: result.skillsMatched,
+        skillsMissing: result.skillsMissing,
+        experienceFit: result.experienceFit,
+        educationFit: result.educationFit,
+        resumeQualitySignal: result.resumeQualitySignal,
+      },
+      aiFitGeneratedAt: new Date(),
+    };
+
+    Object.assign(application, update);
+    await application.save();
+
+    // Only cache genuine successes — a fallback (score: null) shouldn't
+    // get pinned in the cache for an hour just because the AI provider
+    // hiccuped once.
+    if (result.score !== null) {
+      FIT_SCORE_CACHE.set(cacheKey, { data: update, timestamp: Date.now() });
+      if (FIT_SCORE_CACHE.size > 200) {
+        const firstKey = FIT_SCORE_CACHE.keys().next().value;
+        FIT_SCORE_CACHE.delete(firstKey);
+      }
+    }
+
+    return update;
+  } catch (error) {
+    console.error("computeFitScore:", error.message);
+    return null;
+  }
+}
 
 // ==========================
 // Candidate: apply to a job
@@ -99,6 +195,11 @@ export async function applyToJob(req, res) {
       } catch (emailError) {
         console.error("sendApplicationReceivedEmail:", emailError.message);
       }
+
+      // Fire the AI fit assessment right away — only for candidates who
+      // actually cleared the hard eligibility bar (see computeFitScore's
+      // caller contract: never throws, so this can't fail the response).
+      await computeFitScore(application, job, req.user);
     }
 
     return res.status(201).json({
@@ -172,6 +273,45 @@ export async function getApplicantsForJob(req, res) {
     return res.json({ success: true, applications: applicationsWithMatch });
   } catch (error) {
     console.error("getApplicantsForJob:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
+
+// ==========================
+// Interviewer/Admin: force a fresh AI fit score for one application
+// (e.g. after a candidate updates their resume) — bypasses the cache.
+// ==========================
+export async function refreshFitScore(req, res) {
+  try {
+    const application = await Application.findById(req.params.id)
+      .populate("job")
+      .populate("candidate");
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
+
+    if (!application.isEligible) {
+      return res.status(400).json({
+        success: false,
+        message: "Fit scores are only generated for candidates who passed the eligibility check.",
+      });
+    }
+
+    const result = await computeFitScore(application, application.job, application.candidate, {
+      force: true,
+    });
+
+    if (!result) {
+      return res.status(502).json({
+        success: false,
+        message: "Couldn't generate a fit score right now. Please try again shortly.",
+      });
+    }
+
+    return res.json({ success: true, application });
+  } catch (error) {
+    console.error("refreshFitScore:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 }
@@ -341,8 +481,8 @@ export async function getApplicationBySession(req, res) {
 // ==========================
 // Interviewer: submit a post-interview decision
 // (hired / rejected / waitlisted), with feedback or a custom
-// message. Only "hired" and "rejected" trigger an email —
-// "waitlisted" just parks the candidate for a later decision.
+// message. "hired", "rejected", and "waitlisted" each trigger their
+// own candidate email.
 // ==========================
 /**
  * Builds the AI performance report for a decided application (hired or
@@ -441,7 +581,7 @@ async function generatePerformanceReport(application, feedback) {
 
 export async function submitDecision(req, res) {
   try {
-    const { decision, feedback, waitDays } = req.body;
+    const { decision, feedback } = req.body;
 
     if (!["hired", "rejected", "waitlisted"].includes(decision)) {
       return res.status(400).json({
@@ -492,22 +632,15 @@ export async function submitDecision(req, res) {
         feedback: feedback || "",
       });
     } else if (decision === "waitlisted") {
-      // Unlike the pre-interview "application received" email, the
-      // wait window here is set by the interviewer at the moment they
-      // make this call (see the "How long should they wait?" input on
-      // SessionDecisionModal) — only they know how close a final
-      // decision actually is post-interview, so there's no sensible
-      // fixed default the way there is for the initial application.
-      try {
-        await sendWaitlistEmail({
-          to: application.candidate.email,
-          name: application.candidate.name,
-          jobTitle: application.job.title,
-          waitDays: waitDays ? `${waitDays} day${Number(waitDays) === 1 ? "" : "s"}` : undefined,
-        });
-      } catch (emailError) {
-        console.error("sendWaitlistEmail:", emailError.message);
-      }
+      // No performance report yet — that's only generated once a final
+      // hired/rejected decision is made for this candidate later. The
+      // candidate still gets notified that they're on the waitlist now.
+      await sendWaitlistEmail({
+        to: application.candidate.email,
+        name: application.candidate.name,
+        jobTitle: application.job.title,
+        feedback: feedback || "",
+      });
     }
 
     return res.json({ success: true, application });

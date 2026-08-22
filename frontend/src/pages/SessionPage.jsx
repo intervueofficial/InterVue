@@ -102,7 +102,9 @@ function SessionPage() {
             reason,
           }),
         });
-      } catch (_) {}
+      } catch (_) {
+        // Termination UI is still shown if the notification request fails.
+      }
       document.body.innerHTML = `
         <div style="height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#0F172A;color:white;font-family:sans-serif;">
           <h1 style="font-size:42px;margin-bottom:12px;">Interview Terminated</h1>
@@ -180,7 +182,7 @@ function SessionPage() {
       const result = await executeCode(selectedLanguage, code);
       setOutput(result);
       setLastResult({ success: result?.success ?? false });
-    } catch (err) {
+    } catch {
       setOutput({
         success: false,
         error: "Execution failed. Please try again.",

@@ -13,10 +13,6 @@ const jobSchema = new mongoose.Schema(
       default: "",
     },
 
-    // Renamed from "department" -> mirrors the candidate profile's
-    // own "Field of Study" field (see User.js candidateProfile), so a
-    // job posting and a candidate's education speak the same
-    // vocabulary instead of an unrelated org department label.
     fieldOfStudy: {
       type: String,
       default: "",
@@ -60,6 +56,31 @@ const jobSchema = new mongoose.Schema(
         type: String,
         default: "",
       },
+    },
+
+    // ==========================
+    // Example ("gold standard") resume
+    // ==========================
+    // An admin/interviewer can attach a concrete example of a strong
+    // resume for this role, alongside the numeric/skill criteria above.
+    // sampleResumeText is the extracted plain text of that file (via
+    // lib/resumeParser.js) — stored so it can be fed as reference
+    // context into the AI question generator (see
+    // aiGeneratorController.js) without re-downloading/re-parsing the
+    // file on every generation.
+    sampleEligibleResumeUrl: {
+      type: String,
+      default: "",
+    },
+
+    sampleResumeNotes: {
+      type: String,
+      default: "",
+    },
+
+    sampleResumeText: {
+      type: String,
+      default: "",
     },
 
     status: {

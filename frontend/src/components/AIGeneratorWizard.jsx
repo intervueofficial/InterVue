@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Sparkles, Loader2, ChevronRight, ChevronLeft,
-  CheckCircle2, AlertCircle, RefreshCw,
+  CheckCircle2, AlertCircle, RefreshCw, UserSearch,
 } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
@@ -89,10 +89,11 @@ function LogoMark({ size = 36 }) {
   );
 }
 
-const AIGeneratorWizard = ({ type, onClose, onApply }) => {
+const AIGeneratorWizard = ({ type, onClose, onApply, candidateId = null, jobId = null, candidateName = "" }) => {
   const { getToken } = useAuth();
   const [step, setStep]               = useState(0);
   const [loading, setLoading]         = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
   const [normalized, setNormalized]   = useState(null);
   const [isFallback, setIsFallback]   = useState(false);
   const [validationError, setValidationError] = useState("");
@@ -110,6 +111,39 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
   const updateForm = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setValidationError("");
+  };
+
+  const handleAutofillFromResume = async () => {
+    if (!candidateId || autofilling) return;
+    setAutofilling(true);
+    setValidationError("");
+
+    try {
+      const token = await getToken();
+      const response = await aiGeneratorApi.getCandidateContext(candidateId, jobId, token);
+      if (!response.success) throw new Error(response.message || "Auto-fill failed.");
+
+      const { role, experience, skills, topics } = response.data || {};
+      setForm((prev) => ({
+        ...prev,
+        role: role || prev.role,
+        experience: experience || prev.experience,
+        skills: skills || prev.skills,
+        topics: topics || prev.topics,
+      }));
+
+      toast.success(
+        skills
+          ? "Form auto-filled from the candidate's resume. Feel free to edit before generating."
+          : "Auto-filled what we could — the candidate's profile is missing some details."
+      );
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || "Couldn't load candidate context.";
+      toast.error(msg);
+      console.error("Auto-fill error:", err);
+    } finally {
+      setAutofilling(false);
+    }
   };
 
   const validateForm = () => {
@@ -147,6 +181,7 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
         count:      type === "quiz"
           ? Math.min(Math.max(parseInt(form.count) || 5, 1), 15)
           : 1,
+        ...(candidateId ? { candidateId, jobId } : {}),
       };
 
       const response = await aiGeneratorApi.generate(payload, token);
@@ -293,6 +328,29 @@ const AIGeneratorWizard = ({ type, onClose, onApply }) => {
                     <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
                     <p className="text-sm text-red-700 font-medium">{validationError}</p>
                   </motion.div>
+                )}
+
+                {candidateId && (
+                  <motion.button
+                    whileHover={{ scale: autofilling ? 1 : 1.01 }}
+                    whileTap={{ scale: autofilling ? 1 : 0.99 }}
+                    type="button"
+                    onClick={handleAutofillFromResume}
+                    disabled={autofilling}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-indigo-300/60 bg-indigo-50/60 text-indigo-700 text-sm font-semibold hover:bg-indigo-100/70 transition disabled:opacity-60"
+                  >
+                    {autofilling ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        Auto-filling…
+                      </>
+                    ) : (
+                      <>
+                        <UserSearch size={15} />
+                        Auto-fill from {candidateName ? `${candidateName}'s` : "candidate's"} resume
+                      </>
+                    )}
+                  </motion.button>
                 )}
 
                 <div>

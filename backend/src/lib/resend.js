@@ -110,103 +110,6 @@ ${jobTitle}
   });
 }
 
-export async function sendWaitlistEmail({ to, name, jobTitle, waitDays }) {
-  // Sent when an interviewer records a post-interview "waitlisted"
-  // decision (see submitDecision in applicationController.js). Unlike
-  // the pre-interview "application received" assurance email, the
-  // number of days here is chosen by the interviewer at the moment
-  // they waitlist the candidate — it's their call, not a fixed
-  // per-job default, since only they know how close the decision
-  // actually is at that point.
-  const template = await getTemplate("candidate_waitlisted");
-  const data = { candidateName: name, jobTitle, waitDays: waitDays || "a few days" };
-  const subject = substitutePlaceholders(template.subject, data);
-  const bodyHtml = paragraphsToHtml(substitutePlaceholders(template.body, data));
-
-  return resend.send({
-    to,
-    subject,
-    html: `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Application Update</title>
-</head>
-
-<body style="margin:0;padding:0;background:#f4f6f9;font-family:Segoe UI,Arial,sans-serif;">
-
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
-<tr>
-<td align="center">
-
-<table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
-
-<tr>
-<td style="background:#92400e;padding:24px 36px;">
-<span style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
-InterVue
-</span>
-</td>
-</tr>
-
-<tr>
-<td style="padding:40px;">
-
-<p style="margin:0 0 6px;color:#b45309;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">
-Application Update
-</p>
-
-<h2 style="margin:0 0 25px;color:#111827;font-size:24px;">
-You're still in the running ⏳
-</h2>
-
-${bodyHtml}
-
-<table width="100%" cellpadding="14" cellspacing="0" style="margin-top:25px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
-<tr>
-<td style="border-bottom:1px solid #fde68a;">
-<p style="margin:0;color:#92400e;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
-Position
-</p>
-<p style="margin:4px 0 0;color:#111827;font-size:15px;font-weight:600;">
-${jobTitle}
-</p>
-</td>
-</tr>
-<tr>
-<td>
-<p style="margin:0;color:#92400e;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
-Status
-</p>
-<p style="margin:4px 0 0;color:#111827;font-size:15px;font-weight:600;">
-Waitlisted — decision expected within ${waitDays || "a few days"}
-</p>
-</td>
-</tr>
-</table>
-
-</td>
-</tr>
-
-<tr>
-<td style="background:#f9fafb;padding:22px;text-align:center;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb;">
-&copy; ${new Date().getFullYear()} InterVue. All rights reserved.
-</td>
-</tr>
-
-</table>
-
-</td>
-</tr>
-</table>
-
-</body>
-</html>
-`,
-  });
-}
-
 export async function sendInterviewReminderEmail({
   to,
   name,
@@ -572,6 +475,246 @@ Feedback from your interviewer
 </p>
 <p style="margin:6px 0 0;color:#374151;font-size:14px;line-height:24px;">
 ${feedback}
+</p>
+</td>
+</tr>
+</table>`
+    : ""
+}
+
+</td>
+</tr>
+
+<tr>
+<td style="background:#f9fafb;padding:22px;text-align:center;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb;">
+&copy; ${new Date().getFullYear()} InterVue. All rights reserved.
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`,
+  });
+}
+
+export async function sendWaitlistEmail({
+  to,
+  name,
+  jobTitle,
+  feedback,
+}) {
+  const template = await getTemplate("candidate_waitlisted");
+  const data = { candidateName: name, jobTitle };
+  const subject = substitutePlaceholders(template.subject, data);
+  const bodyHtml = paragraphsToHtml(substitutePlaceholders(template.body, data));
+
+  return resend.send({
+    to,
+    subject,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Application Update</title>
+</head>
+
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Segoe UI,Arial,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;background:#f4f6f9;">
+<tr>
+<td align="center">
+
+<table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
+
+<tr>
+<td style="background:#92400e;padding:24px 36px;">
+<span style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
+InterVue
+</span>
+</td>
+</tr>
+
+<tr>
+<td style="padding:40px;">
+
+<p style="margin:0 0 6px;color:#6b7280;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">
+Application Update
+</p>
+
+<h2 style="margin:0 0 25px;color:#111827;font-size:24px;">
+You're on our waitlist
+</h2>
+
+${bodyHtml}
+
+${
+  feedback
+    ? `<table width="100%" cellpadding="14" cellspacing="0" style="margin-top:10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+<tr>
+<td>
+<p style="margin:0;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+Feedback from your interviewer
+</p>
+<p style="margin:6px 0 0;color:#374151;font-size:14px;line-height:24px;">
+${feedback}
+</p>
+</td>
+</tr>
+</table>`
+    : ""
+}
+
+</td>
+</tr>
+
+<tr>
+<td style="background:#f9fafb;padding:22px;text-align:center;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb;">
+&copy; ${new Date().getFullYear()} InterVue. All rights reserved.
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`,
+  });
+}
+
+export async function sendInterviewerApprovedEmail({ to, name }) {
+  const template = await getTemplate("interviewer_approved");
+  const data = { interviewerName: name };
+  const subject = substitutePlaceholders(template.subject, data);
+  const bodyHtml = paragraphsToHtml(substitutePlaceholders(template.body, data));
+
+  return resend.send({
+    to,
+    subject,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Interviewer Access Approved</title>
+</head>
+
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Segoe UI,Arial,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+<tr>
+<td align="center">
+
+<table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
+
+<tr>
+<td style="background:#065f46;padding:24px 36px;">
+<span style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
+InterVue
+</span>
+</td>
+</tr>
+
+<tr>
+<td style="padding:40px;">
+
+<p style="margin:0 0 6px;color:#059669;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">
+Interviewer Access
+</p>
+
+<h2 style="margin:0 0 25px;color:#111827;font-size:24px;">
+You're approved as an interviewer 🎉
+</h2>
+
+${bodyHtml}
+
+</td>
+</tr>
+
+<tr>
+<td style="background:#f9fafb;padding:22px;text-align:center;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb;">
+&copy; ${new Date().getFullYear()} InterVue. All rights reserved.
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`,
+  });
+}
+
+export async function sendInterviewerRejectedEmail({ to, name, note }) {
+  const template = await getTemplate("interviewer_rejected");
+  const data = { interviewerName: name, note: note || "" };
+  const subject = substitutePlaceholders(template.subject, data);
+  const bodyHtml = paragraphsToHtml(substitutePlaceholders(template.body, data));
+
+  return resend.send({
+    to,
+    subject,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Interviewer Access Update</title>
+</head>
+
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Segoe UI,Arial,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;background:#f4f6f9;">
+<tr>
+<td align="center">
+
+<table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
+
+<tr>
+<td style="background:#1f2937;padding:24px 36px;">
+<span style="color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
+InterVue
+</span>
+</td>
+</tr>
+
+<tr>
+<td style="padding:40px;">
+
+<p style="margin:0 0 6px;color:#6b7280;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">
+Interviewer Access
+</p>
+
+<h2 style="margin:0 0 25px;color:#111827;font-size:24px;">
+Update on your interviewer request
+</h2>
+
+${bodyHtml}
+
+${
+  note
+    ? `<table width="100%" cellpadding="14" cellspacing="0" style="margin-top:10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+<tr>
+<td>
+<p style="margin:0;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+Note from admin
+</p>
+<p style="margin:6px 0 0;color:#374151;font-size:14px;line-height:24px;">
+${note}
 </p>
 </td>
 </tr>

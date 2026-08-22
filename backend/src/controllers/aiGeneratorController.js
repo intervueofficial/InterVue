@@ -2,6 +2,88 @@ import axios from "axios";
 import crypto from "crypto";
 import { jsonrepair } from "jsonrepair";
 import { runCode, buildHarness } from "../lib/judge.js";
+import User from "../models/User.js";
+import Job from "../models/Job.js";
+
+// Maps a candidate's numeric years-of-experience onto the same
+// dropdown labels the "Generate with AI" wizard's manual "Experience
+// Level" select already uses (see AIGeneratorWizard.jsx), so an
+// auto-filled value looks identical to a hand-picked one.
+function experienceYearsToLevel(years) {
+  const n = Number(years) || 0;
+  if (n < 1) return "Entry-level (0–1 years)";
+  if (n < 2) return "Junior (1–2 years)";
+  if (n < 4) return "Mid-level (2–4 years)";
+  if (n < 7) return "Senior (4–7 years)";
+  return "Staff / Lead (7+ years)";
+}
+
+/**
+ * Builds the { role, experience, skills, topics } auto-fill payload for
+ * a given candidate (and optionally the job they're being interviewed
+ * for), used both by the standalone candidate-context endpoint (for the
+ * frontend's "Auto-fill from candidate's resume" button) and internally
+ * by generateQuestions when a candidateId is passed alongside/instead
+ * of manually typed fields.
+ */
+async function buildCandidateAutofill(candidateId, jobId) {
+  const candidate = await User.findById(candidateId).select("candidateProfile name");
+  if (!candidate) return null;
+
+  const job = jobId ? await Job.findById(jobId) : null;
+
+  const profile = candidate.candidateProfile || {};
+
+  const candidateSkills = Array.isArray(profile.skills) ? profile.skills : [];
+  const jobSkills = job?.criteria?.requiredSkills || [];
+  // Union, candidate's own skills first — these are what the questions
+  // should actually probe; job-required skills fill in anything the
+  // candidate profile didn't list.
+  const mergedSkills = [...new Set([...candidateSkills, ...jobSkills])];
+
+  const role = job?.title || profile.fieldOfStudy || "Software Engineer";
+  const experience = experienceYearsToLevel(profile.experienceYears);
+  const skills = mergedSkills.join(", ");
+  const topics = job?.criteria?.qualificationNote || "";
+
+  return {
+    role,
+    experience,
+    skills,
+    topics,
+    // Extra, non-form context folded into the prompt (not shown as a
+    // separate editable field) — see PromptOptimizer below.
+    resumeContext: buildResumeContext({ profile, job }),
+  };
+}
+
+/** Free-text summary of resume-derived signal, appended to the AI prompt as extra grounding context (not shown to the interviewer as a form field). */
+function buildResumeContext({ profile, job }) {
+  const lines = [];
+
+  if (profile?.degree || profile?.fieldOfStudy) {
+    lines.push(
+      `Candidate education: ${[profile.degree, profile.fieldOfStudy].filter(Boolean).join(", ")}.`
+    );
+  }
+  if (profile?.experienceYears != null) {
+    lines.push(`Candidate has ${profile.experienceYears} years of experience.`);
+  }
+  if (Array.isArray(profile?.skills) && profile.skills.length > 0) {
+    lines.push(`Candidate's resume lists these skills: ${profile.skills.join(", ")}.`);
+  }
+  if (job?.sampleResumeText) {
+    // Truncated further here (on top of the cap already applied when it
+    // was extracted/stored) to keep this specific prompt's context
+    // budget small — this is meant as light "gold standard" grounding,
+    // not a full document dump.
+    lines.push(
+      `Reference: an example of a strong resume for this role includes the following background: ${job.sampleResumeText.slice(0, 1200)}`
+    );
+  }
+
+  return lines.join(" ");
+}
 
 // Maps the free-text "language" the AI puts on a generated problem
 // (e.g. "JavaScript", "Python 3") to the judge's language keys.
@@ -240,9 +322,12 @@ class ResponseCache {
 
 class PromptOptimizer {
   static buildProblemPrompt(params) {
-    const { role, experience, skills, topics, difficulty } = params;
+    const { role, experience, skills, topics, difficulty, resumeContext } = params;
     const skillStr = skills.substring(0, 100);
     const topicStr = topics ? ` Focus: ${topics.substring(0, 50)}.` : "";
+    const resumeStr = resumeContext
+      ? `\n\nCandidate context (tailor the problem to this specific candidate where relevant): ${resumeContext.substring(0, 1200)}`
+      : "";
 
     return `Generate 1 coding problem. Respond with STRICT, VALID JSON only — no markdown, no commentary.
 IMPORTANT JSON RULES:
@@ -251,7 +336,7 @@ IMPORTANT JSON RULES:
 - No trailing commas.
 - Do not include any text before or after the JSON object.
 
-Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}
+Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}${resumeStr}
 
 Design this as a LeetCode-style function problem, not a stdin/stdout
 program:
@@ -286,10 +371,13 @@ program:
   }
 
   static buildQuizPrompt(params) {
-    const { role, experience, skills, topics, difficulty, count } = params;
+    const { role, experience, skills, topics, difficulty, count, resumeContext } = params;
     const skillStr = skills.substring(0, 100);
     const topicStr = topics ? ` Focus: ${topics.substring(0, 50)}.` : "";
     const qCount = Math.min(count, 10);
+    const resumeStr = resumeContext
+      ? `\n\nCandidate context (tailor questions to this specific candidate where relevant): ${resumeContext.substring(0, 1200)}`
+      : "";
 
     return `Generate ${qCount} MCQ questions. Respond with STRICT, VALID JSON array only — no markdown, no commentary.
 IMPORTANT JSON RULES:
@@ -298,7 +386,7 @@ IMPORTANT JSON RULES:
 - No trailing commas.
 - Do not include any text before or after the JSON array.
 
-Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}
+Role: ${role} | Level: ${experience} | Skills: ${skillStr}${topicStr} | Difficulty: ${difficulty}${resumeStr}
 
 [
   {
@@ -506,7 +594,7 @@ async function processQueue() {
 
 export const generateQuestions = async (req, res) => {
   const userId = req.user?._id?.toString() || req.user?.clerkId || "anonymous";
-  const { type, role, experience, skills, topics, difficulty, count = 5 } = req.body;
+  const { type, role, experience, skills, topics, difficulty, count = 5, candidateId, jobId } = req.body;
 
   if (!type || !role || !experience || !skills || !difficulty) {
     return res.status(400).json({
@@ -527,7 +615,34 @@ export const generateQuestions = async (req, res) => {
 
   const safeCount = Math.min(Math.max(parseInt(count) || 5, 1), type === "quiz" ? 15 : 1);
 
-  const cacheKey = ResponseCache.generateKey({ type, role, experience, skills, topics, difficulty, count: safeCount });
+  // resumeContext is resolved fresh per-request (not part of the cache
+  // key inputs directly) — candidateId itself is what's included below,
+  // so two different candidates never collide even if their typed
+  // role/experience/skills/topics happen to match after auto-fill +
+  // manual edits.
+  let resumeContext = "";
+  if (candidateId) {
+    try {
+      const autofill = await buildCandidateAutofill(candidateId, jobId);
+      resumeContext = autofill?.resumeContext || "";
+    } catch (error) {
+      console.error("generateQuestions: failed to load candidate context:", error.message);
+    }
+  }
+
+  const cacheKey = ResponseCache.generateKey({
+    type,
+    role,
+    experience,
+    skills,
+    topics,
+    difficulty,
+    count: safeCount,
+    // Only present when this generation was tied to a specific
+    // candidate — keeps a plain manual generation's cache key
+    // unchanged from before.
+    ...(candidateId ? { candidateId } : {}),
+  });
 
   const cached = ResponseCache.get(cacheKey);
   if (cached) {
@@ -536,8 +651,8 @@ export const generateQuestions = async (req, res) => {
 
   const prompt =
     type === "problem"
-      ? PromptOptimizer.buildProblemPrompt({ role, experience, skills, topics, difficulty, count: safeCount })
-      : PromptOptimizer.buildQuizPrompt({ role, experience, skills, topics, difficulty, count: safeCount });
+      ? PromptOptimizer.buildProblemPrompt({ role, experience, skills, topics, difficulty, count: safeCount, resumeContext })
+      : PromptOptimizer.buildQuizPrompt({ role, experience, skills, topics, difficulty, count: safeCount, resumeContext });
 
   const promptTokens = TokenCounter.estimateTokens(prompt);
   const responseTokens = TokenCounter.estimateResponseTokens(type, safeCount);
@@ -608,6 +723,43 @@ export const generateQuestions = async (req, res) => {
 
   REQUEST_QUEUE.push(queueItem);
   processQueue();
+};
+
+// =======================================
+// Candidate Context (resume auto-fill)
+// =======================================
+// Used by the interviewer's "Auto-fill from candidate's resume" button
+// on the Generate Questions panel — returns the role/experience/skills
+///topics values derived from the candidate's profile (and, if provided,
+// the job's criteria/sample resume), which the interviewer can then
+// still freely edit before generating. See buildCandidateAutofill()
+// above for the actual derivation logic, which generateQuestions also
+// calls internally when a candidateId is passed.
+export const getCandidateContext = async (req, res) => {
+  try {
+    const { candidateId } = req.params;
+    const { jobId } = req.query;
+
+    const autofill = await buildCandidateAutofill(candidateId, jobId);
+
+    if (!autofill) {
+      return res.status(404).json({ success: false, message: "Candidate not found" });
+    }
+
+    const { resumeContext, ...formFields } = autofill;
+
+    return res.status(200).json({
+      success: true,
+      data: formFields,
+      hasResumeContext: Boolean(resumeContext),
+    });
+  } catch (error) {
+    console.error("getCandidateContext:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
 };
 
 export const clearCache = async (req, res) => {

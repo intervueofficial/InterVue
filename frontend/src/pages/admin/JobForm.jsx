@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Loader2, Plus, Trash2 } from "lucide-react";
+import { X, Loader2, Plus, Trash2, Upload, FileText, ExternalLink } from "lucide-react";
 
 const emptyJob = {
   title: "",
@@ -8,6 +8,7 @@ const emptyJob = {
   location: "Remote",
   employmentType: "Full-time",
   expectedResponseDays: 7,
+  sampleResumeNotes: "",
   criteria: {
     requiredDegrees: [],
     minExperience: 0,
@@ -16,20 +17,56 @@ const emptyJob = {
   },
 };
 
+const ALLOWED_RESUME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+const MAX_RESUME_BYTES = 10 * 1024 * 1024;
+
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
 const JobForm = ({ open, job, onCancel, onSubmit, loading }) => {
-  // Spread over emptyJob (not just `job || emptyJob`) so editing a job
-  // created before the department -> fieldOfStudy rename doesn't leave
-  // the input uncontrolled (undefined value) if that job doc predates
-  // the field.
-  const [form, setForm] = useState(job ? { ...emptyJob, ...job } : emptyJob);
+  const [form, setForm] = useState(job || emptyJob);
   const [degreeInput, setDegreeInput] = useState("");
   const [skillInput, setSkillInput] = useState("");
+  const [sampleFile, setSampleFile] = useState(null); // { dataUrl, fileName, name } | null
+  const [fileError, setFileError] = useState("");
 
   if (!open) return null;
 
   const update = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const updateCriteria = (field, value) =>
     setForm((f) => ({ ...f, criteria: { ...f.criteria, [field]: value } }));
+
+  const handleSampleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    setFileError("");
+    if (!file) return;
+
+    if (!ALLOWED_RESUME_TYPES.includes(file.type)) {
+      setFileError("Only PDF or Word documents are allowed.");
+      return;
+    }
+    if (file.size > MAX_RESUME_BYTES) {
+      setFileError("File is too large. Max 10MB.");
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setSampleFile({ dataUrl, fileName: file.name, name: file.name });
+    } catch {
+      setFileError("Couldn't read that file. Please try again.");
+    }
+  };
 
   const addTag = (field, value, setValue) => {
     if (!value.trim()) return;
@@ -90,10 +127,6 @@ const JobForm = ({ open, job, onCancel, onSubmit, loading }) => {
                 placeholder="e.g. Computer Science"
                 className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-slate-500 mt-1.5">
-                Matches the "Field of Study" candidates fill in their own profile — e.g.
-                "Computer Science", "Electronics", "Mechanical Engineering".
-              </p>
             </div>
             <div>
               <label className="text-sm font-semibold text-slate-700">Location</label>
@@ -239,6 +272,53 @@ const JobForm = ({ open, job, onCancel, onSubmit, loading }) => {
               className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          <div className="border-t pt-5">
+            <h3 className="font-bold text-slate-800 mb-1">Example Eligible Resume</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Optional. Upload an example of a strong resume for this role — useful as an
+              internal reference, and can be used to tailor AI-generated interview questions to
+              a specific candidate.
+            </p>
+
+            {job?.sampleEligibleResumeUrl && !sampleFile && (
+              <a
+                href={job.sampleEligibleResumeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mb-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-blue-600 hover:bg-slate-100 w-fit"
+              >
+                <FileText size={16} />
+                Current sample resume
+                <ExternalLink size={13} />
+              </a>
+            )}
+
+            <label className="flex items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 cursor-pointer hover:bg-slate-50 w-fit">
+              <Upload size={16} className="text-slate-500" />
+              <span className="text-sm text-slate-600">
+                {sampleFile ? sampleFile.name : "Upload example resume (PDF or Word)"}
+              </span>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleSampleFileChange}
+                className="hidden"
+              />
+            </label>
+            {fileError && <p className="text-xs text-red-600 mt-1.5">{fileError}</p>}
+
+            <label className="text-sm font-semibold text-slate-700 mt-4 block">
+              Notes about this example
+            </label>
+            <textarea
+              value={form.sampleResumeNotes || ""}
+              onChange={(e) => update("sampleResumeNotes", e.target.value)}
+              rows={2}
+              placeholder="e.g. Strong on system design, 4 YOE, led a small team"
+              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-4 border-t px-8 py-6">
@@ -251,7 +331,7 @@ const JobForm = ({ open, job, onCancel, onSubmit, loading }) => {
           </button>
           <button
             disabled={loading || !form.title.trim()}
-            onClick={() => onSubmit(form)}
+            onClick={() => onSubmit(form, sampleFile)}
             className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 disabled:opacity-50"
           >
             {loading ? (

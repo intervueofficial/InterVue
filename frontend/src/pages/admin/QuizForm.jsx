@@ -52,7 +52,7 @@ const optionVariants = {
   }),
 };
 
-const QuizForm = ({ quiz = null, onClose, onSuccess }) => {
+const QuizForm = ({ quiz = null, onClose, onSuccess, candidateId = null, jobId = null, candidateName = "" }) => {
   const { getToken } = useAuth();
   const editMode = !!quiz;
   const [loading, setLoading] = useState(false);
@@ -237,6 +237,9 @@ const QuizForm = ({ quiz = null, onClose, onSuccess }) => {
             type="quiz"
             onClose={handleCloseWizard}
             onApply={handleAIApply}
+            candidateId={candidateId}
+            jobId={jobId}
+            candidateName={candidateName}
           />
         )}
       </AnimatePresence>
