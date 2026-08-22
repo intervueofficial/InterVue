@@ -4,7 +4,7 @@ import Session from "../models/Session.js";
 import SessionViolation from "../models/SessionViolation.js";
 import { streamClient, chatClient } from "../lib/stream.js";
 import { checkEligibility } from "../utils/checkEligibility.js";
-import { sendSelectionEmail, sendRejectionEmail, sendHiredEmail, sendApplicationReceivedEmail } from "../lib/resend.js";
+import { sendSelectionEmail, sendRejectionEmail, sendHiredEmail, sendApplicationReceivedEmail, sendWaitlistEmail } from "../lib/resend.js";
 import { formatInterviewDateTime, isMeaningfullyFuture } from "../utils/formatInterviewDateTime.js";
 import { ENV } from "../lib/env.js";
 import { generatePerformanceSummary } from "../utils/generatePerformanceSummary.js";
@@ -441,7 +441,7 @@ async function generatePerformanceReport(application, feedback) {
 
 export async function submitDecision(req, res) {
   try {
-    const { decision, feedback } = req.body;
+    const { decision, feedback, waitDays } = req.body;
 
     if (!["hired", "rejected", "waitlisted"].includes(decision)) {
       return res.status(400).json({
@@ -491,10 +491,24 @@ export async function submitDecision(req, res) {
         jobTitle: application.job.title,
         feedback: feedback || "",
       });
+    } else if (decision === "waitlisted") {
+      // Unlike the pre-interview "application received" email, the
+      // wait window here is set by the interviewer at the moment they
+      // make this call (see the "How long should they wait?" input on
+      // SessionDecisionModal) — only they know how close a final
+      // decision actually is post-interview, so there's no sensible
+      // fixed default the way there is for the initial application.
+      try {
+        await sendWaitlistEmail({
+          to: application.candidate.email,
+          name: application.candidate.name,
+          jobTitle: application.job.title,
+          waitDays: waitDays ? `${waitDays} day${Number(waitDays) === 1 ? "" : "s"}` : undefined,
+        });
+      } catch (emailError) {
+        console.error("sendWaitlistEmail:", emailError.message);
+      }
     }
-    // "waitlisted" -> no email, no report generated yet — candidate just
-    // appears in the waitlist; a report is generated once a final
-    // hired/rejected decision is made for them later.
 
     return res.json({ success: true, application });
   } catch (error) {

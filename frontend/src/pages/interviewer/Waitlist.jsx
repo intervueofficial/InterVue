@@ -73,7 +73,7 @@ const Waitlist = () => {
 
   const decisionMutation = useMutation({
     mutationFn: async ({ id, decision, feedback }) =>
-      applicationApi.submitDecision(id, decision, feedback, await getToken()),
+      applicationApi.submitDecision(id, decision, feedback, undefined, await getToken()),
     onSuccess: (_, vars) => {
       toast.success(
         vars.decision === "hired"

@@ -21,7 +21,7 @@ const OPTIONS = [
   {
     key: "waitlisted",
     label: "Keep on Wait",
-    desc: "No email sent — decide later from the Waitlist.",
+    desc: "Sends the candidate a waiting-status email with your chosen timeframe.",
     icon: Clock,
     activeCls: "border-amber-500 bg-amber-50 text-amber-700",
     iconCls: "text-amber-600",
@@ -32,10 +32,14 @@ const OPTIONS = [
  * Shown right after an interviewer ends a session that's linked to
  * a job application. Lets them pick Select / Reject / Wait and
  * attach feedback, which (for select/reject) is emailed to the candidate.
+ * For "Keep on Wait", the interviewer also sets how many days the
+ * candidate should expect to wait — that number is entirely their
+ * call, since only they know how close a final decision actually is.
  */
 const SessionDecisionModal = ({ open, application, onSubmit, onSkip, loading }) => {
   const [decision, setDecision] = useState(null);
   const [feedback, setFeedback] = useState("");
+  const [waitDays, setWaitDays] = useState(5);
 
   if (!open || !application) return null;
 
@@ -95,6 +99,26 @@ const SessionDecisionModal = ({ open, application, onSubmit, onSkip, loading }) 
           />
         </div>
 
+        {decision === "waitlisted" && (
+          <div className="mt-4">
+            <label className="text-sm font-semibold text-slate-700">
+              How many days should they expect to wait?
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={90}
+              value={waitDays}
+              onChange={(e) => setWaitDays(Number(e.target.value))}
+              className="mt-1 w-32 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <p className="text-xs text-slate-500 mt-1.5">
+              The candidate gets an email now saying they're still under consideration,
+              with a decision expected within {waitDays || "—"} day{waitDays === 1 ? "" : "s"}.
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 flex justify-between gap-3">
           <button
             onClick={onSkip}
@@ -104,7 +128,7 @@ const SessionDecisionModal = ({ open, application, onSubmit, onSkip, loading }) 
             Decide later
           </button>
           <button
-            onClick={() => onSubmit(decision, feedback)}
+            onClick={() => onSubmit(decision, feedback, decision === "waitlisted" ? waitDays : undefined)}
             disabled={!decision || loading}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold disabled:opacity-40"
           >

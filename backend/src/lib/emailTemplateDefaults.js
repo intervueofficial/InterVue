@@ -52,6 +52,20 @@ Kind regards,
 InterVue Recruitment Team`,
   },
 
+  candidate_waitlisted: {
+    subject: "Application Update | {{jobTitle}} | InterVue",
+    body: `Dear {{candidateName}},
+
+Thank you for taking the time to interview for the position of {{jobTitle}}. We wanted to update you on where things stand.
+
+Your application is currently on our waitlist. This means we haven't made a final decision yet, but you remain under active consideration alongside other strong candidates. We expect to have an update for you within {{waitDays}}.
+
+We understand waiting can be uncertain, and we appreciate your patience. We'll be in touch as soon as a decision is made — there's nothing further you need to do in the meantime.
+
+Kind regards,
+InterVue Recruitment Team`,
+  },
+
   candidate_rejected: {
     subject: "Application Update | {{jobTitle}} | InterVue",
     body: `Dear {{candidateName}},
@@ -89,6 +103,7 @@ export const TEMPLATE_PLACEHOLDERS = {
   candidate_applied: ["candidateName", "jobTitle", "waitDays"],
   candidate_selected: ["candidateName", "jobTitle"],
   interview_reminder: ["candidateName", "jobTitle", "interviewDate", "interviewTime"],
+  candidate_waitlisted: ["candidateName", "jobTitle", "waitDays"],
   candidate_rejected: ["candidateName", "jobTitle"],
   candidate_hired: ["candidateName", "jobTitle"],
 };

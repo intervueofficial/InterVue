@@ -15,6 +15,7 @@ const emailTemplateSchema = new mongoose.Schema(
         "candidate_applied",
         "candidate_selected",
         "interview_reminder",
+        "candidate_waitlisted",
         "candidate_rejected",
         "candidate_hired",
       ],

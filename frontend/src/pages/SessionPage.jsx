@@ -269,11 +269,11 @@ function SessionPage() {
     }
   };
 
-  const handleDecisionSubmit = async (decision, feedback) => {
+  const handleDecisionSubmit = async (decision, feedback, waitDays) => {
     try {
       setSubmittingDecision(true);
       const token = await getToken();
-      await applicationApi.submitDecision(decisionApplication._id, decision, feedback, token);
+      await applicationApi.submitDecision(decisionApplication._id, decision, feedback, waitDays, token);
     } catch (err) {
       console.error("submitDecision:", err);
     } finally {

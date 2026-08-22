@@ -85,7 +85,7 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
     }
   };
 
-  const handleDecisionSubmit = async (decision, feedback) => {
+  const handleDecisionSubmit = async (decision, feedback, waitDays) => {
     try {
       setSubmittingDecision(true);
       const token = await getToken();
@@ -93,12 +93,13 @@ function VideoCallUI({ chatClient, channel, session, isHost }) {
         decisionApplication._id,
         decision,
         feedback,
+        waitDays,
         token
       );
 
       toast.success(
         decision === "waitlisted"
-          ? "Candidate moved to waitlist"
+          ? "Candidate moved to waitlist — waiting email sent"
           : "Decision recorded — email sent to candidate"
       );
     } catch (err) {

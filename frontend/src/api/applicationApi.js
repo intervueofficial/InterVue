@@ -56,10 +56,10 @@ export const applicationApi = {
     return data;
   },
 
-  submitDecision: async (applicationId, decision, feedback, token) => {
+  submitDecision: async (applicationId, decision, feedback, waitDays, token) => {
     const { data } = await axiosInstance.patch(
       `/applications/${applicationId}/decision`,
-      { decision, feedback },
+      { decision, feedback, waitDays },
       authHeader(token)
     );
     return data;
