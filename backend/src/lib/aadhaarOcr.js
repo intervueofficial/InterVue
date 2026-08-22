@@ -235,24 +235,30 @@ export async function extractAadhaarFields(dataUrl) {
     throw new Error("A captured image is required.");
   }
 
-  // First pass: Tesseract's default page segmentation (PSM 3, "fully
-  // automatic"), which works well for the multi-line name/DOB block.
-  let rawText = await runOcr(dataUrl);
+  // First pass: PSM 6 ("assume a single uniform block of text"),
+  // instead of Tesseract's default PSM 3 ("fully automatic page
+  // segmentation"). Tested head-to-head against real card photos: PSM
+  // 3's layout analysis tries to detect columns/blocks on the card's
+  // dense mix of photo, QR code, and bilingual text, and that guess is
+  // what was randomly truncating or corrupting the name (e.g. dropping
+  // the surname, or in one case substituting nearby noise for a whole
+  // word — see the capitalization fix above). PSM 6 skips that
+  // layout-guessing step and just reads the block top-to-bottom, which
+  // consistently captured the full name correctly in testing where PSM
+  // 3 did not.
+  let rawText = await runOcr(dataUrl, "6");
   let aadhaarCandidates = extractAadhaarCandidates(rawText);
 
   // The 12-digit Aadhaar number sits by itself at the bottom of the
-  // card, apart from any paragraph of text. PSM 3 assumes the page is
-  // organized into text blocks/columns, and in testing against real
-  // card photos it regularly skips that isolated number entirely,
-  // even when the rest of the card (name, DOB, gender) reads fine —
-  // which is exactly what was causing "Couldn't read an Aadhaar
-  // number from that photo" on perfectly legible photos. If the first
-  // pass didn't turn up a Verhoeff-valid number, retry with "sparse
-  // text" mode (PSM 11), which looks for text wherever it is on the
-  // page without assuming a paragraph layout — much better suited to
-  // an isolated digit string. We merge its output in rather than
-  // replace the first pass, since PSM 11 is in turn worse at grouping
-  // the multi-word name onto one line.
+  // card, apart from any paragraph of text, and even PSM 6 can still
+  // miss or mangle it. If neither pass above turned up a Verhoeff-valid
+  // number, retry with "sparse text" mode (PSM 11), which looks for
+  // text wherever it is on the page without assuming any block
+  // structure at all — much better suited to an isolated digit string,
+  // though in testing it was worse at grouping the multi-word name
+  // onto one line, which is why it's a fallback rather than the
+  // primary pass. We merge its output in rather than replace the first
+  // pass, so a good name reading from pass 1 is never thrown away.
   if (!aadhaarCandidates.some(isValidAadhaarChecksum)) {
     const sparseText = await runOcr(dataUrl, "11");
     rawText = `${rawText}\n${sparseText}`;
