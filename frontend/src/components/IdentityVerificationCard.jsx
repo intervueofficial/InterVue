@@ -25,6 +25,17 @@ const AADHAAR_CAMERA_CONSTRAINTS = {
   video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
 };
 
+// Four corner-bracket accents drawn over the card-guide box (the classic
+// "align document here" framing UI). Each entry says which two sides get
+// a border and which corner gets rounded, plus which edges to offset
+// negatively so the bracket sits just outside the guide box's own border.
+const CORNER_BRACKETS = [
+  { key: "tl", vSide: "top", hSide: "left", borderCls: "border-t-[3px] border-l-[3px]", roundedCls: "rounded-tl-lg" },
+  { key: "tr", vSide: "top", hSide: "right", borderCls: "border-t-[3px] border-r-[3px]", roundedCls: "rounded-tr-lg" },
+  { key: "bl", vSide: "bottom", hSide: "left", borderCls: "border-b-[3px] border-l-[3px]", roundedCls: "rounded-bl-lg" },
+  { key: "br", vSide: "bottom", hSide: "right", borderCls: "border-b-[3px] border-r-[3px]", roundedCls: "rounded-br-lg" },
+];
+
 function IdentityVerificationCard({ index = 0 }) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
@@ -33,11 +44,14 @@ function IdentityVerificationCard({ index = 0 }) {
   const [consentOpen, setConsentOpen] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [captured, setCaptured] = useState(null); // data URL of the captured frame
+  const [scanStatus, setScanStatus] = useState("positioning"); // "positioning" | "aligned" | "captured"
   const [extracted, setExtracted] = useState(null); // { name, dob, aadhaarNumber, aadhaarNumberValid }
   const [reviewOpen, setReviewOpen] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const scanCanvasRef = useRef(null); // small offscreen canvas used for the fit/alignment check
+  const scanIntervalRef = useRef(null);
 
   const { data } = useQuery({
     queryKey: ["identity-status"],
@@ -52,6 +66,120 @@ function IdentityVerificationCard({ index = 0 }) {
     streamRef.current = null;
   };
 
+  // ─── Auto-capture: "does a card actually fill the guide box" check ───
+  // True document-edge detection (finding the card's exact rectangle in
+  // frame) needs a real CV model — not something to fake. What we CAN do
+  // honestly and cheaply, scoped specifically to the guide-box region
+  // (not the whole frame): on every sampled tick, measure (1) how much
+  // detail/contrast is present in there — a blank table or empty hand
+  // reads as low-variance, while a printed card's text/photo/microprint
+  // reads as high-variance — and (2) how much it's changed since the
+  // last tick, so a mid-motion blur doesn't get captured. Once both say
+  // "yes, a card is filling this box and it's not moving," we fire —
+  // no artificial countdown, just a couple of confirming ticks (a few
+  // hundred ms) to rule out a one-frame fluke. Manual "Capture
+  // Manually" stays available as a fallback for unusual lighting where
+  // this heuristic doesn't settle.
+  const SCAN_SAMPLE_W = 96;
+  const SCAN_SAMPLE_H = 60;
+  const SCAN_INTERVAL_MS = 150;
+  const SCAN_MOTION_THRESHOLD = 10; // avg per-sample luminance delta considered "still"
+  const SCAN_CONTENT_VARIANCE_THRESHOLD = 380; // min luminance variance = "something detailed is in the box"
+  const SCAN_CONFIRM_TICKS = 3; // ~450ms of simultaneous fit + stillness before firing
+
+  // Guide box in sample-pixel coordinates — must stay in sync with the
+  // CSS guide box below (80% width, centered, 1.586 aspect ratio). If
+  // you resize the visual guide, update these to match.
+  const guideBoxRef = useRef(null);
+
+  const getGuideBox = () => {
+    if (guideBoxRef.current) return guideBoxRef.current;
+    const w = Math.round(SCAN_SAMPLE_W * 0.8);
+    const h = Math.round(w / 1.586);
+    const x = Math.round((SCAN_SAMPLE_W - w) / 2);
+    const y = Math.round((SCAN_SAMPLE_H - h) / 2);
+    guideBoxRef.current = { x, y, w, h };
+    return guideBoxRef.current;
+  };
+
+  const stopStabilityScan = () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+  };
+
+  const startStabilityScan = () => {
+    stopStabilityScan();
+    setScanStatus("positioning");
+
+    if (!scanCanvasRef.current) {
+      scanCanvasRef.current = document.createElement("canvas");
+      scanCanvasRef.current.width = SCAN_SAMPLE_W;
+      scanCanvasRef.current.height = SCAN_SAMPLE_H;
+    }
+    const ctx = scanCanvasRef.current.getContext("2d", { willReadFrequently: true });
+    const box = getGuideBox();
+
+    let prevBoxFrame = null; // just the guide-box pixels from the previous tick
+    let confirmTicks = 0;
+
+    scanIntervalRef.current = setInterval(() => {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2 || !video.videoWidth) return;
+
+      ctx.drawImage(video, 0, 0, SCAN_SAMPLE_W, SCAN_SAMPLE_H);
+      const full = ctx.getImageData(0, 0, SCAN_SAMPLE_W, SCAN_SAMPLE_H).data;
+
+      // Walk only the pixels inside the guide box (every 2nd row/col is
+      // plenty at this resolution) — this is what makes the check about
+      // "does the card fill THIS box," not "is anything happening
+      // anywhere in the camera feed."
+      let sum = 0;
+      let sumSq = 0;
+      let diffSum = 0;
+      let n = 0;
+      const boxFrame = prevBoxFrame ? new Uint8ClampedArray(box.w * box.h) : null;
+
+      for (let row = 0; row < box.h; row += 2) {
+        for (let col = 0; col < box.w; col += 2) {
+          const px = box.x + col;
+          const py = box.y + row;
+          const idx = (py * SCAN_SAMPLE_W + px) * 4;
+          const lum = full[idx]; // red channel as a cheap luminance proxy
+
+          sum += lum;
+          sumSq += lum * lum;
+          n += 1;
+
+          const boxIdx = row * box.w + col;
+          if (boxFrame) boxFrame[boxIdx] = lum;
+          if (prevBoxFrame) diffSum += Math.abs(lum - prevBoxFrame[boxIdx]);
+        }
+      }
+
+      const mean = sum / n;
+      const variance = sumSq / n - mean * mean;
+      const avgDiff = prevBoxFrame ? diffSum / n : Infinity;
+
+      const hasCardDetail = variance > SCAN_CONTENT_VARIANCE_THRESHOLD;
+      const isStill = avgDiff < SCAN_MOTION_THRESHOLD;
+      const looksReady = hasCardDetail && isStill;
+
+      setScanStatus(looksReady ? "aligned" : "positioning");
+      confirmTicks = looksReady ? confirmTicks + 1 : 0;
+
+      if (confirmTicks >= SCAN_CONFIRM_TICKS) {
+        stopStabilityScan();
+        setScanStatus("captured");
+        capturePhoto();
+        return;
+      }
+
+      prevBoxFrame = boxFrame;
+    }, SCAN_INTERVAL_MS);
+  };
+
   const openCamera = async () => {
     setCaptured(null);
     setExtracted(null);
@@ -60,6 +188,7 @@ function IdentityVerificationCard({ index = 0 }) {
       const stream = await navigator.mediaDevices.getUserMedia(AADHAAR_CAMERA_CONSTRAINTS);
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
+      startStabilityScan();
     } catch {
       toast.error("Couldn't access the camera. Please allow camera permission and try again.");
       setCameraOpen(false);
@@ -67,6 +196,7 @@ function IdentityVerificationCard({ index = 0 }) {
   };
 
   const closeCamera = () => {
+    stopStabilityScan();
     stopCamera();
     setCameraOpen(false);
     setCaptured(null);
@@ -82,11 +212,13 @@ function IdentityVerificationCard({ index = 0 }) {
     openCamera();
   };
 
-  useEffect(() => () => stopCamera(), []); // stop the stream if the page unmounts mid-capture
+  useEffect(() => () => { stopStabilityScan(); stopCamera(); }, []); // stop everything if the page unmounts mid-capture
 
   const capturePhoto = () => {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
+
+    stopStabilityScan();
 
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
@@ -104,6 +236,7 @@ function IdentityVerificationCard({ index = 0 }) {
       const stream = await navigator.mediaDevices.getUserMedia(AADHAAR_CAMERA_CONSTRAINTS);
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
+      startStabilityScan();
     } catch {
       toast.error("Couldn't access the camera.");
       setCameraOpen(false);
@@ -406,11 +539,90 @@ function IdentityVerificationCard({ index = 0 }) {
                   ) : (
                     <img src={captured} alt="Captured Aadhaar card" className="w-full h-full object-cover" />
                   )}
+
+                  {/* ─── Card-guide overlay: darkened surrounds, corner
+                      brackets, and an animated scan line, sized to the
+                      standard ID-1 card aspect ratio (~1.586:1) so the
+                      guide itself communicates exactly where to hold the
+                      Aadhaar card. ─── */}
+                  {!captured && cameraOpen && (
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div
+                        className="absolute rounded-xl overflow-hidden"
+                        style={{
+                          left: "50%",
+                          top: "50%",
+                          transform: "translate(-50%, -50%)",
+                          width: "80%",
+                          aspectRatio: "1.586",
+                          boxShadow: "0 0 0 2000px rgba(0,0,0,0.6)",
+                          border: `1.5px solid ${
+                            scanStatus === "aligned" ? THEME.success : "rgba(255,255,255,0.55)"
+                          }`,
+                          transition: "border-color 200ms ease",
+                        }}
+                      >
+                        {CORNER_BRACKETS.map((corner) => (
+                          <div
+                            key={corner.key}
+                            className={`absolute w-6 h-6 border-solid ${corner.borderCls} ${corner.roundedCls}`}
+                            style={{
+                              [corner.vSide]: -1.5,
+                              [corner.hSide]: -1.5,
+                              borderColor: scanStatus === "aligned" ? THEME.success : "#fff",
+                              transition: "border-color 200ms ease",
+                            }}
+                          />
+                        ))}
+
+                        {scanStatus !== "captured" && (
+                          <motion.div
+                            className="absolute left-0 right-0 h-[2px]"
+                            style={{
+                              background: `linear-gradient(90deg, transparent, ${
+                                scanStatus === "aligned" ? THEME.success : THEME.primary
+                              }, transparent)`,
+                              boxShadow: `0 0 10px ${
+                                scanStatus === "aligned" ? THEME.success : THEME.primary
+                              }`,
+                            }}
+                            animate={{ top: ["6%", "92%", "6%"] }}
+                            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <p className="text-xs mt-3" style={{ color: THEME.inkMuted }}>
-                  Place your Aadhaar card flat, well-lit, with no glare, filling the frame.
-                </p>
+                {!captured && cameraOpen && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <motion.span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: scanStatus === "aligned" ? THEME.success : THEME.inkFaint }}
+                      animate={
+                        scanStatus === "aligned"
+                          ? { scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }
+                          : { scale: 1, opacity: 0.5 }
+                      }
+                      transition={{ duration: 0.6, repeat: scanStatus === "aligned" ? Infinity : 0 }}
+                    />
+                    <p
+                      className="text-xs font-medium"
+                      style={{ color: scanStatus === "aligned" ? THEME.success : THEME.inkMuted }}
+                    >
+                      {scanStatus === "aligned"
+                        ? "Card detected — capturing…"
+                        : "Fit your Aadhaar card inside the frame, flat and well-lit."}
+                    </p>
+                  </div>
+                )}
+
+                {captured && (
+                  <p className="text-xs mt-3" style={{ color: THEME.inkMuted }}>
+                    Check the photo is sharp and fully readable before continuing.
+                  </p>
+                )}
 
                 <div className="mt-4 flex gap-2">
                   {!captured ? (
@@ -418,10 +630,10 @@ function IdentityVerificationCard({ index = 0 }) {
                       type="button"
                       onClick={capturePhoto}
                       className="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"
-                      style={{ background: THEME.ink, color: THEME.surface }}
+                      style={{ color: THEME.ink, border: `1px solid ${THEME.border}` }}
                     >
                       <Camera size={15} />
-                      Capture
+                      Capture Manually
                     </button>
                   ) : (
                     <>
