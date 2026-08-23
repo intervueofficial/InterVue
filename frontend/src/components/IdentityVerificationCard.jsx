@@ -220,11 +220,69 @@ function IdentityVerificationCard({ index = 0 }) {
 
     stopStabilityScan();
 
+    // Bug fix: this used to draw the ENTIRE camera frame (video.videoWidth
+    // x video.videoHeight — the full background, hands, desk, etc.) and
+    // hand that whole scene to Tesseract. The on-screen guide box only
+    // existed to drive the auto-capture stability check above; nothing
+    // ever cropped the actual captured photo down to it. So the printed
+    // Aadhaar text — the only part that matters — ended up as a small,
+    // low-detail region inside a mostly-irrelevant image, which is a
+    // rough starting point for OCR and a likely source of misread
+    // digits/characters.
+    //
+    // The video element is rendered with object-cover inside a 16:10
+    // box, so the visible guide-box rectangle (80% width, centered,
+    // 1.586 card aspect ratio — must stay in sync with the overlay
+    // markup above) has to be mapped through that same cover-scaling to
+    // land on the right pixels in the raw video frame, not just taken
+    // as a flat percentage of videoWidth/videoHeight.
+    const CONTAINER_ASPECT = 16 / 10;
+    const CARD_ASPECT = 1.586;
+    const GUIDE_WIDTH_FRAC = 0.8;
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const videoAspect = vw / vh;
+
+    let visibleW, visibleH, cropOffsetX, cropOffsetY;
+    if (videoAspect > CONTAINER_ASPECT) {
+      // Video is relatively wider than the 16:10 box — cover crops the sides.
+      visibleH = vh;
+      visibleW = vh * CONTAINER_ASPECT;
+      cropOffsetX = (vw - visibleW) / 2;
+      cropOffsetY = 0;
+    } else {
+      // Video is relatively taller/narrower — cover crops top and bottom.
+      visibleW = vw;
+      visibleH = vw / CONTAINER_ASPECT;
+      cropOffsetX = 0;
+      cropOffsetY = (vh - visibleH) / 2;
+    }
+
+    const guideWFrac = GUIDE_WIDTH_FRAC;
+    const guideHFrac = (GUIDE_WIDTH_FRAC * CONTAINER_ASPECT) / CARD_ASPECT;
+    const guideXFrac = (1 - guideWFrac) / 2;
+    const guideYFrac = (1 - guideHFrac) / 2;
+
+    const sx = cropOffsetX + guideXFrac * visibleW;
+    const sy = cropOffsetY + guideYFrac * visibleH;
+    const sw = guideWFrac * visibleW;
+    const sh = guideHFrac * visibleH;
+
+    // Upscale a bit on the way out — the cropped region is only ~80% of
+    // the frame width to begin with, and printed Aadhaar text is small;
+    // giving Tesseract more pixels per character measurably helps
+    // recognition, the same reasoning behind the 1920x1080 camera
+    // constraint above.
+    const UPSCALE = 1.5;
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    canvas.width = Math.round(sw * UPSCALE);
+    canvas.height = Math.round(sh * UPSCALE);
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
     setCaptured(dataUrl);
     stopCamera();
