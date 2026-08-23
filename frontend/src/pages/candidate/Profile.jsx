@@ -282,12 +282,14 @@ const Profile = () => {
   const isIdentityVerified = Boolean(authUser?.identityVerification?.verified);
 
   // Mirrors the backend's isComplete rule exactly (authController.js) —
-  // education fields, at least one skill, AND identity verification.
+  // education fields, at least one skill, a resume, AND identity
+  // verification.
   const requiredFields = [
     form.degree,
     form.fieldOfStudy,
     form.yearOfGraduation,
     form.skills.length > 0,
+    Boolean(form.resumeUrl),
     isIdentityVerified,
   ];
   const completedCount = requiredFields.filter(Boolean).length;
@@ -426,8 +428,8 @@ const Profile = () => {
                 border: `1px solid ${THEME.warningBorder}`,
               }}
             >
-              Add your degree, field of study, graduation year, at least one skill, and verify
-              your identity to be able to apply for jobs.
+              Add your degree, field of study, graduation year, at least one skill, your resume,
+              and verify your identity to be able to apply for jobs.
             </p>
           )}
         </motion.div>

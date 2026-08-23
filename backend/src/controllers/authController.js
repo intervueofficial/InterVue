@@ -204,6 +204,7 @@ export const uploadProfileResume = async (req, res) => {
       profile.fieldOfStudy &&
       profile.yearOfGraduation &&
       profile.skills?.length > 0 &&
+      profile.resumeUrl &&
       req.user.identityVerification?.verified
     );
 
@@ -258,6 +259,7 @@ export const updateCandidateProfile = async (req, res) => {
       profile.fieldOfStudy &&
       profile.yearOfGraduation &&
       profile.skills.length > 0 &&
+      profile.resumeUrl &&
       req.user.identityVerification?.verified
     );
 
