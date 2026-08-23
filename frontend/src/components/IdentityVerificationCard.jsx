@@ -3,7 +3,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { ShieldCheck, ShieldAlert, Loader2, Camera, X, RotateCcw, Check } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Loader2, Camera, X, RotateCcw, Check, Lock, EyeOff, Ban } from "lucide-react";
 
 import { identityApi } from "../api/auth";
 import { THEME } from "../constants/theme";
@@ -30,6 +30,8 @@ function IdentityVerificationCard({ index = 0 }) {
   const queryClient = useQueryClient();
 
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [consentOpen, setConsentOpen] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const [captured, setCaptured] = useState(null); // data URL of the captured frame
   const [extracted, setExtracted] = useState(null); // { name, dob, aadhaarNumber, aadhaarNumberValid }
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -68,6 +70,16 @@ function IdentityVerificationCard({ index = 0 }) {
     stopCamera();
     setCameraOpen(false);
     setCaptured(null);
+  };
+
+  const openConsent = () => {
+    setConsentChecked(false);
+    setConsentOpen(true);
+  };
+
+  const proceedFromConsent = () => {
+    setConsentOpen(false);
+    openCamera();
   };
 
   useEffect(() => () => stopCamera(), []); // stop the stream if the page unmounts mid-capture
@@ -206,7 +218,7 @@ function IdentityVerificationCard({ index = 0 }) {
           {!isVerified && (
             <button
               type="button"
-              onClick={openCamera}
+              onClick={openConsent}
               className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg whitespace-nowrap transition-colors"
               style={{ background: THEME.ink, color: THEME.surface }}
             >
@@ -216,6 +228,135 @@ function IdentityVerificationCard({ index = 0 }) {
           )}
         </div>
       </motion.div>
+
+      {/* ─── Data privacy consent, shown before requesting camera access ─── */}
+      <AnimatePresence>
+        {consentOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(23,23,31,0.7)" }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="w-full max-w-md rounded-xl overflow-hidden"
+              style={{ background: THEME.surface }}
+            >
+              <div
+                className="flex items-center justify-between px-5 py-4"
+                style={{ borderBottom: `1px solid ${THEME.border}` }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: THEME.surface2 }}
+                  >
+                    <Lock size={15} color={THEME.ink} />
+                  </div>
+                  <h3
+                    className="text-sm font-semibold"
+                    style={{ color: THEME.ink, fontFamily: THEME.fontDisplay }}
+                  >
+                    Before you scan your Aadhaar card
+                  </h3>
+                </div>
+                <button onClick={() => setConsentOpen(false)} style={{ color: THEME.inkMuted }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-5">
+                <p className="text-xs leading-relaxed" style={{ color: THEME.inkMuted }}>
+                  We're about to request access to your camera to scan your Aadhaar card
+                  for identity verification. Please review how this data is handled
+                  before continuing.
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{ background: THEME.successTint || "#ECFDF5" }}
+                    >
+                      <ShieldCheck size={13} color={THEME.success} />
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: THEME.ink }}>
+                      Your name, date of birth, and Aadhaar number are extracted from the
+                      photo and stored securely in our database, used only to verify your
+                      identity and prevent duplicate accounts.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{ background: THEME.successTint || "#ECFDF5" }}
+                    >
+                      <Ban size={13} color={THEME.success} />
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: THEME.ink }}>
+                      This information is kept strictly confidential and is never shared,
+                      sold, or exposed to any third-party application or service.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{ background: THEME.successTint || "#ECFDF5" }}
+                    >
+                      <EyeOff size={13} color={THEME.success} />
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: THEME.ink }}>
+                      Only a masked version of your Aadhaar number (last 4 digits) is
+                      ever shown elsewhere on the platform, including to interviewers
+                      and admins.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="flex items-start gap-2.5 mt-5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consentChecked}
+                    onChange={(e) => setConsentChecked(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span className="text-xs" style={{ color: THEME.ink }}>
+                    I have read the above and consent to InterVue capturing and storing
+                    my Aadhaar details for identity verification.
+                  </span>
+                </label>
+
+                <div className="flex gap-2 mt-5">
+                  <button
+                    type="button"
+                    onClick={() => setConsentOpen(false)}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium"
+                    style={{ color: THEME.ink, border: `1px solid ${THEME.border}` }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={proceedFromConsent}
+                    disabled={!consentChecked}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: THEME.ink, color: THEME.surface }}
+                  >
+                    <Camera size={14} />
+                    Agree & Open Camera
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Live camera capture modal ─────────────────────────────── */}
       <AnimatePresence>
