@@ -2,90 +2,81 @@
 
 ![InterVue Homepage](./frontend/public/homepage.png)
 
-
-InterVue is an AI-powered collaborative technical interview platform designed to help engineering teams conduct structured, scalable, and data-driven hiring processes.
-
-The platform combines real-time video communication, collaborative coding environments, automated candidate evaluation, and AI-assisted interview insights into a single unified experience.
+InterVue is an AI-powered hiring and technical interview platform. It combines job postings, applicant pipelines, live collaborative coding interviews, AI proctoring, automated candidate evaluation, and recruiter analytics into a single system for engineering teams.
 
 ---
 
 ## Overview
 
-Traditional technical interviews often require multiple disconnected tools for video calls, coding assessments, note-taking, candidate evaluation, and hiring decisions.
+Hiring engineers usually means stitching together a job board, a video-call tool, a separate coding-assessment tool, spreadsheets for tracking applicants, and manual note-taking for evaluation.
 
-InterVue solves this problem by providing a centralized interview workspace where interviewers and candidates can collaborate in real time while AI continuously assists with evaluation and monitoring.
+InterVue replaces that stack with one workspace: recruiters post jobs and manage a candidate pipeline, candidates apply and take quizzes/interviews, interviewers run live collaborative coding sessions with video, and AI assists with proctoring, scoring, and summarizing every interview.
 
 ---
 
 ## Key Features
 
+### Hiring & Applicant Tracking
+
+* Job posting and management
+* Candidate application intake and resume parsing
+* Candidate pipeline / stage tracking (recruiter Pipeline view)
+* Fit-score generation matching candidates to job criteria
+* Interviewer requests and waitlist management
+* Recruiter analytics dashboard (interview stats, hiring trends, session activity)
+
 ### Real-Time Collaborative Coding
 
-* Shared code editor for interviewer and candidate
-* Multi-language code execution
+* Shared Monaco-based code editor for interviewer and candidate
+* Multi-language code execution via an integrated judge
 * Live synchronization across participants
-* Interactive coding environment with instant feedback
+* Coding problem bank with problem management tools
+* Quiz module for non-coding technical assessment
+* Collaborative whiteboard (Excalidraw)
 
 ### Integrated Video Interviewing
 
-* High-quality video communication powered by Stream
-* Real-time participant management
+* Video communication powered by Stream Video
+* In-session chat powered by Stream Chat
 * Screen sharing support
-* Session recording capabilities
+* Session creation, joining, and history
 
 ### AI Proctoring Agent
 
-* Live face detection during interviews
-* Continuous candidate presence monitoring
-* Attention tracking system
-* Interview integrity monitoring
-* Real-time visual indicators for interviewers
-<<<<<<< HEAD
-=======
-
->>>>>>> 7b8b7da4259710acf57cd3bb0aa004b23c4ac54c
 ![TruthLens Demo](./frontend/public/demo.gif)
 
-### AI Interview Evaluation
+* Browser-based face detection during interviews (MediaPipe Face Mesh)
+* Continuous candidate presence and attention monitoring
+* Session violation logging
+* Real-time visual indicators for interviewers
 
-* Automated candidate assessment
-* Technical competency analysis
-* Communication quality evaluation
-* Performance scoring
-* Structured interview summaries
+### AI-Assisted Evaluation & Content Generation
 
-### AI Interview Summary Agent
+* Automated interview evaluation and performance scoring
+* AI-generated interview summaries (strengths, gaps, hiring recommendation) via OpenRouter
+* AI-assisted candidate autofill and job-matching helpers
+* Downloadable performance reports (PDF)
 
-Generates:
+### Identity Verification
 
-* Candidate strengths
-* Areas for improvement
-* Interview performance overview
-* Hiring recommendations
-* Recruiter-ready summaries
+* Aadhaar-based identity verification with OCR field extraction (Tesseract.js)
+* DigiLocker integration flow
+* Aadhaar checksum validation and duplicate-account detection
 
-### Session Management
+### Admin Console
 
-* Create interview sessions
-* Invite candidates
-* Join active sessions
-* End and archive interviews
-* Session history tracking
-
-### Recruiter Analytics
-
-* Interview statistics
-* Candidate performance insights
-* Hiring trends
-* Session activity monitoring
-* Data-driven decision support
+* User management and role-based access
+* Audit log of system actions
+* Billing and subscription management
+* Email template management (Resend)
+* System health monitoring
+* App-wide settings and maintenance mode
 
 ### Authentication & Security
 
-* Secure authentication powered by Clerk
-* Protected routes
-* Role-based access controls
-* Secure API communication
+* Authentication and session management via Clerk
+* Protected routes and role-based route guards
+* Subscription-gated feature access
 
 ---
 
@@ -93,178 +84,175 @@ Generates:
 
 ### Frontend
 
-* React
-* Vite
+* React 19 + Vite
 * React Router
-* Clerk Authentication
-* Stream Video SDK
+* Clerk (authentication)
+* Stream Video & Chat SDKs
+* Monaco Editor
+* Excalidraw
+* MediaPipe (face detection)
+* TanStack React Query
+* Tailwind CSS + daisyUI
 * Framer Motion
-* Lucide React
-* Axios
-* Tailwind CSS
+* Recharts
 
 ### Backend
 
-* Node.js
-* Express.js
-* MongoDB
-* Mongoose
-* Clerk Backend SDK
-* Inngest
-* Stream APIs
-
-### AI & Computer Vision
-
-* MediaPipe Face Mesh
-* TensorFlow.js
-* Browser-based AI Processing
-* Real-Time Face Tracking
-* Attention Detection System
+* Node.js + Express 5
+* MongoDB + Mongoose
+* Clerk (Express SDK)
+* Inngest (background jobs / event workflows)
+* Stream (video & chat server SDKs)
+* OpenRouter (AI evaluation, summaries, content generation)
+* Tesseract.js (Aadhaar OCR)
+* Cloudinary (media storage)
+* Resend (transactional email)
+* PDFKit (report generation)
 
 ### Deployment
 
-* Vercel (Frontend)
-* Render / Railway / VPS (Backend)
+* Vercel (frontend) — see `frontend/vercel.json`
+* Node hosting of your choice for the backend (Render / Railway / VPS)
 * MongoDB Atlas
-* Clerk Authentication Platform
-* Stream Video Infrastructure
+* Clerk, Stream, Cloudinary, Resend, and OpenRouter as managed services
 
 ---
 
-# Architecture
+## Architecture
 
 ```text
 Frontend (React + Vite)
         |
-        |
         v
 Backend (Node.js + Express)
         |
-        |
-        +---- MongoDB Atlas
+        +---- MongoDB (Mongoose)
         |
         +---- Clerk Authentication
         |
-        +---- Stream Video Services
+        +---- Stream Video / Chat
         |
-        +---- AI Evaluation Services
+        +---- OpenRouter (AI evaluation & generation)
+        |
+        +---- Cloudinary (media)
+        |
+        +---- Resend (email)
+        |
+        +---- Inngest (background workflows)
 ```
 
 ---
 
-# Environment Variables
+## Environment Variables
 
-## Frontend (.env)
+These are the variables actually read by the code (`backend/src/lib/env.js` and direct `process.env` usage, plus the frontend's `import.meta.env` calls). Add Clerk keys as required by `@clerk/express` / `@clerk/clerk-react` even though they aren't listed in the backend's central `ENV` object.
+
+### Frontend (`frontend/.env`)
 
 ```env
 VITE_CLERK_PUBLISHABLE_KEY=
-
-VITE_API_BASE_URL=
-
+VITE_API_URL=
 VITE_STREAM_API_KEY=
 ```
 
----
-
-## Backend (.env)
+### Backend (`backend/.env`)
 
 ```env
-PORT=3000
-
+PORT=
+DB_URL=
 NODE_ENV=development
 
-MONGODB_URI=
+CLIENT_URL=
 
 CLERK_SECRET_KEY=
 
-STREAM_API_KEY=
+JWT_SECRET=
 
+STREAM_API_KEY=
 STREAM_API_SECRET=
 
-OPENAI_API_KEY=
+INNGEST_EVENT_KEY=
+INNGEST_SIGNING_KEY=
+
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+RESEND_REPLY_TO=
+
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+OPENROUTER_API_KEY=
+OPENROUTER_PRIMARY_MODEL=
+OPENROUTER_FALLBACK_MODELS=
+
+ADMIN_EMAIL=
 ```
 
 ---
 
-# Installation
+## Installation
 
-## Clone Repository
+### Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/intervue.git
-
-cd intervue
+git clone <your-repository-url>
+cd InterVue-InterVuePro
 ```
 
----
-
-## Install Frontend
+### Install dependencies
 
 ```bash
-cd frontend
+# from the project root, installs both frontend and backend
+npm run build
+```
 
-npm install
+Or install each workspace individually:
+
+```bash
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
 ---
 
-## Install Backend
+## Running Locally
+
+### Start the backend
 
 ```bash
 cd backend
-
-npm install
-```
-
----
-
-# Running Locally
-
-## Start Backend
-
-```bash
-cd backend
-
 npm run dev
 ```
 
----
-
-## Start Frontend
+### Start the frontend
 
 ```bash
 cd frontend
-
 npm run dev
 ```
 
-Frontend:
-
-```text
-http://localhost:5173
-```
-
-Backend:
-
-```text
-http://localhost:3000
-```
-
+* Frontend: `http://localhost:5173`
+* Backend: value of `PORT` in `backend/.env`
 
 ---
 
-# Why InterVue
+## Why InterVue
 
-InterVue was built to eliminate fragmented interview workflows and provide engineering teams with a single platform for conducting, evaluating, and improving technical interviews.
-
-By combining collaborative coding, live communication, AI-powered monitoring, and automated evaluation, InterVue helps organizations make faster and more informed hiring decisions.
+InterVue was built to remove the fragmentation in technical hiring — separate tools for job postings, applicant tracking, video calls, coding assessments, identity checks, and evaluation. By bringing all of it into one platform with AI-assisted proctoring and scoring, InterVue helps hiring teams move faster and make more consistent decisions.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+InterVue is **proprietary, source-available software** — it is **not open source**. The source is provided for viewing, evaluation, and educational purposes only.
+
+Without a separate written commercial agreement, you may **not** use, modify, host, deploy, redistribute, or build derivative or competing products from this codebase, including for commercial or production purposes.
+
+See [`LICENSE`](./LICENSE) for the full terms (InterVue Proprietary Source-Available License v1.0). For commercial licensing or deployment inquiries, contact the copyright holder.
+
+> **Note:** The `LICENSE` file attributes copyright to **Blue Horizon**. If this project is actually owned by a different entity (e.g. AlphaWare Private Limited), update the copyright holder name in `LICENSE` accordingly so the two stay consistent.
 
 ---
 
-Developed for AlphaWare Private Limited.
+Developed by Blue Horizon.
